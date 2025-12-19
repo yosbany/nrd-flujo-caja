@@ -838,38 +838,44 @@ async function generateDailyReport(reportDate) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
-    let yPos = 12;
+    // A4 dimensions: 210mm x 297mm = 595.28 x 841.89 points
+    const pageWidth = 595.28;
+    const pageHeight = 841.89;
+    const margin = 10;
+    const maxY = pageHeight - margin;
     
-    // Title - more compact
-    doc.setFontSize(14);
-    doc.text('Cierre Diario', 105, yPos, { align: 'center' });
-    yPos += 6;
+    let yPos = margin + 5;
     
-    // Date - more compact
-    doc.setFontSize(10);
+    // Title - compact
+    doc.setFontSize(12);
+    doc.text('Cierre Diario', pageWidth / 2, yPos, { align: 'center' });
+    yPos += 5;
+    
+    // Date - compact
+    doc.setFontSize(9);
     const dateStr = formatDate24h(reportDate);
-    doc.text(dateStr, 105, yPos, { align: 'center' });
-    yPos += 8;
-    
-    // Account Summary Table - more compact
-    doc.setFontSize(11);
-    doc.text('Resumen de Cuentas', 14, yPos);
+    doc.text(dateStr, pageWidth / 2, yPos, { align: 'center' });
     yPos += 6;
     
-    doc.setFontSize(8);
+    // Account Summary Table - compact
+    doc.setFontSize(10);
+    doc.text('Resumen de Cuentas', margin, yPos);
+    yPos += 5;
+    
+    doc.setFontSize(7);
     const tableHeaders = ['Nombre de Cuenta', 'Saldo Inicial', 'Saldo Final', 'Diferencia'];
-    const colWidths = [70, 40, 40, 40];
-    const startX = 14;
-    const headerHeight = 6;
+    const colWidths = [75, 38, 38, 38];
+    const startX = margin;
+    const headerHeight = 5;
     const tableWidth = colWidths.reduce((a, b) => a + b, 0);
     
     // Draw header background
     doc.setFillColor(220, 220, 220);
-    doc.rect(startX, yPos - 4, tableWidth, headerHeight, 'F');
+    doc.rect(startX, yPos - 3.5, tableWidth, headerHeight, 'F');
     
     // Draw header border
     doc.setDrawColor(0, 0, 0);
-    doc.rect(startX, yPos - 4, tableWidth, headerHeight);
+    doc.rect(startX, yPos - 3.5, tableWidth, headerHeight);
     
     let xPos = startX;
     
@@ -879,7 +885,7 @@ async function generateDailyReport(reportDate) {
       doc.text(header, xPos + 1, yPos);
       // Vertical line between columns
       if (i < tableHeaders.length - 1) {
-        doc.line(xPos + colWidths[i], yPos - 4, xPos + colWidths[i], yPos - 4 + headerHeight);
+        doc.line(xPos + colWidths[i], yPos - 3.5, xPos + colWidths[i], yPos - 3.5 + headerHeight);
       }
       xPos += colWidths[i];
     });
@@ -896,12 +902,11 @@ async function generateDailyReport(reportDate) {
         formatNumber(acc.diferencia)
       ];
       
-      let maxHeight = 5; // Reduced default row height
+      let maxHeight = 4; // Compact row height
       row.forEach((cell, i) => {
         const cellText = String(cell);
-        // Use more padding for text wrapping
-        const lines = doc.splitTextToSize(cellText, colWidths[i] - 3);
-        const cellHeight = lines.length * 4;
+        const lines = doc.splitTextToSize(cellText, colWidths[i] - 2);
+        const cellHeight = lines.length * 3.5;
         if (cellHeight > maxHeight) {
           maxHeight = cellHeight;
         }
@@ -913,12 +918,11 @@ async function generateDailyReport(reportDate) {
       // Draw row cells with borders
       row.forEach((cell, i) => {
         const cellText = String(cell);
-        // Use more padding for text wrapping
-        const lines = doc.splitTextToSize(cellText, colWidths[i] - 3);
-        let lineY = yPos - maxHeight + 4;
+        const lines = doc.splitTextToSize(cellText, colWidths[i] - 2);
+        let lineY = yPos - maxHeight + 3.5;
         lines.forEach((line) => {
-          doc.text(line, xPos + 2, lineY);
-          lineY += 4;
+          doc.text(line, xPos + 1, lineY);
+          lineY += 3.5;
         });
         // Vertical line between columns
         if (i < row.length - 1) {
@@ -930,33 +934,33 @@ async function generateDailyReport(reportDate) {
       // Draw bottom border of row
       doc.line(startX, yPos, startX + tableWidth, yPos);
       
-      yPos += 1; // Small spacing between rows
-      if (yPos > 280) {
+      yPos += 0.5; // Minimal spacing between rows
+      if (yPos > maxY - 50) {
         doc.addPage();
-        yPos = 12;
+        yPos = margin + 5;
       }
     });
     
-    yPos += 6;
+    yPos += 4;
     
-    // Transactions Table - more compact
-    doc.setFontSize(11);
-    doc.text('Movimientos', 14, yPos);
-    yPos += 6;
+    // Transactions Table - compact
+    doc.setFontSize(10);
+    doc.text('Movimientos', margin, yPos);
+    yPos += 5;
     
-    doc.setFontSize(7);
+    doc.setFontSize(6.5);
     const transHeaders = ['Fecha', 'Categoría', 'Cuenta', 'Descripción', '$ Monto'];
-    const transColWidths = [25, 50, 35, 55, 30];
-    const transHeaderHeight = 6;
+    const transColWidths = [22, 48, 32, 52, 28];
+    const transHeaderHeight = 5;
     const transTableWidth = transColWidths.reduce((a, b) => a + b, 0);
     
     // Draw header background
     doc.setFillColor(220, 220, 220);
-    doc.rect(startX, yPos - 4, transTableWidth, transHeaderHeight, 'F');
+    doc.rect(startX, yPos - 3.5, transTableWidth, transHeaderHeight, 'F');
     
     // Draw header border
     doc.setDrawColor(0, 0, 0);
-    doc.rect(startX, yPos - 4, transTableWidth, transHeaderHeight);
+    doc.rect(startX, yPos - 3.5, transTableWidth, transHeaderHeight);
     
     // Headers with borders
     doc.setFont(undefined, 'bold');
@@ -965,7 +969,7 @@ async function generateDailyReport(reportDate) {
       doc.text(header, xPos + 1, yPos);
       // Vertical line between columns
       if (i < transHeaders.length - 1) {
-        doc.line(xPos + transColWidths[i], yPos - 4, xPos + transColWidths[i], yPos - 4 + transHeaderHeight);
+        doc.line(xPos + transColWidths[i], yPos - 3.5, xPos + transColWidths[i], yPos - 3.5 + transHeaderHeight);
       }
       xPos += transColWidths[i];
     });
@@ -978,20 +982,20 @@ async function generateDailyReport(reportDate) {
       const dateB = b.date || b.createdAt;
       return dateA - dateB;
     }).forEach(transaction => {
-      if (yPos > 280) {
+      if (yPos > maxY - 30) {
         doc.addPage();
-        yPos = 12;
+        yPos = margin + 5;
         // Redraw headers on new page
         doc.setFillColor(220, 220, 220);
-        doc.rect(startX, yPos - 4, transTableWidth, transHeaderHeight, 'F');
+        doc.rect(startX, yPos - 3.5, transTableWidth, transHeaderHeight, 'F');
         doc.setDrawColor(0, 0, 0);
-        doc.rect(startX, yPos - 4, transTableWidth, transHeaderHeight);
+        doc.rect(startX, yPos - 3.5, transTableWidth, transHeaderHeight);
         doc.setFont(undefined, 'bold');
         xPos = startX;
         transHeaders.forEach((header, i) => {
           doc.text(header, xPos + 1, yPos);
           if (i < transHeaders.length - 1) {
-            doc.line(xPos + transColWidths[i], yPos - 4, xPos + transColWidths[i], yPos - 4 + transHeaderHeight);
+            doc.line(xPos + transColWidths[i], yPos - 3.5, xPos + transColWidths[i], yPos - 3.5 + transHeaderHeight);
           }
           xPos += transColWidths[i];
         });
@@ -1009,13 +1013,12 @@ async function generateDailyReport(reportDate) {
       
       const transData = [dateStr, category, accountName, description, amountStr];
       
-      // Calculate max height for this row - more compact
-      let maxHeight = 5;
+      // Calculate max height for this row - compact
+      let maxHeight = 4;
       transData.forEach((cell, i) => {
         const cellText = String(cell);
-        // Use more padding for text wrapping
-        const lines = doc.splitTextToSize(cellText, transColWidths[i] - 3);
-        const cellHeight = lines.length * 3.5;
+        const lines = doc.splitTextToSize(cellText, transColWidths[i] - 2);
+        const cellHeight = lines.length * 3;
         if (cellHeight > maxHeight) {
           maxHeight = cellHeight;
         }
@@ -1028,12 +1031,11 @@ async function generateDailyReport(reportDate) {
       xPos = startX;
       transData.forEach((cell, i) => {
         const cellText = String(cell);
-        // Use more padding for text wrapping
-        const lines = doc.splitTextToSize(cellText, transColWidths[i] - 3);
-        let lineY = yPos - maxHeight + 3.5;
+        const lines = doc.splitTextToSize(cellText, transColWidths[i] - 2);
+        let lineY = yPos - maxHeight + 3;
         lines.forEach((line) => {
-          doc.text(line, xPos + 2, lineY);
-          lineY += 3.5;
+          doc.text(line, xPos + 1, lineY);
+          lineY += 3;
         });
         // Vertical line between columns
         if (i < transData.length - 1) {
@@ -1045,21 +1047,21 @@ async function generateDailyReport(reportDate) {
       // Draw bottom border of row
       doc.line(startX, yPos, startX + transTableWidth, yPos);
       
-      yPos += 1; // Small spacing between rows
+      yPos += 0.5; // Minimal spacing between rows
     });
     
-    yPos += 8;
+    yPos += 5;
     
     // Footer
-    if (yPos > 275) {
+    if (yPos > maxY - 20) {
       doc.addPage();
-      yPos = 12;
+      yPos = margin + 5;
     }
     
     doc.setFont(undefined, 'normal');
-    doc.setFontSize(10);
-    doc.text('Firma del Responsable', 14, yPos);
-    doc.line(14, yPos + 3, 80, yPos + 3);
+    doc.setFontSize(9);
+    doc.text('Firma del Responsable', margin, yPos);
+    doc.line(margin, yPos + 3, margin + 66, yPos + 3);
     
     // Save PDF
     const fileName = `cierre-${reportDate.getFullYear()}-${String(reportDate.getMonth() + 1).padStart(2, '0')}-${String(reportDate.getDate()).padStart(2, '0')}.pdf`;
