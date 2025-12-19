@@ -7,7 +7,7 @@
   <title>NRD Flujo de Caja</title>
   <link rel="manifest" href="manifest.json">
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="styles.css?v=1766183812732">
+  <link rel="stylesheet" href="styles.css?v=1766184388570">
   <meta name="theme-color" content="#dc2626">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/svg+xml" href="icon-192.svg">
@@ -108,6 +108,30 @@
     <main class="flex-1 p-3 sm:p-4 md:p-6 overflow-y-auto max-w-6xl mx-auto w-full">
       <!-- Cashflow View -->
       <div id="cashflow-view" class="view space-y-3 sm:space-y-4">
+        <!-- Period Filter -->
+        <div id="period-filter-container" class="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4 flex-wrap">
+          <button id="filter-today-btn" 
+            class="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 hover:text-red-600 hover:border-red-600 border border-gray-300 transition-colors uppercase tracking-wider">
+            Hoy
+          </button>
+          <button id="filter-week-btn" 
+            class="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 hover:text-red-600 hover:border-red-600 border border-gray-300 transition-colors uppercase tracking-wider">
+            Esta Semana
+          </button>
+          <button id="filter-month-btn" 
+            class="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 hover:text-red-600 hover:border-red-600 border border-gray-300 transition-colors uppercase tracking-wider">
+            Este Mes
+          </button>
+          <button id="filter-year-btn" 
+            class="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 hover:text-red-600 hover:border-red-600 border border-gray-300 transition-colors uppercase tracking-wider">
+            Este Año
+          </button>
+          <button id="filter-all-btn" 
+            class="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 hover:text-red-600 hover:border-red-600 border border-gray-300 transition-colors uppercase tracking-wider">
+            Todos
+          </button>
+        </div>
+        
         <!-- Balance Summary -->
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
           <div class="border border-gray-200 p-4 sm:p-6 bg-green-50">
@@ -140,30 +164,6 @@
             <button id="close-expenses-drilldown" class="text-gray-500 hover:text-red-600 text-xl">&times;</button>
           </div>
           <div id="expenses-drilldown-content" class="space-y-2"></div>
-        </div>
-        
-        <!-- Period Filter -->
-        <div id="period-filter-container" class="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4 flex-wrap">
-          <button id="filter-today-btn" 
-            class="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 hover:text-red-600 hover:border-red-600 border border-gray-300 transition-colors uppercase tracking-wider">
-            Hoy
-          </button>
-          <button id="filter-week-btn" 
-            class="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 hover:text-red-600 hover:border-red-600 border border-gray-300 transition-colors uppercase tracking-wider">
-            Esta Semana
-          </button>
-          <button id="filter-month-btn" 
-            class="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 hover:text-red-600 hover:border-red-600 border border-gray-300 transition-colors uppercase tracking-wider">
-            Este Mes
-          </button>
-          <button id="filter-year-btn" 
-            class="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 hover:text-red-600 hover:border-red-600 border border-gray-300 transition-colors uppercase tracking-wider">
-            Este Año
-          </button>
-          <button id="filter-all-btn" 
-            class="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 hover:text-red-600 hover:border-red-600 border border-gray-300 transition-colors uppercase tracking-wider">
-            Todos
-          </button>
         </div>
 
       </div>
@@ -528,16 +528,16 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   
   <!-- App Scripts -->
-  <script src="firebase.js?v=1766183812732"></script>
-  <script src="modal.js?v=1766183812732"></script>
-  <script src="auth.js?v=1766183812732"></script>
-  <script src="db.js?v=1766183812732"></script>
-  <script src="categories.js?v=1766183812732"></script>
-  <script src="transactions.js?v=1766183812732"></script>
-  <script src="cashflow.js?v=1766183812732"></script>
-  <script src="accounts.js?v=1766183812732"></script>
-  <script src="analysis.js?v=1766183812732"></script>
-  <script src="app.js?v=1766183812732"></script>
+  <script src="firebase.js?v=1766184388570"></script>
+  <script src="modal.js?v=1766184388570"></script>
+  <script src="auth.js?v=1766184388570"></script>
+  <script src="db.js?v=1766184388570"></script>
+  <script src="categories.js?v=1766184388570"></script>
+  <script src="transactions.js?v=1766184388570"></script>
+  <script src="cashflow.js?v=1766184388570"></script>
+  <script src="accounts.js?v=1766184388570"></script>
+  <script src="analysis.js?v=1766184388570"></script>
+  <script src="app.js?v=1766184388570"></script>
 
   <script>
     // Global error handler
@@ -588,7 +588,7 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         // Register service worker without version parameter
-        navigator.serviceWorker.register('service-worker.js?v=1766183812732')
+        navigator.serviceWorker.register('service-worker.js?v=1766184388570')
           .then(reg => {
             console.log('Service Worker registered');
             
