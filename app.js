@@ -100,8 +100,17 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
 // Initialize app
 auth.onAuthStateChanged((user) => {
   if (user) {
-    // Default to accounts view
-    switchView('accounts');
+    // Wait for DOM to be ready before switching views
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        // Default to cashflow view
+        switchView('cashflow');
+      });
+    } else {
+      // DOM is already ready
+      // Default to cashflow view
+      switchView('cashflow');
+    }
   }
 });
 
