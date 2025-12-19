@@ -899,7 +899,8 @@ async function generateDailyReport(reportDate) {
       let maxHeight = 5; // Reduced default row height
       row.forEach((cell, i) => {
         const cellText = String(cell);
-        const lines = doc.splitTextToSize(cellText, colWidths[i] - 2);
+        // Use more padding for text wrapping
+        const lines = doc.splitTextToSize(cellText, colWidths[i] - 3);
         const cellHeight = lines.length * 4;
         if (cellHeight > maxHeight) {
           maxHeight = cellHeight;
@@ -912,10 +913,11 @@ async function generateDailyReport(reportDate) {
       // Draw row cells with borders
       row.forEach((cell, i) => {
         const cellText = String(cell);
-        const lines = doc.splitTextToSize(cellText, colWidths[i] - 2);
+        // Use more padding for text wrapping
+        const lines = doc.splitTextToSize(cellText, colWidths[i] - 3);
         let lineY = yPos - maxHeight + 4;
         lines.forEach((line) => {
-          doc.text(line, xPos + 1, lineY);
+          doc.text(line, xPos + 2, lineY);
           lineY += 4;
         });
         // Vertical line between columns
@@ -944,7 +946,7 @@ async function generateDailyReport(reportDate) {
     
     doc.setFontSize(7);
     const transHeaders = ['Fecha', 'Categoría', 'Cuenta', 'Descripción', '$ Monto'];
-    const transColWidths = [25, 40, 40, 60, 30];
+    const transColWidths = [25, 50, 35, 55, 30];
     const transHeaderHeight = 6;
     const transTableWidth = transColWidths.reduce((a, b) => a + b, 0);
     
@@ -1011,7 +1013,8 @@ async function generateDailyReport(reportDate) {
       let maxHeight = 5;
       transData.forEach((cell, i) => {
         const cellText = String(cell);
-        const lines = doc.splitTextToSize(cellText, transColWidths[i] - 2);
+        // Use more padding for text wrapping
+        const lines = doc.splitTextToSize(cellText, transColWidths[i] - 3);
         const cellHeight = lines.length * 3.5;
         if (cellHeight > maxHeight) {
           maxHeight = cellHeight;
@@ -1025,10 +1028,11 @@ async function generateDailyReport(reportDate) {
       xPos = startX;
       transData.forEach((cell, i) => {
         const cellText = String(cell);
-        const lines = doc.splitTextToSize(cellText, transColWidths[i] - 2);
+        // Use more padding for text wrapping
+        const lines = doc.splitTextToSize(cellText, transColWidths[i] - 3);
         let lineY = yPos - maxHeight + 3.5;
         lines.forEach((line) => {
-          doc.text(line, xPos + 1, lineY);
+          doc.text(line, xPos + 2, lineY);
           lineY += 3.5;
         });
         // Vertical line between columns
