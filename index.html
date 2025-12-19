@@ -7,7 +7,7 @@
   <title>NRD Flujo de Caja</title>
   <link rel="manifest" href="manifest.json">
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="styles.css?v=1766179803305">
+  <link rel="stylesheet" href="styles.css?v=1766180488152">
   <meta name="theme-color" content="#dc2626">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/svg+xml" href="icon-192.svg">
@@ -164,6 +164,10 @@
               class="w-full sm:w-auto px-4 sm:px-6 py-2 bg-red-600 text-white border border-red-600 hover:bg-red-700 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
               Nuevo Egreso
             </button>
+            <button id="report-btn" 
+              class="w-full sm:w-auto px-4 sm:px-6 py-2 bg-blue-600 text-white border border-blue-600 hover:bg-blue-700 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
+              Reporte por Día
+            </button>
           </div>
         </div>
         
@@ -269,6 +273,31 @@
               Eliminar
             </button>
           </div>
+        </div>
+
+        <!-- Report Date Modal -->
+        <div id="report-date-modal" class="border border-gray-200 p-3 sm:p-4 md:p-6 mt-3 sm:mt-4 hidden">
+          <div class="flex items-center justify-between mb-3 sm:mb-4">
+            <h3 class="text-lg sm:text-xl font-light tracking-tight">Reporte por Día</h3>
+            <button id="close-report-modal" class="text-gray-400 hover:text-red-600 text-xl font-light">×</button>
+          </div>
+          <form id="report-date-form">
+            <div class="mb-4 sm:mb-6">
+              <label class="block mb-1.5 sm:mb-2 text-xs uppercase tracking-wider text-gray-600">Fecha del Reporte</label>
+              <input type="date" id="report-date" required 
+                class="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-red-600 bg-white text-sm sm:text-base rounded">
+            </div>
+            <div class="flex flex-col sm:flex-row gap-2 sm:gap-4 pt-4 sm:pt-6 border-t border-gray-200">
+              <button type="submit" 
+                class="flex-1 px-4 sm:px-6 py-2 bg-blue-600 text-white border border-blue-600 hover:bg-blue-700 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
+                Generar Reporte
+              </button>
+              <button type="button" id="cancel-report-btn" 
+                class="flex-1 px-4 sm:px-6 py-2 border border-gray-300 hover:border-red-600 hover:text-red-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
+                Cancelar
+              </button>
+            </div>
+          </form>
         </div>
       </div>
 
@@ -450,16 +479,16 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   
   <!-- App Scripts -->
-  <script src="firebase.js?v=1766179803305"></script>
-  <script src="modal.js?v=1766179803305"></script>
-  <script src="auth.js?v=1766179803305"></script>
-  <script src="db.js?v=1766179803305"></script>
-  <script src="categories.js?v=1766179803305"></script>
-  <script src="transactions.js?v=1766179803305"></script>
-  <script src="cashflow.js?v=1766179803305"></script>
-  <script src="accounts.js?v=1766179803305"></script>
-  <script src="analysis.js?v=1766179803305"></script>
-  <script src="app.js?v=1766179803305"></script>
+  <script src="firebase.js?v=1766180488152"></script>
+  <script src="modal.js?v=1766180488152"></script>
+  <script src="auth.js?v=1766180488152"></script>
+  <script src="db.js?v=1766180488152"></script>
+  <script src="categories.js?v=1766180488152"></script>
+  <script src="transactions.js?v=1766180488152"></script>
+  <script src="cashflow.js?v=1766180488152"></script>
+  <script src="accounts.js?v=1766180488152"></script>
+  <script src="analysis.js?v=1766180488152"></script>
+  <script src="app.js?v=1766180488152"></script>
 
   <script>
     // Global error handler
@@ -510,7 +539,7 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         // Register service worker without version parameter
-        navigator.serviceWorker.register('service-worker.js?v=1766179803305')
+        navigator.serviceWorker.register('service-worker.js?v=1766180488152')
           .then(reg => {
             console.log('Service Worker registered');
             

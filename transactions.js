@@ -556,9 +556,334 @@ function clearTransactionsDateFilter() {
   loadTransactions(false);
 }
 
+// Report modal functions
+function showReportModal() {
+  const modal = document.getElementById('report-date-modal');
+  const dateInput = document.getElementById('report-date');
+  
+  if (modal) modal.classList.remove('hidden');
+  
+  // Set default date from filter if available
+  if (dateInput && transactionsSelectedFilterDate) {
+    const dateStr = transactionsSelectedFilterDate.toISOString().split('T')[0];
+    dateInput.value = dateStr;
+    dateInput.required = false; // Not required if we have a default
+  } else {
+    dateInput.required = true; // Required if no filter date
+    dateInput.value = '';
+  }
+}
+
+function hideReportModal() {
+  const modal = document.getElementById('report-date-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+// Format number with comma for decimals and point for thousands
+function formatNumber(number) {
+  return number.toLocaleString('es-UY', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
+// Generate daily report PDF
+async function generateDailyReport(reportDate) {
+  showSpinner('Generando reporte...');
+  
+  try {
+    // Get all data
+    const [transactionsSnapshot, accountsSnapshot] = await Promise.all([
+      getTransactionsRef().once('value'),
+      getAccountsRef().once('value')
+    ]);
+    
+    const allTransactions = transactionsSnapshot.val() || {};
+    const accounts = accountsSnapshot.val() || {};
+    
+    // Filter transactions for the selected date
+    const dateStart = new Date(reportDate.getFullYear(), reportDate.getMonth(), reportDate.getDate(), 0, 0, 0, 0).getTime();
+    const dateEnd = new Date(reportDate.getFullYear(), reportDate.getMonth(), reportDate.getDate(), 23, 59, 59, 999).getTime();
+    
+    const dayTransactions = Object.values(allTransactions).filter(transaction => {
+      const transactionDate = transaction.date || transaction.createdAt;
+      return transactionDate >= dateStart && transactionDate <= dateEnd;
+    });
+    
+    // Calculate account balances
+    const accountBalances = {};
+    const accountInitialBalances = {};
+    
+    // Calculate initial balances (all transactions before the report date)
+    Object.values(allTransactions).forEach(transaction => {
+      const transactionDate = transaction.date || transaction.createdAt;
+      if (transactionDate < dateStart && transaction.accountId) {
+        const accountId = transaction.accountId;
+        if (!accountInitialBalances[accountId]) {
+          accountInitialBalances[accountId] = 0;
+        }
+        const amount = parseFloat(transaction.amount) || 0;
+        if (transaction.type === 'income') {
+          accountInitialBalances[accountId] += amount;
+        } else {
+          accountInitialBalances[accountId] -= amount;
+        }
+      }
+    });
+    
+    // Calculate current balances (initial + day transactions)
+    Object.keys(accounts).forEach(accountId => {
+      accountBalances[accountId] = accountInitialBalances[accountId] || 0;
+    });
+    
+    dayTransactions.forEach(transaction => {
+      if (transaction.accountId) {
+        const accountId = transaction.accountId;
+        if (!accountBalances[accountId]) {
+          accountBalances[accountId] = accountInitialBalances[accountId] || 0;
+        }
+        const amount = parseFloat(transaction.amount) || 0;
+        if (transaction.type === 'income') {
+          accountBalances[accountId] += amount;
+        } else {
+          accountBalances[accountId] -= amount;
+        }
+      }
+    });
+    
+    // Group accounts by type
+    const cashAccounts = [];
+    const bankAccounts = [];
+    const creditAccounts = [];
+    
+    Object.entries(accounts).forEach(([id, account]) => {
+      const balance = accountBalances[id] || 0;
+      const initial = accountInitialBalances[id] || 0;
+      const difference = balance - initial;
+      
+      const accountData = {
+        id,
+        name: account.name,
+        initial: initial,
+        current: balance,
+        difference: difference
+      };
+      
+      const nameLower = account.name.toLowerCase();
+      if (nameLower.includes('efectivo') || nameLower.includes('caja') || nameLower.includes('cofre') || nameLower.includes('mostrador') || nameLower.includes('banca')) {
+        cashAccounts.push(accountData);
+      } else if (nameLower.includes('crédito') || nameLower.includes('credito') || nameLower.includes('visa')) {
+        creditAccounts.push(accountData);
+      } else {
+        bankAccounts.push(accountData);
+      }
+    });
+    
+    // Calculate totals
+    const totalCash = cashAccounts.reduce((sum, acc) => sum + acc.current, 0);
+    const totalBank = bankAccounts.reduce((sum, acc) => sum + acc.current, 0);
+    const totalCredit = creditAccounts.reduce((sum, acc) => sum + acc.current, 0);
+    const totalBalance = totalCash + totalBank + totalCredit;
+    
+    // Generate PDF
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    let yPos = 20;
+    
+    // Title
+    doc.setFontSize(18);
+    doc.text('Cierre Diario', 105, yPos, { align: 'center' });
+    yPos += 10;
+    
+    // Date
+    doc.setFontSize(12);
+    const dateStr = formatDate24h(reportDate);
+    doc.text(dateStr, 105, yPos, { align: 'center' });
+    yPos += 15;
+    
+    // Account Summary Table
+    doc.setFontSize(14);
+    doc.text('Resumen de Cuentas', 14, yPos);
+    yPos += 8;
+    
+    doc.setFontSize(10);
+    const tableHeaders = ['Cuenta', '$ Saldo Inicial', '$ Saldo Actual', '$ Diferencia'];
+    const tableData = [];
+    
+    [...cashAccounts, ...bankAccounts, ...creditAccounts].forEach(acc => {
+      tableData.push([
+        acc.name,
+        formatNumber(acc.initial),
+        formatNumber(acc.current),
+        formatNumber(acc.difference)
+      ]);
+    });
+    
+    // Simple table (jsPDF doesn't have built-in table, so we'll draw manually)
+    const colWidths = [60, 40, 40, 40];
+    const startX = 14;
+    let xPos = startX;
+    
+    // Headers
+    doc.setFont(undefined, 'bold');
+    tableHeaders.forEach((header, i) => {
+      doc.text(header, xPos, yPos);
+      xPos += colWidths[i];
+    });
+    yPos += 6;
+    
+    // Data rows
+    doc.setFont(undefined, 'normal');
+    tableData.forEach(row => {
+      xPos = startX;
+      row.forEach((cell, i) => {
+        doc.text(cell, xPos, yPos);
+        xPos += colWidths[i];
+      });
+      yPos += 6;
+      if (yPos > 270) {
+        doc.addPage();
+        yPos = 20;
+      }
+    });
+    
+    yPos += 10;
+    
+    // Transactions Table
+    doc.setFontSize(14);
+    doc.text('Movimientos', 14, yPos);
+    yPos += 8;
+    
+    doc.setFontSize(8);
+    const transHeaders = ['Fecha', 'Concepto', 'Descripción', 'Cuenta', 'Estado', '$ Monto'];
+    const transColWidths = [25, 30, 50, 40, 20, 25];
+    
+    // Headers
+    doc.setFont(undefined, 'bold');
+    xPos = startX;
+    transHeaders.forEach((header, i) => {
+      doc.text(header, xPos, yPos);
+      xPos += transColWidths[i];
+    });
+    yPos += 6;
+    
+    // Transaction rows
+    doc.setFont(undefined, 'normal');
+    dayTransactions.sort((a, b) => {
+      const dateA = a.date || a.createdAt;
+      const dateB = b.date || b.createdAt;
+      return dateA - dateB;
+    }).forEach(transaction => {
+      if (yPos > 270) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      const transDate = transaction.date ? new Date(transaction.date) : new Date(transaction.createdAt);
+      const dateStr = formatDate24h(transDate);
+      const concept = transaction.type === 'income' ? '(+) ' + (transaction.categoryName || 'Ingresos') : '(-) ' + (transaction.categoryName || 'Egresos');
+      const description = transaction.description || '';
+      const accountName = transaction.accountName || 'Sin cuenta';
+      const amount = parseFloat(transaction.amount) || 0;
+      const amountStr = (transaction.type === 'income' ? '+' : '-') + formatNumber(amount);
+      
+      const transData = [dateStr, concept, description, accountName, 'Finalizado', amountStr];
+      
+      xPos = startX;
+      transData.forEach((cell, i) => {
+        // Truncate long text
+        let cellText = cell;
+        if (i === 2 && cellText.length > 30) {
+          cellText = cellText.substring(0, 27) + '...';
+        }
+        doc.text(cellText, xPos, yPos);
+        xPos += transColWidths[i];
+      });
+      yPos += 6;
+    });
+    
+    yPos += 10;
+    
+    // Summary
+    if (yPos > 250) {
+      doc.addPage();
+      yPos = 20;
+    }
+    
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'bold');
+    doc.text('Efectivo', 14, yPos);
+    doc.text(formatNumber(totalCash), 60, yPos);
+    
+    doc.text('Banco', 100, yPos);
+    doc.text(formatNumber(totalBank), 140, yPos);
+    
+    yPos += 6;
+    
+    doc.text('Crédito', 14, yPos);
+    doc.text(formatNumber(totalCredit), 60, yPos);
+    
+    doc.text('Balance', 100, yPos);
+    doc.text(formatNumber(totalBalance), 140, yPos);
+    
+    yPos += 15;
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(10);
+    doc.text('Firma del Responsable', 14, yPos);
+    doc.line(14, yPos + 3, 80, yPos + 3);
+    
+    // Save PDF
+    const fileName = `cierre-${reportDate.getFullYear()}-${String(reportDate.getMonth() + 1).padStart(2, '0')}-${String(reportDate.getDate()).padStart(2, '0')}.pdf`;
+    doc.save(fileName);
+    
+    hideSpinner();
+    await showSuccess('Reporte generado exitosamente');
+  } catch (error) {
+    hideSpinner();
+    console.error('Error generating report:', error);
+    await showError('Error al generar el reporte: ' + error.message);
+  }
+}
+
 // Initialize filter display on page load
 document.addEventListener('DOMContentLoaded', () => {
   updateTransactionsDateFilterDisplay();
+  
+  // Report button
+  const reportBtn = document.getElementById('report-btn');
+  if (reportBtn) {
+    reportBtn.addEventListener('click', showReportModal);
+  }
+  
+  // Report modal handlers
+  const closeReportModal = document.getElementById('close-report-modal');
+  const cancelReportBtn = document.getElementById('cancel-report-btn');
+  const reportDateForm = document.getElementById('report-date-form');
+  
+  if (closeReportModal) {
+    closeReportModal.addEventListener('click', hideReportModal);
+  }
+  
+  if (cancelReportBtn) {
+    cancelReportBtn.addEventListener('click', hideReportModal);
+  }
+  
+  if (reportDateForm) {
+    reportDateForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const dateInput = document.getElementById('report-date');
+      if (!dateInput || !dateInput.value) {
+        await showError('Por favor seleccione una fecha');
+        return;
+      }
+      
+      const selectedDate = new Date(dateInput.value);
+      selectedDate.setHours(0, 0, 0, 0);
+      hideReportModal();
+      await generateDailyReport(selectedDate);
+    });
+  }
 });
 
 document.getElementById('transactions-today-date-btn').addEventListener('click', setTransactionsToday);
