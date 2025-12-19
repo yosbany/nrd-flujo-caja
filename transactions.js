@@ -16,6 +16,14 @@ function formatDate24h(date) {
   return `${day}/${month}/${year}`;
 }
 
+// Format number with comma for decimals and point for thousands
+function formatNumber(number) {
+  return number.toLocaleString('es-UY', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
 // Load transactions
 function loadTransactions(initializeToToday = true) {
   const transactionsList = document.getElementById('transactions-list');
@@ -94,7 +102,7 @@ function loadTransactions(initializeToToday = true) {
       item.innerHTML = `
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 mb-2 sm:mb-3">
           <div class="text-base sm:text-lg font-light">${escapeHtml(transaction.description || 'Sin descripción')}</div>
-          <div class="text-base sm:text-lg font-light ${amountColor} font-medium">${prefix}$${parseFloat(transaction.amount || 0).toFixed(2)}</div>
+          <div class="text-base sm:text-lg font-light ${amountColor} font-medium">${prefix}$${formatNumber(parseFloat(transaction.amount || 0))}</div>
         </div>
         <div class="text-xs sm:text-sm text-gray-600 space-y-0.5 sm:space-y-1">
           <div>Fecha: ${formatDate24h(date)}</div>
@@ -171,6 +179,38 @@ async function showNewTransactionForm(type) {
     option.textContent = account.name;
     accountSelect.appendChild(option);
   });
+  
+  // Load unique descriptions for autocomplete
+  await loadDescriptionsForAutocomplete();
+}
+
+// Load unique descriptions for autocomplete
+async function loadDescriptionsForAutocomplete() {
+  try {
+    const transactionsSnapshot = await getTransactionsRef().once('value');
+    const transactions = transactionsSnapshot.val() || {};
+    
+    // Extract unique descriptions
+    const descriptions = new Set();
+    Object.values(transactions).forEach(transaction => {
+      if (transaction && transaction.description && transaction.description.trim()) {
+        descriptions.add(transaction.description.trim());
+      }
+    });
+    
+    // Populate datalist
+    const datalist = document.getElementById('description-list');
+    if (datalist) {
+      datalist.innerHTML = '';
+      Array.from(descriptions).sort().forEach(desc => {
+        const option = document.createElement('option');
+        option.value = desc;
+        datalist.appendChild(option);
+      });
+    }
+  } catch (error) {
+    console.error('Error loading descriptions:', error);
+  }
 }
 
 // Hide transaction form
@@ -340,7 +380,7 @@ async function viewTransaction(transactionId) {
         </div>
         <div class="flex justify-between py-2 sm:py-3 border-b border-gray-200 text-sm sm:text-base">
           <span class="text-gray-600 font-light">Monto:</span>
-          <span class="font-light ${amountColor} font-medium">${prefix}$${parseFloat(transaction.amount || 0).toFixed(2)}</span>
+          <span class="font-light ${amountColor} font-medium">${prefix}$${formatNumber(parseFloat(transaction.amount || 0))}</span>
         </div>
         <div class="flex justify-between py-2 sm:py-3 border-b border-gray-200 text-sm sm:text-base">
           <span class="text-gray-600 font-light">Categoría:</span>
@@ -706,6 +746,12 @@ async function generateDailyReport(reportDate) {
     const tableHeaders = ['Nombre de Cuenta', 'Saldo Inicial', 'Saldo Final', 'Diferencia'];
     const colWidths = [70, 40, 40, 40];
     const startX = 14;
+    const headerHeight = 8;
+    
+    // Draw header background
+    doc.setFillColor(220, 220, 220);
+    doc.rect(startX, yPos - 5, colWidths.reduce((a, b) => a + b, 0), headerHeight, 'F');
+    
     let xPos = startX;
     
     // Headers
@@ -714,7 +760,7 @@ async function generateDailyReport(reportDate) {
       doc.text(header, xPos, yPos);
       xPos += colWidths[i];
     });
-    yPos += 6;
+    yPos += headerHeight;
     
     // Data rows
     doc.setFont(undefined, 'normal');
@@ -726,11 +772,30 @@ async function generateDailyReport(reportDate) {
         formatNumber(acc.saldoFinal),
         formatNumber(acc.diferencia)
       ];
+      
+      let maxHeight = 6; // Default row height
       row.forEach((cell, i) => {
-        doc.text(cell, xPos, yPos);
+        const cellText = String(cell);
+        const lines = doc.splitTextToSize(cellText, colWidths[i] - 2);
+        const cellHeight = lines.length * 5;
+        if (cellHeight > maxHeight) {
+          maxHeight = cellHeight;
+        }
+      });
+      
+      // Draw row
+      row.forEach((cell, i) => {
+        const cellText = String(cell);
+        const lines = doc.splitTextToSize(cellText, colWidths[i] - 2);
+        let lineY = yPos;
+        lines.forEach((line, lineIdx) => {
+          doc.text(line, xPos + 1, lineY);
+          lineY += 5;
+        });
         xPos += colWidths[i];
       });
-      yPos += 6;
+      
+      yPos += maxHeight;
       if (yPos > 270) {
         doc.addPage();
         yPos = 20;
@@ -747,6 +812,11 @@ async function generateDailyReport(reportDate) {
     doc.setFontSize(9);
     const transHeaders = ['Fecha', 'Categoría', 'Cuenta', 'Descripción', '$ Monto'];
     const transColWidths = [25, 40, 40, 60, 30];
+    const transHeaderHeight = 8;
+    
+    // Draw header background
+    doc.setFillColor(220, 220, 220);
+    doc.rect(startX, yPos - 5, transColWidths.reduce((a, b) => a + b, 0), transHeaderHeight, 'F');
     
     // Headers
     doc.setFont(undefined, 'bold');
@@ -755,7 +825,7 @@ async function generateDailyReport(reportDate) {
       doc.text(header, xPos, yPos);
       xPos += transColWidths[i];
     });
-    yPos += 6;
+    yPos += transHeaderHeight;
     
     // Transaction rows
     doc.setFont(undefined, 'normal');
@@ -768,13 +838,15 @@ async function generateDailyReport(reportDate) {
         doc.addPage();
         yPos = 20;
         // Redraw headers on new page
+        doc.setFillColor(220, 220, 220);
+        doc.rect(startX, yPos - 5, transColWidths.reduce((a, b) => a + b, 0), transHeaderHeight, 'F');
         doc.setFont(undefined, 'bold');
         xPos = startX;
         transHeaders.forEach((header, i) => {
           doc.text(header, xPos, yPos);
           xPos += transColWidths[i];
         });
-        yPos += 6;
+        yPos += transHeaderHeight;
         doc.setFont(undefined, 'normal');
       }
       
@@ -788,21 +860,31 @@ async function generateDailyReport(reportDate) {
       
       const transData = [dateStr, category, accountName, description, amountStr];
       
+      // Calculate max height for this row
+      let maxHeight = 6;
+      transData.forEach((cell, i) => {
+        const cellText = String(cell);
+        const lines = doc.splitTextToSize(cellText, transColWidths[i] - 2);
+        const cellHeight = lines.length * 4.5;
+        if (cellHeight > maxHeight) {
+          maxHeight = cellHeight;
+        }
+      });
+      
+      // Draw row with text wrapping
       xPos = startX;
       transData.forEach((cell, i) => {
-        // Truncate long text
-        let cellText = String(cell);
-        if (i === 3 && cellText.length > 35) {
-          cellText = cellText.substring(0, 32) + '...';
-        } else if (i === 1 && cellText.length > 20) {
-          cellText = cellText.substring(0, 17) + '...';
-        } else if (i === 2 && cellText.length > 20) {
-          cellText = cellText.substring(0, 17) + '...';
-        }
-        doc.text(cellText, xPos, yPos);
+        const cellText = String(cell);
+        const lines = doc.splitTextToSize(cellText, transColWidths[i] - 2);
+        let lineY = yPos;
+        lines.forEach((line) => {
+          doc.text(line, xPos + 1, lineY);
+          lineY += 4.5;
+        });
         xPos += transColWidths[i];
       });
-      yPos += 6;
+      
+      yPos += maxHeight;
     });
     
     yPos += 10;
