@@ -23,8 +23,8 @@ function loadAccounts() {
     accountsListener = null;
   }
 
-  // Listen for accounts
-  accountsListener = getAccountsRef().on('value', (snapshot) => {
+  // Listen for accounts and transactions
+  accountsListener = getAccountsRef().on('value', async (snapshot) => {
     if (!accountsList) return;
     accountsList.innerHTML = '';
     const accounts = snapshot.val() || {};
@@ -35,12 +35,39 @@ function loadAccounts() {
       return;
     }
 
+    // Get all transactions to calculate balances
+    const transactionsSnapshot = await getTransactionsRef().once('value');
+    const transactions = transactionsSnapshot.val() || {};
+    
+    // Calculate balance per account (income - expense)
+    const accountBalances = {};
+    Object.values(transactions).forEach(transaction => {
+      if (transaction && transaction.accountId) {
+        const accountId = transaction.accountId;
+        if (!accountBalances[accountId]) {
+          accountBalances[accountId] = 0;
+        }
+        const amount = parseFloat(transaction.amount) || 0;
+        if (transaction.type === 'income') {
+          accountBalances[accountId] += amount;
+        } else {
+          accountBalances[accountId] -= amount;
+        }
+      }
+    });
+
     Object.entries(accounts).forEach(([id, account]) => {
       const item = document.createElement('div');
-      item.className = 'border border-gray-200 p-3 sm:p-4 md:p-6 hover:border-red-600 transition-colors cursor-pointer';
+      item.className = 'border border-gray-200 p-3 sm:p-4 md:p-6 hover:border-red-600 transition-colors cursor-pointer mb-2 sm:mb-3';
       item.dataset.accountId = id;
+      const balance = accountBalances[id] || 0;
+      const formattedBalance = new Intl.NumberFormat('es-UY', { style: 'currency', currency: 'UYU' }).format(balance);
+      const balanceColor = balance >= 0 ? 'text-green-600' : 'text-red-600';
       item.innerHTML = `
-        <div class="text-base sm:text-lg font-light">${escapeHtml(account.name)}</div>
+        <div class="flex justify-between items-center">
+          <div class="text-base sm:text-lg font-light">${escapeHtml(account.name)}</div>
+          <div class="text-sm sm:text-base font-light ${balanceColor}">${formattedBalance}</div>
+        </div>
       `;
       item.addEventListener('click', () => viewAccount(id));
       accountsList.appendChild(item);

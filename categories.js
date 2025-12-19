@@ -15,8 +15,8 @@ function loadCategories() {
     categoriesListener = null;
   }
 
-  // Listen for categories
-  categoriesListener = getCategoriesRef().on('value', (snapshot) => {
+  // Listen for categories and transactions
+  categoriesListener = getCategoriesRef().on('value', async (snapshot) => {
     if (!categoriesList) return;
     categoriesList.innerHTML = '';
     const categories = snapshot.val() || {};
@@ -26,15 +26,31 @@ function loadCategories() {
       return;
     }
 
+    // Get all transactions to calculate totals
+    const transactionsSnapshot = await getTransactionsRef().once('value');
+    const transactions = transactionsSnapshot.val() || {};
+    
+    // Calculate totals per category
+    const categoryTotals = {};
+    Object.values(transactions).forEach(transaction => {
+      if (transaction && transaction.categoryId) {
+        const categoryId = transaction.categoryId;
+        if (!categoryTotals[categoryId]) {
+          categoryTotals[categoryId] = 0;
+        }
+        categoryTotals[categoryId] += parseFloat(transaction.amount) || 0;
+      }
+    });
+
     // Separate by type
     const incomeCategories = [];
     const expenseCategories = [];
 
     Object.entries(categories).forEach(([id, category]) => {
       if (category.type === 'income') {
-        incomeCategories.push([id, category]);
+        incomeCategories.push([id, category, categoryTotals[id] || 0]);
       } else {
-        expenseCategories.push([id, category]);
+        expenseCategories.push([id, category, categoryTotals[id] || 0]);
       }
     });
 
@@ -45,12 +61,16 @@ function loadCategories() {
       incomeSection.innerHTML = '<h3 class="text-sm sm:text-base font-light text-gray-600 mb-2 sm:mb-3 uppercase tracking-wider">Ingresos</h3>';
       categoriesList.appendChild(incomeSection);
 
-      incomeCategories.forEach(([id, category]) => {
+      incomeCategories.forEach(([id, category, total]) => {
         const item = document.createElement('div');
         item.className = 'border border-gray-200 p-3 sm:p-4 md:p-6 hover:border-green-600 transition-colors cursor-pointer mb-2 sm:mb-3';
         item.dataset.categoryId = id;
+        const formattedTotal = new Intl.NumberFormat('es-UY', { style: 'currency', currency: 'UYU' }).format(total);
         item.innerHTML = `
-          <div class="text-base sm:text-lg font-light text-green-600">${escapeHtml(category.name)}</div>
+          <div class="flex justify-between items-center">
+            <div class="text-base sm:text-lg font-light text-green-600">${escapeHtml(category.name)}</div>
+            <div class="text-sm sm:text-base font-light text-green-600">${formattedTotal}</div>
+          </div>
         `;
         item.addEventListener('click', () => viewCategory(id));
         categoriesList.appendChild(item);
@@ -64,12 +84,16 @@ function loadCategories() {
       expenseSection.innerHTML = '<h3 class="text-sm sm:text-base font-light text-gray-600 mb-2 sm:mb-3 uppercase tracking-wider">Egresos</h3>';
       categoriesList.appendChild(expenseSection);
 
-      expenseCategories.forEach(([id, category]) => {
+      expenseCategories.forEach(([id, category, total]) => {
         const item = document.createElement('div');
         item.className = 'border border-gray-200 p-3 sm:p-4 md:p-6 hover:border-red-600 transition-colors cursor-pointer mb-2 sm:mb-3';
         item.dataset.categoryId = id;
+        const formattedTotal = new Intl.NumberFormat('es-UY', { style: 'currency', currency: 'UYU' }).format(total);
         item.innerHTML = `
-          <div class="text-base sm:text-lg font-light text-red-600">${escapeHtml(category.name)}</div>
+          <div class="flex justify-between items-center">
+            <div class="text-base sm:text-lg font-light text-red-600">${escapeHtml(category.name)}</div>
+            <div class="text-sm sm:text-base font-light text-red-600">${formattedTotal}</div>
+          </div>
         `;
         item.addEventListener('click', () => viewCategory(id));
         categoriesList.appendChild(item);

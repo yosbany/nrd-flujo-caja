@@ -176,15 +176,31 @@ def migrate_accounts(accounts_map, account_mapping, id_token):
 
 
 def migrate_categories(categories_map, category_mapping, description_rules, id_token):
-    """Migra las categorías a Firebase - SOLO las que están mapeadas"""
-    print(f"\nPaso 4: Migrando categorías mapeadas a Firebase...")
+    """Verifica que las categorías mapeadas existan en Firebase - NO crea nuevas categorías"""
+    print(f"\nPaso 4: Verificando categorías mapeadas en Firebase...")
     category_name_map = {}
     
     # Obtener categorías existentes
     existing_categories = firebase_get('categories', id_token)
+    print(f"  Categorías existentes en Firebase: {len(existing_categories)}")
+    
+    # Crear un mapa de categorías existentes por nombre y tipo (case-insensitive)
+    existing_categories_map = {}
+    for cat_id, cat in existing_categories.items():
+        if cat:
+            cat_name = cat.get('name', '').strip()
+            cat_type = cat.get('type', '').strip()
+            if cat_name and cat_type:
+                # Usar nombre en mayúsculas como clave para comparación case-insensitive
+                key = f"{cat_name.upper()}|{cat_type.lower()}"
+                if key not in existing_categories_map:
+                    existing_categories_map[key] = cat_id
+                    print(f"    - {cat_name} ({cat_type})")
     
     # Procesar categorías del mapeo directo
     mapped_count = 0
+    missing_categories = []
+    
     for original_concept, category_data in categories_map.items():
         # Buscar en el mapeo (por concepto limpio o concepto original)
         mapped_category = category_mapping.get(original_concept) or category_mapping.get(category_data['originalConcept'])
@@ -207,27 +223,19 @@ def migrate_categories(categories_map, category_mapping, description_rules, id_t
                 print(f"  ⚠ Categoría '{original_concept}' mapeada pero falta 'name' o 'type'")
                 continue
             
-            # Verificar si ya existe
-            existing_id = None
-            for cat_id, cat in existing_categories.items():
-                if cat and cat.get('name') == target_name and cat.get('type') == target_type:
-                    existing_id = cat_id
-                    break
+            # Buscar categoría existente (case-insensitive)
+            search_key = f"{target_name.upper()}|{target_type.lower()}"
+            existing_id = existing_categories_map.get(search_key)
             
             if existing_id:
                 category_name_map[original_concept] = existing_id
-                print(f"  ✓ Categoría '{target_name}' ya existe ({existing_id})")
+                print(f"  ✓ Categoría '{target_name}' encontrada ({existing_id})")
             else:
-                # Crear nueva categoría
-                new_id = firebase_push('categories', {
-                    'name': target_name,
-                    'type': target_type
-                }, id_token)
-                if new_id:
-                    category_name_map[original_concept] = new_id
-                    print(f"  ✓ Categoría creada: '{target_name}' ({new_id})")
+                missing_categories.append(f"'{target_name}' ({target_type})")
+                print(f"  ❌ ERROR: Categoría '{target_name}' ({target_type}) NO EXISTE en Firebase")
+                print(f"     Concepto original: '{original_concept}'")
         except Exception as e:
-            print(f"  ✗ Error al crear categoría '{original_concept}': {e}")
+            print(f"  ✗ Error al procesar categoría '{original_concept}': {e}")
     
     # Procesar categorías de las reglas de descripción
     rule_categories_processed = set()
@@ -241,31 +249,29 @@ def migrate_categories(categories_map, category_mapping, description_rules, id_t
                 continue
             
             # Evitar procesar la misma categoría múltiples veces
-            category_key = f"{target_name}|{target_type}"
+            category_key = f"{target_name.upper()}|{target_type.lower()}"
             if category_key in rule_categories_processed:
                 continue
             rule_categories_processed.add(category_key)
             
-            # Verificar si ya existe
-            existing_id = None
-            for cat_id, cat in existing_categories.items():
-                if cat and cat.get('name') == target_name and cat.get('type') == target_type:
-                    existing_id = cat_id
-                    break
+            # Buscar categoría existente (case-insensitive)
+            existing_id = existing_categories_map.get(category_key)
             
             if existing_id:
-                print(f"  ✓ Categoría de regla '{target_name}' ya existe ({existing_id})")
+                print(f"  ✓ Categoría de regla '{target_name}' encontrada ({existing_id})")
             else:
-                # Crear nueva categoría
-                new_id = firebase_push('categories', {
-                    'name': target_name,
-                    'type': target_type
-                }, id_token)
-                if new_id:
-                    print(f"  ✓ Categoría de regla creada: '{target_name}' ({new_id})")
+                missing_categories.append(f"'{target_name}' ({target_type})")
+                print(f"  ❌ ERROR: Categoría de regla '{target_name}' ({target_type}) NO EXISTE en Firebase")
     
-    print(f"  Total de categorías mapeadas procesadas: {mapped_count}")
+    print(f"\n  Total de categorías mapeadas procesadas: {mapped_count}")
     print(f"  Total de categorías de reglas procesadas: {len(rule_categories_processed)}")
+    
+    if missing_categories:
+        print(f"\n  ⚠ ADVERTENCIA: {len(missing_categories)} categorías mapeadas NO EXISTEN en Firebase:")
+        for cat in missing_categories:
+            print(f"     - {cat}")
+        print(f"  Por favor, crea estas categorías en Firebase antes de continuar.")
+    
     return category_name_map
 
 
@@ -326,12 +332,18 @@ def migrate_transactions(closures, account_id_map, category_name_map,
     all_categories = firebase_get('categories', id_token)
     all_accounts = firebase_get('accounts', id_token)
     
-    # Crear mapa rápido de categorías
+    # Crear mapa rápido de categorías (case-insensitive)
     category_cache = {}
     for cat_id, cat in all_categories.items():
         if cat:
-            key = f"{cat.get('name')}|{cat.get('type')}"
-            category_cache[key] = cat_id
+            cat_name = cat.get('name', '').strip()
+            cat_type = cat.get('type', '').strip()
+            if cat_name and cat_type:
+                # Usar nombre en mayúsculas como clave para comparación case-insensitive
+                key = f"{cat_name.upper()}|{cat_type.lower()}"
+                # Si ya existe, mantener el primero (evitar duplicados)
+                if key not in category_cache:
+                    category_cache[key] = cat_id
     
     print("\nPaso 6: Migrando transacciones...")
     migrated_count = 0
@@ -434,8 +446,8 @@ def migrate_transactions(closures, account_id_map, category_name_map,
                     error_count += 1
                     continue
                 
-                # Buscar el ID de la categoría en el cache
-                cache_key = f"{category_name}|{category_type}"
+                # Buscar el ID de la categoría en el cache (case-insensitive)
+                cache_key = f"{category_name.upper()}|{category_type.lower()}"
                 category_id = category_cache.get(cache_key)
                 
                 if not category_id:
@@ -443,6 +455,7 @@ def migrate_transactions(closures, account_id_map, category_name_map,
                     print(f"     Categoría mapeada: '{category_name}' (tipo: {category_type})")
                     print(f"     Concepto original: '{concept}'")
                     print(f"     Descripción: {transaction.get('description', 'N/A')}")
+                    print(f"     Buscando en cache con clave: '{cache_key}'")
                     error_count += 1
                     continue
                 
