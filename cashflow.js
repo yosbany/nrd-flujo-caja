@@ -2,7 +2,7 @@
 
 let cashflowListener = null;
 // Initialize with today's date by default
-let selectedFilterDate = (() => {
+let cashflowSelectedFilterDate = (() => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return today;
@@ -22,9 +22,9 @@ function loadCashflow(initializeToToday = true) {
   if (!summaryContainer) return;
   
   // Initialize filter date to today if not set (only if initializeToToday is true)
-  if (!selectedFilterDate && initializeToToday) {
-    selectedFilterDate = new Date();
-    selectedFilterDate.setHours(0, 0, 0, 0);
+  if (!cashflowSelectedFilterDate && initializeToToday) {
+    cashflowSelectedFilterDate = new Date();
+    cashflowSelectedFilterDate.setHours(0, 0, 0, 0);
   }
   
   // Update filter display
@@ -48,9 +48,9 @@ function loadCashflow(initializeToToday = true) {
 
     // Filter by date if filter is active
     let transactionsToProcess = Object.values(transactions);
-    if (selectedFilterDate) {
-      const filterDateStart = new Date(selectedFilterDate.getFullYear(), selectedFilterDate.getMonth(), selectedFilterDate.getDate(), 0, 0, 0, 0).getTime();
-      const filterDateEnd = new Date(selectedFilterDate.getFullYear(), selectedFilterDate.getMonth(), selectedFilterDate.getDate(), 23, 59, 59, 999).getTime();
+    if (cashflowSelectedFilterDate) {
+      const filterDateStart = new Date(cashflowSelectedFilterDate.getFullYear(), cashflowSelectedFilterDate.getMonth(), cashflowSelectedFilterDate.getDate(), 0, 0, 0, 0).getTime();
+      const filterDateEnd = new Date(cashflowSelectedFilterDate.getFullYear(), cashflowSelectedFilterDate.getMonth(), cashflowSelectedFilterDate.getDate(), 23, 59, 59, 999).getTime();
       
       transactionsToProcess = transactionsToProcess.filter(transaction => {
         const transactionDate = transaction.date || transaction.createdAt;
@@ -107,7 +107,7 @@ function loadCashflow(initializeToToday = true) {
 
     // Display category summary
     if (Object.keys(categorySummary).length === 0) {
-      if (selectedFilterDate) {
+      if (cashflowSelectedFilterDate) {
         summaryContainer.innerHTML = '<p class="text-center text-gray-600 py-6 sm:py-8 text-sm sm:text-base">No hay transacciones para la fecha seleccionada</p>';
       } else {
         summaryContainer.innerHTML = '<p class="text-center text-gray-600 py-6 sm:py-8 text-sm sm:text-base">No hay transacciones registradas</p>';
@@ -149,16 +149,16 @@ function updateDateFilterDisplay() {
   const display = document.getElementById('filter-date-display');
   if (!display) return;
   
-  if (selectedFilterDate) {
+  if (cashflowSelectedFilterDate) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const filterDate = new Date(selectedFilterDate);
+    const filterDate = new Date(cashflowSelectedFilterDate);
     filterDate.setHours(0, 0, 0, 0);
     
     if (filterDate.getTime() === today.getTime()) {
       display.textContent = 'Hoy';
     } else {
-      display.textContent = formatDate24h(selectedFilterDate);
+      display.textContent = formatDate24h(cashflowSelectedFilterDate);
     }
   } else {
     display.textContent = 'Todas';
@@ -166,42 +166,42 @@ function updateDateFilterDisplay() {
 }
 
 function setToday() {
-  selectedFilterDate = new Date();
-  selectedFilterDate.setHours(0, 0, 0, 0);
+  cashflowSelectedFilterDate = new Date();
+  cashflowSelectedFilterDate.setHours(0, 0, 0, 0);
   updateDateFilterDisplay();
   loadCashflow();
 }
 
 function prevDate() {
-  if (!selectedFilterDate) {
-    selectedFilterDate = new Date();
-    selectedFilterDate.setHours(0, 0, 0, 0);
+  if (!cashflowSelectedFilterDate) {
+    cashflowSelectedFilterDate = new Date();
+    cashflowSelectedFilterDate.setHours(0, 0, 0, 0);
   } else {
-    const prev = new Date(selectedFilterDate);
+    const prev = new Date(cashflowSelectedFilterDate);
     prev.setDate(prev.getDate() - 1);
     prev.setHours(0, 0, 0, 0);
-    selectedFilterDate = prev;
+    cashflowSelectedFilterDate = prev;
   }
   updateDateFilterDisplay();
   loadCashflow();
 }
 
 function nextDate() {
-  if (!selectedFilterDate) {
-    selectedFilterDate = new Date();
-    selectedFilterDate.setHours(0, 0, 0, 0);
+  if (!cashflowSelectedFilterDate) {
+    cashflowSelectedFilterDate = new Date();
+    cashflowSelectedFilterDate.setHours(0, 0, 0, 0);
   } else {
-    const next = new Date(selectedFilterDate);
+    const next = new Date(cashflowSelectedFilterDate);
     next.setDate(next.getDate() + 1);
     next.setHours(0, 0, 0, 0);
-    selectedFilterDate = next;
+    cashflowSelectedFilterDate = next;
   }
   updateDateFilterDisplay();
   loadCashflow();
 }
 
 function clearDateFilter() {
-  selectedFilterDate = null;
+  cashflowSelectedFilterDate = null;
   updateDateFilterDisplay();
   // Pass false to prevent re-initializing to today
   loadCashflow(false);
@@ -210,11 +210,11 @@ function clearDateFilter() {
 // Initialize date filter display on load
 document.addEventListener('DOMContentLoaded', () => {
   // Initialize to today if not set
-  if (!selectedFilterDate) {
-    selectedFilterDate = new Date();
-    selectedFilterDate.setHours(0, 0, 0, 0);
+  if (!cashflowSelectedFilterDate) {
+    cashflowSelectedFilterDate = new Date();
+    cashflowSelectedFilterDate.setHours(0, 0, 0, 0);
   } else {
-    selectedFilterDate.setHours(0, 0, 0, 0);
+    cashflowSelectedFilterDate.setHours(0, 0, 0, 0);
   }
   updateDateFilterDisplay();
   

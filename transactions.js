@@ -2,7 +2,7 @@
 
 let transactionsListener = null;
 // Initialize with today's date by default
-let selectedFilterDate = (() => {
+let transactionsSelectedFilterDate = (() => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return today;
@@ -22,9 +22,9 @@ function loadTransactions(initializeToToday = true) {
   if (!transactionsList) return;
   
   // Initialize filter date to today if not set (only if initializeToToday is true)
-  if (!selectedFilterDate && initializeToToday) {
-    selectedFilterDate = new Date();
-    selectedFilterDate.setHours(0, 0, 0, 0);
+  if (!transactionsSelectedFilterDate && initializeToToday) {
+    transactionsSelectedFilterDate = new Date();
+    transactionsSelectedFilterDate.setHours(0, 0, 0, 0);
   }
   
   // Update filter display
@@ -58,9 +58,9 @@ function loadTransactions(initializeToToday = true) {
 
     // Filter transactions by date if filter is active
     let transactionsToShow = sortedTransactions;
-    if (selectedFilterDate) {
-      const filterDateStart = new Date(selectedFilterDate.getFullYear(), selectedFilterDate.getMonth(), selectedFilterDate.getDate(), 0, 0, 0, 0).getTime();
-      const filterDateEnd = new Date(selectedFilterDate.getFullYear(), selectedFilterDate.getMonth(), selectedFilterDate.getDate(), 23, 59, 59, 999).getTime();
+    if (transactionsSelectedFilterDate) {
+      const filterDateStart = new Date(transactionsSelectedFilterDate.getFullYear(), transactionsSelectedFilterDate.getMonth(), transactionsSelectedFilterDate.getDate(), 0, 0, 0, 0).getTime();
+      const filterDateEnd = new Date(transactionsSelectedFilterDate.getFullYear(), transactionsSelectedFilterDate.getMonth(), transactionsSelectedFilterDate.getDate(), 23, 59, 59, 999).getTime();
       
       transactionsToShow = sortedTransactions.filter(([id, transaction]) => {
         const transactionDate = transaction.date || transaction.createdAt;
@@ -71,7 +71,7 @@ function loadTransactions(initializeToToday = true) {
     
     // Show filtered transactions
     if (transactionsToShow.length === 0) {
-      if (selectedFilterDate) {
+      if (transactionsSelectedFilterDate) {
         transactionsList.innerHTML = '<p class="text-center text-gray-600 py-6 sm:py-8 text-sm sm:text-base">No hay transacciones para la fecha seleccionada</p>';
       } else {
         transactionsList.innerHTML = '<p class="text-center text-gray-600 py-6 sm:py-8 text-sm sm:text-base">No hay transacciones registradas</p>';
@@ -446,16 +446,16 @@ function updateTransactionsDateFilterDisplay() {
   const display = document.getElementById('transactions-filter-date-display');
   if (!display) return;
   
-  if (selectedFilterDate) {
+  if (transactionsSelectedFilterDate) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const filterDate = new Date(selectedFilterDate);
+    const filterDate = new Date(transactionsSelectedFilterDate);
     filterDate.setHours(0, 0, 0, 0);
     
     if (filterDate.getTime() === today.getTime()) {
       display.textContent = 'Hoy';
     } else {
-      display.textContent = formatDate24h(selectedFilterDate);
+      display.textContent = formatDate24h(transactionsSelectedFilterDate);
     }
   } else {
     display.textContent = 'Todas';
@@ -463,42 +463,42 @@ function updateTransactionsDateFilterDisplay() {
 }
 
 function setTransactionsToday() {
-  selectedFilterDate = new Date();
-  selectedFilterDate.setHours(0, 0, 0, 0);
+  transactionsSelectedFilterDate = new Date();
+  transactionsSelectedFilterDate.setHours(0, 0, 0, 0);
   updateTransactionsDateFilterDisplay();
   loadTransactions();
 }
 
 function prevTransactionsDate() {
-  if (!selectedFilterDate) {
-    selectedFilterDate = new Date();
-    selectedFilterDate.setHours(0, 0, 0, 0);
+  if (!transactionsSelectedFilterDate) {
+    transactionsSelectedFilterDate = new Date();
+    transactionsSelectedFilterDate.setHours(0, 0, 0, 0);
   } else {
-    const prev = new Date(selectedFilterDate);
+    const prev = new Date(transactionsSelectedFilterDate);
     prev.setDate(prev.getDate() - 1);
     prev.setHours(0, 0, 0, 0);
-    selectedFilterDate = prev;
+    transactionsSelectedFilterDate = prev;
   }
   updateTransactionsDateFilterDisplay();
   loadTransactions();
 }
 
 function nextTransactionsDate() {
-  if (!selectedFilterDate) {
-    selectedFilterDate = new Date();
-    selectedFilterDate.setHours(0, 0, 0, 0);
+  if (!transactionsSelectedFilterDate) {
+    transactionsSelectedFilterDate = new Date();
+    transactionsSelectedFilterDate.setHours(0, 0, 0, 0);
   } else {
-    const next = new Date(selectedFilterDate);
+    const next = new Date(transactionsSelectedFilterDate);
     next.setDate(next.getDate() + 1);
     next.setHours(0, 0, 0, 0);
-    selectedFilterDate = next;
+    transactionsSelectedFilterDate = next;
   }
   updateTransactionsDateFilterDisplay();
   loadTransactions();
 }
 
 function clearTransactionsDateFilter() {
-  selectedFilterDate = null;
+  transactionsSelectedFilterDate = null;
   updateTransactionsDateFilterDisplay();
   // Pass false to prevent re-initializing to today
   loadTransactions(false);
