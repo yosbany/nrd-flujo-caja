@@ -57,3 +57,28 @@ function deleteCategory(categoryId) {
   return getCategoriesRef().child(categoryId).remove();
 }
 
+// Get accounts reference (shared across all users)
+function getAccountsRef() {
+  return database.ref('accounts');
+}
+
+// Get account by ID
+function getAccount(accountId) {
+  return getAccountsRef().child(accountId).once('value');
+}
+
+// Create account
+function createAccount(accountData) {
+  return getAccountsRef().push(accountData);
+}
+
+// Update account
+function updateAccount(accountId, accountData) {
+  return getAccountsRef().child(accountId).update(accountData);
+}
+
+// Delete account
+function deleteAccount(accountId) {
+  return getAccountsRef().child(accountId).remove();
+}
+

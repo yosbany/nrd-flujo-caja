@@ -99,6 +99,7 @@ function loadTransactions(initializeToToday = true) {
         <div class="text-xs sm:text-sm text-gray-600 space-y-0.5 sm:space-y-1">
           <div>Fecha: ${formatDate24h(date)}</div>
           <div>Categoría: ${escapeHtml(transaction.categoryName || 'Sin categoría')}</div>
+          <div>Cuenta: ${escapeHtml(transaction.accountName || 'Sin cuenta')}</div>
           ${transaction.notes ? `<div>Notas: ${escapeHtml(transaction.notes)}</div>` : ''}
         </div>
       `;
@@ -137,6 +138,7 @@ async function showNewTransactionForm(type) {
   document.getElementById('transaction-description').value = '';
   document.getElementById('transaction-amount').value = '';
   document.getElementById('transaction-notes').value = '';
+  document.getElementById('transaction-account').value = '';
   
   // Set default date (today)
   const dateInput = document.getElementById('transaction-date');
@@ -157,6 +159,17 @@ async function showNewTransactionForm(type) {
     option.value = category.id;
     option.textContent = category.name;
     categorySelect.appendChild(option);
+  });
+  
+  // Load accounts
+  const accounts = await loadAccountsForTransaction();
+  const accountSelect = document.getElementById('transaction-account');
+  accountSelect.innerHTML = '<option value="">Seleccionar cuenta</option>';
+  accounts.forEach(account => {
+    const option = document.createElement('option');
+    option.value = account.id;
+    option.textContent = account.name;
+    accountSelect.appendChild(option);
   });
 }
 
@@ -182,6 +195,7 @@ async function saveTransaction() {
   const description = document.getElementById('transaction-description').value.trim();
   const amount = parseFloat(document.getElementById('transaction-amount').value);
   const categoryId = document.getElementById('transaction-category').value;
+  const accountId = document.getElementById('transaction-account').value;
   const dateInput = document.getElementById('transaction-date').value;
   const notes = document.getElementById('transaction-notes').value.trim();
 
@@ -195,6 +209,11 @@ async function saveTransaction() {
     return;
   }
 
+  if (!accountId) {
+    await showError('Por favor seleccione una cuenta');
+    return;
+  }
+
   try {
     // Get category data
     const categorySnapshot = await getCategory(categoryId);
@@ -204,10 +223,18 @@ async function saveTransaction() {
       return;
     }
 
+    // Get account data
+    const accountSnapshot = await getAccount(accountId);
+    const account = accountSnapshot.val();
+    if (!account) {
+      await showError('Cuenta no encontrada');
+      return;
+    }
+
     // Parse date - default to today if not provided
     let transactionDate;
-    if (dateInput && dateInput.value) {
-      const dateObj = new Date(dateInput.value);
+    if (dateInput) {
+      const dateObj = new Date(dateInput);
       // Set to start of day (00:00:00) to match filter behavior
       dateObj.setHours(0, 0, 0, 0);
       transactionDate = dateObj.getTime();
@@ -230,6 +257,8 @@ async function saveTransaction() {
         amount,
         categoryId,
         categoryName: category.name,
+        accountId,
+        accountName: account.name,
         date: transactionDate,
         notes: notes || null,
         createdAt: existingTransaction.createdAt, // Preserve original creation date
@@ -249,6 +278,8 @@ async function saveTransaction() {
         amount,
         categoryId,
         categoryName: category.name,
+        accountId,
+        accountName: account.name,
         date: transactionDate,
         notes: notes || null,
         createdAt: Date.now()
@@ -312,6 +343,10 @@ async function viewTransaction(transactionId) {
         <div class="flex justify-between py-2 sm:py-3 border-b border-gray-200 text-sm sm:text-base">
           <span class="text-gray-600 font-light">Categoría:</span>
           <span class="font-light">${escapeHtml(transaction.categoryName || 'Sin categoría')}</span>
+        </div>
+        <div class="flex justify-between py-2 sm:py-3 border-b border-gray-200 text-sm sm:text-base">
+          <span class="text-gray-600 font-light">Cuenta:</span>
+          <span class="font-light">${escapeHtml(transaction.accountName || 'Sin cuenta')}</span>
         </div>
         <div class="flex justify-between py-2 sm:py-3 border-b border-gray-200 text-sm sm:text-base">
           <span class="text-gray-600 font-light">Fecha:</span>
@@ -410,6 +445,18 @@ async function editTransaction(transactionId, transaction) {
     option.textContent = category.name;
     option.selected = category.id === transaction.categoryId;
     categorySelect.appendChild(option);
+  });
+  
+  // Load accounts
+  const accounts = await loadAccountsForTransaction();
+  const accountSelect = document.getElementById('transaction-account');
+  accountSelect.innerHTML = '<option value="">Seleccionar cuenta</option>';
+  accounts.forEach(account => {
+    const option = document.createElement('option');
+    option.value = account.id;
+    option.textContent = account.name;
+    option.selected = account.id === transaction.accountId;
+    accountSelect.appendChild(option);
   });
 }
 

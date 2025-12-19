@@ -1,0 +1,201 @@
+// Account management
+
+let accountsListener = null;
+
+// Default accounts
+const defaultAccounts = [
+  'Efectivo',
+  'Cuenta Corriente Santander',
+  'Cuenta Credito Santander',
+  'Mercado Pago'
+];
+
+// Load accounts
+function loadAccounts() {
+  const accountsList = document.getElementById('accounts-list');
+  if (!accountsList) return;
+  
+  accountsList.innerHTML = '';
+
+  // Remove previous listener
+  if (accountsListener) {
+    getAccountsRef().off('value', accountsListener);
+    accountsListener = null;
+  }
+
+  // Listen for accounts
+  accountsListener = getAccountsRef().on('value', (snapshot) => {
+    if (!accountsList) return;
+    accountsList.innerHTML = '';
+    const accounts = snapshot.val() || {};
+
+    if (Object.keys(accounts).length === 0) {
+      // Initialize default accounts if none exist
+      initializeDefaultAccounts();
+      return;
+    }
+
+    Object.entries(accounts).forEach(([id, account]) => {
+      const item = document.createElement('div');
+      item.className = 'border border-gray-200 p-3 sm:p-4 md:p-6 hover:border-red-600 transition-colors cursor-pointer';
+      item.dataset.accountId = id;
+      item.innerHTML = `
+        <div class="text-base sm:text-lg font-light">${escapeHtml(account.name)}</div>
+      `;
+      item.addEventListener('click', () => viewAccount(id));
+      accountsList.appendChild(item);
+    });
+  });
+}
+
+// Initialize default accounts
+async function initializeDefaultAccounts() {
+  showSpinner('Inicializando cuentas...');
+  try {
+    for (const accountName of defaultAccounts) {
+      await createAccount({ name: accountName });
+    }
+    hideSpinner();
+  } catch (error) {
+    hideSpinner();
+    console.error('Error initializing accounts:', error);
+    await showError('Error al inicializar cuentas: ' + error.message);
+  }
+}
+
+// Show account form
+function showAccountForm(accountId = null) {
+  const form = document.getElementById('account-form');
+  const list = document.getElementById('accounts-list');
+  const header = document.querySelector('#accounts-view .flex.flex-col');
+  const title = document.getElementById('account-form-title');
+  const formElement = document.getElementById('account-form-element');
+  
+  if (form) form.classList.remove('hidden');
+  if (list) list.style.display = 'none';
+  if (header) header.style.display = 'none';
+  
+  if (formElement) {
+    formElement.reset();
+    const accountIdInput = document.getElementById('account-id');
+    if (accountIdInput) accountIdInput.value = accountId || '';
+  }
+
+  if (accountId) {
+    if (title) title.textContent = 'Editar Cuenta';
+    getAccount(accountId).then(snapshot => {
+      const account = snapshot.val();
+      if (account) {
+        const nameInput = document.getElementById('account-name');
+        if (nameInput) nameInput.value = account.name || '';
+      }
+    });
+  } else {
+    if (title) title.textContent = 'Nueva Cuenta';
+  }
+}
+
+// Hide account form
+function hideAccountForm() {
+  const form = document.getElementById('account-form');
+  const list = document.getElementById('accounts-list');
+  const header = document.querySelector('#accounts-view .flex.flex-col');
+  
+  if (form) form.classList.add('hidden');
+  if (list) list.style.display = 'block';
+  if (header) header.style.display = 'flex';
+}
+
+// View account detail
+async function viewAccount(accountId) {
+  showSpinner('Cargando cuenta...');
+  try {
+    const snapshot = await getAccount(accountId);
+    const account = snapshot.val();
+    hideSpinner();
+    if (!account) {
+      await showError('Cuenta no encontrada');
+      return;
+    }
+
+    // Show edit form instead of detail view
+    showAccountForm(accountId);
+  } catch (error) {
+    hideSpinner();
+    await showError('Error al cargar cuenta: ' + error.message);
+  }
+}
+
+// Setup event listeners when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  // Account form submit
+  const accountForm = document.getElementById('account-form-element');
+  if (accountForm) {
+    accountForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const accountId = document.getElementById('account-id').value;
+      const name = document.getElementById('account-name').value.trim();
+
+      if (!name) {
+        await showError('Por favor complete el nombre de la cuenta');
+        return;
+      }
+
+      showSpinner('Guardando cuenta...');
+      try {
+        if (accountId) {
+          await updateAccount(accountId, { name });
+        } else {
+          await createAccount({ name });
+        }
+        hideSpinner();
+        hideAccountForm();
+        await showSuccess('Cuenta guardada exitosamente');
+      } catch (error) {
+        hideSpinner();
+        await showError('Error al guardar cuenta: ' + error.message);
+      }
+    });
+  }
+
+  // New account button
+  const newAccountBtn = document.getElementById('new-account-btn');
+  if (newAccountBtn) {
+    newAccountBtn.addEventListener('click', () => {
+      showAccountForm();
+    });
+  }
+
+  // Cancel account form
+  const cancelAccountBtn = document.getElementById('cancel-account-btn');
+  if (cancelAccountBtn) {
+    cancelAccountBtn.addEventListener('click', () => {
+      hideAccountForm();
+    });
+  }
+
+  // Close account form button
+  const closeAccountFormBtn = document.getElementById('close-account-form');
+  if (closeAccountFormBtn) {
+    closeAccountFormBtn.addEventListener('click', () => {
+      hideAccountForm();
+    });
+  }
+});
+
+// Load accounts for transaction form
+function loadAccountsForTransaction() {
+  return getAccountsRef().once('value').then(snapshot => {
+    const accounts = snapshot.val() || {};
+    return Object.entries(accounts).map(([id, account]) => ({ id, ...account }));
+  });
+}
+
+// Escape HTML to prevent XSS
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+

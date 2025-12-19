@@ -11,7 +11,7 @@ function switchView(viewName) {
   currentView = viewName;
 
   // Hide all views
-  const views = ['cashflow', 'transactions', 'categories'];
+  const views = ['cashflow', 'transactions', 'categories', 'accounts', 'analysis'];
   views.forEach(view => {
     const viewElement = document.getElementById(`${view}-view`);
     if (viewElement) {
@@ -71,6 +71,21 @@ function switchView(viewName) {
     if (typeof hideCategoryForm === 'function') {
       hideCategoryForm();
     }
+  } else if (viewName === 'accounts') {
+    if (typeof loadAccounts === 'function') {
+      loadAccounts();
+    } else {
+      console.error('loadAccounts function not available');
+    }
+    if (typeof hideAccountForm === 'function') {
+      hideAccountForm();
+    }
+  } else if (viewName === 'analysis') {
+    if (typeof loadAnalysis === 'function') {
+      loadAnalysis();
+    } else {
+      console.error('loadAnalysis function not available');
+    }
   }
 }
 
@@ -85,8 +100,8 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
 // Initialize app
 auth.onAuthStateChanged((user) => {
   if (user) {
-    // Default to cashflow view
-    switchView('cashflow');
+    // Default to accounts view
+    switchView('accounts');
   }
 });
 
