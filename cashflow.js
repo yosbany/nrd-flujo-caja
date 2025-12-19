@@ -2,7 +2,7 @@
 
 let cashflowListener = null;
 // Initialize with null to show all transactions by default
-let cashflowSelectedFilterDate = null;
+let cashflowSelectedFilterPeriod = 'all'; // 'today', 'week', 'month', 'year', 'all'
 
 // Format date in 24-hour format
 function formatDate24h(date) {
@@ -20,46 +20,66 @@ function formatNumber(number) {
   });
 }
 
-// Load cashflow summary
-function loadCashflow(initializeToToday = false) {
-  const summaryContainer = document.getElementById('cashflow-summary');
-  if (!summaryContainer) return;
+// Get period date range
+function getPeriodDateRange(period) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
   
-  // Initialize filter date to today if not set (only if initializeToToday is true)
-  if (!cashflowSelectedFilterDate && initializeToToday) {
-    cashflowSelectedFilterDate = new Date();
-    cashflowSelectedFilterDate.setHours(0, 0, 0, 0);
+  switch(period) {
+    case 'today':
+      return {
+        start: today.getTime(),
+        end: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999).getTime()
+      };
+    case 'week':
+      const weekStart = new Date(today);
+      weekStart.setDate(today.getDate() - today.getDay()); // Start of week (Sunday)
+      return {
+        start: weekStart.getTime(),
+        end: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).getTime()
+      };
+    case 'month':
+      return {
+        start: new Date(today.getFullYear(), today.getMonth(), 1, 0, 0, 0, 0).getTime(),
+        end: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).getTime()
+      };
+    case 'year':
+      return {
+        start: new Date(today.getFullYear(), 0, 1, 0, 0, 0, 0).getTime(),
+        end: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).getTime()
+      };
+    case 'all':
+    default:
+      return null; // No filter
   }
-  
-  // Update filter display
-  updateDateFilterDisplay();
-  
-  summaryContainer.innerHTML = '';
+}
 
+// Load cashflow summary
+function loadCashflow() {
   // Remove previous listener
   if (cashflowListener) {
     getTransactionsRef().off('value', cashflowListener);
     cashflowListener = null;
   }
 
+  // Update filter buttons
+  updatePeriodFilterButtons();
+
   // Listen for transactions
   cashflowListener = getTransactionsRef().on('value', (snapshot) => {
-    if (!summaryContainer) return;
-    
     const transactions = snapshot.val() || {};
     let totalIncome = 0;
     let totalExpenses = 0;
 
-    // Filter by date if filter is active
+    // Filter by period
     let transactionsToProcess = Object.values(transactions);
-    if (cashflowSelectedFilterDate) {
-      const filterDateStart = new Date(cashflowSelectedFilterDate.getFullYear(), cashflowSelectedFilterDate.getMonth(), cashflowSelectedFilterDate.getDate(), 0, 0, 0, 0).getTime();
-      const filterDateEnd = new Date(cashflowSelectedFilterDate.getFullYear(), cashflowSelectedFilterDate.getMonth(), cashflowSelectedFilterDate.getDate(), 23, 59, 59, 999).getTime();
-      
+    const periodRange = getPeriodDateRange(cashflowSelectedFilterPeriod);
+    
+    if (periodRange) {
       transactionsToProcess = transactionsToProcess.filter(transaction => {
         const transactionDate = transaction.date || transaction.createdAt;
         if (!transactionDate) return false;
-        return transactionDate >= filterDateStart && transactionDate <= filterDateEnd;
+        return transactionDate >= periodRange.start && transactionDate <= periodRange.end;
       });
     }
 
@@ -90,145 +110,53 @@ function loadCashflow(initializeToToday = false) {
         balanceElement.classList.add('text-red-600');
       }
     }
-
-    // Show transactions summary by category
-    const categorySummary = {};
-    transactionsToProcess.forEach(transaction => {
-      const categoryName = transaction.categoryName || 'Sin categoría';
-      if (!categorySummary[categoryName]) {
-        categorySummary[categoryName] = {
-          income: 0,
-          expense: 0,
-          type: transaction.type
-        };
-      }
-      if (transaction.type === 'income') {
-        categorySummary[categoryName].income += parseFloat(transaction.amount || 0);
-      } else {
-        categorySummary[categoryName].expense += parseFloat(transaction.amount || 0);
-      }
-    });
-
-    // Display category summary
-    if (Object.keys(categorySummary).length === 0) {
-      if (cashflowSelectedFilterDate) {
-        summaryContainer.innerHTML = '<p class="text-center text-gray-600 py-6 sm:py-8 text-sm sm:text-base">No hay transacciones para la fecha seleccionada</p>';
-      } else {
-        summaryContainer.innerHTML = '<p class="text-center text-gray-600 py-6 sm:py-8 text-sm sm:text-base">No hay transacciones registradas</p>';
-      }
-      return;
-    }
-
-    const summaryHtml = Object.entries(categorySummary)
-      .sort((a, b) => {
-        const totalA = a[1].income + a[1].expense;
-        const totalB = b[1].income + b[1].expense;
-        return totalB - totalA;
-      })
-      .map(([categoryName, data]) => {
-        const total = data.income + data.expense;
-        const isIncome = data.income > 0;
-        const color = isIncome ? 'text-green-600' : 'text-red-600';
-        return `
-          <div class="border border-gray-200 p-3 sm:p-4 md:p-6">
-            <div class="flex justify-between items-center mb-2">
-              <div class="text-base sm:text-lg font-light">${escapeHtml(categoryName)}</div>
-              <div class="text-base sm:text-lg font-light ${color} font-medium">
-                ${isIncome ? '+' : '-'}$${formatNumber(total)}
-              </div>
-            </div>
-            ${data.income > 0 ? `<div class="text-xs sm:text-sm text-gray-600">Ingresos: $${formatNumber(data.income)}</div>` : ''}
-            ${data.expense > 0 ? `<div class="text-xs sm:text-sm text-gray-600">Egresos: $${formatNumber(data.expense)}</div>` : ''}
-          </div>
-        `;
-      })
-      .join('');
-
-    summaryContainer.innerHTML = summaryHtml;
   });
 }
 
-// Date filter handlers
-function updateDateFilterDisplay() {
-  const display = document.getElementById('filter-date-display');
-  if (!display) return;
+// Period filter handlers
+function updatePeriodFilterButtons() {
+  const buttons = {
+    'today': document.getElementById('filter-today-btn'),
+    'week': document.getElementById('filter-week-btn'),
+    'month': document.getElementById('filter-month-btn'),
+    'year': document.getElementById('filter-year-btn'),
+    'all': document.getElementById('filter-all-btn')
+  };
   
-  if (cashflowSelectedFilterDate) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const filterDate = new Date(cashflowSelectedFilterDate);
-    filterDate.setHours(0, 0, 0, 0);
-    
-    if (filterDate.getTime() === today.getTime()) {
-      display.textContent = 'Hoy';
-    } else {
-      display.textContent = formatDate24h(cashflowSelectedFilterDate);
+  Object.entries(buttons).forEach(([period, btn]) => {
+    if (btn) {
+      if (period === cashflowSelectedFilterPeriod) {
+        btn.classList.add('bg-red-600', 'text-white', 'border-red-600');
+        btn.classList.remove('text-gray-600', 'border-gray-300');
+      } else {
+        btn.classList.remove('bg-red-600', 'text-white', 'border-red-600');
+        btn.classList.add('text-gray-600', 'border-gray-300');
+      }
     }
-  } else {
-    display.textContent = 'Todas';
-  }
+  });
 }
 
-function setToday() {
-  cashflowSelectedFilterDate = new Date();
-  cashflowSelectedFilterDate.setHours(0, 0, 0, 0);
-  updateDateFilterDisplay();
+function setPeriodFilter(period) {
+  cashflowSelectedFilterPeriod = period;
   loadCashflow();
 }
 
-function prevDate() {
-  if (!cashflowSelectedFilterDate) {
-    cashflowSelectedFilterDate = new Date();
-    cashflowSelectedFilterDate.setHours(0, 0, 0, 0);
-  } else {
-    const prev = new Date(cashflowSelectedFilterDate);
-    prev.setDate(prev.getDate() - 1);
-    prev.setHours(0, 0, 0, 0);
-    cashflowSelectedFilterDate = prev;
-  }
-  updateDateFilterDisplay();
-  loadCashflow();
-}
-
-function nextDate() {
-  if (!cashflowSelectedFilterDate) {
-    cashflowSelectedFilterDate = new Date();
-    cashflowSelectedFilterDate.setHours(0, 0, 0, 0);
-  } else {
-    const next = new Date(cashflowSelectedFilterDate);
-    next.setDate(next.getDate() + 1);
-    next.setHours(0, 0, 0, 0);
-    cashflowSelectedFilterDate = next;
-  }
-  updateDateFilterDisplay();
-  loadCashflow();
-}
-
-function clearDateFilter() {
-  cashflowSelectedFilterDate = null;
-  updateDateFilterDisplay();
-  // Pass false to prevent re-initializing to today
-  loadCashflow(false);
-}
-
-// Initialize date filter display on load
+// Initialize period filter on load
 document.addEventListener('DOMContentLoaded', () => {
-  // Keep as null to show all by default, only set hours if date is set
-  if (cashflowSelectedFilterDate) {
-    cashflowSelectedFilterDate.setHours(0, 0, 0, 0);
-  }
-  updateDateFilterDisplay();
-  
   // Setup event listeners after DOM is ready
-  const todayBtn = document.getElementById('today-date-btn');
-  const prevBtn = document.getElementById('prev-date-btn');
-  const nextBtn = document.getElementById('next-date-btn');
-  const clearBtn = document.getElementById('clear-date-filter-btn');
+  const todayBtn = document.getElementById('filter-today-btn');
+  const weekBtn = document.getElementById('filter-week-btn');
+  const monthBtn = document.getElementById('filter-month-btn');
+  const yearBtn = document.getElementById('filter-year-btn');
+  const allBtn = document.getElementById('filter-all-btn');
   
-  if (todayBtn) todayBtn.addEventListener('click', setToday);
-  if (prevBtn) prevBtn.addEventListener('click', prevDate);
-  if (nextBtn) nextBtn.addEventListener('click', nextDate);
-  if (clearBtn) clearBtn.addEventListener('click', clearDateFilter);
+  if (todayBtn) todayBtn.addEventListener('click', () => setPeriodFilter('today'));
+  if (weekBtn) weekBtn.addEventListener('click', () => setPeriodFilter('week'));
+  if (monthBtn) monthBtn.addEventListener('click', () => setPeriodFilter('month'));
+  if (yearBtn) yearBtn.addEventListener('click', () => setPeriodFilter('year'));
+  if (allBtn) allBtn.addEventListener('click', () => setPeriodFilter('all'));
+  
+  updatePeriodFilterButtons();
 });
 
 // Escape HTML to prevent XSS

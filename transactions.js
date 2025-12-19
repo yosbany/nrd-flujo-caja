@@ -561,7 +561,12 @@ function showReportModal() {
   const modal = document.getElementById('report-date-modal');
   const dateInput = document.getElementById('report-date');
   
-  if (modal) modal.classList.remove('hidden');
+  if (!modal) {
+    console.error('Modal not found');
+    return;
+  }
+  
+  modal.classList.remove('hidden');
   
   // Set default date from filter if available
   if (dateInput && transactionsSelectedFilterDate) {
@@ -569,8 +574,10 @@ function showReportModal() {
     dateInput.value = dateStr;
     dateInput.required = false; // Not required if we have a default
   } else {
-    dateInput.required = true; // Required if no filter date
-    dateInput.value = '';
+    if (dateInput) {
+      dateInput.required = true; // Required if no filter date
+      dateInput.value = '';
+    }
   }
 }
 
@@ -578,6 +585,9 @@ function hideReportModal() {
   const modal = document.getElementById('report-date-modal');
   if (modal) modal.classList.add('hidden');
 }
+
+// Make hideReportModal available globally
+window.hideReportModal = hideReportModal;
 
 // Format number with comma for decimals and point for thousands
 function formatNumber(number) {
@@ -651,39 +661,24 @@ async function generateDailyReport(reportDate) {
       }
     });
     
-    // Group accounts by type
-    const cashAccounts = [];
-    const bankAccounts = [];
-    const creditAccounts = [];
+    // Prepare account summary data
+    const accountSummary = [];
     
     Object.entries(accounts).forEach(([id, account]) => {
-      const balance = accountBalances[id] || 0;
-      const initial = accountInitialBalances[id] || 0;
-      const difference = balance - initial;
+      const saldoFinal = accountBalances[id] || 0;
+      const saldoInicial = accountInitialBalances[id] || 0;
+      const diferencia = saldoFinal - saldoInicial;
       
-      const accountData = {
-        id,
+      accountSummary.push({
         name: account.name,
-        initial: initial,
-        current: balance,
-        difference: difference
-      };
-      
-      const nameLower = account.name.toLowerCase();
-      if (nameLower.includes('efectivo') || nameLower.includes('caja') || nameLower.includes('cofre') || nameLower.includes('mostrador') || nameLower.includes('banca')) {
-        cashAccounts.push(accountData);
-      } else if (nameLower.includes('crédito') || nameLower.includes('credito') || nameLower.includes('visa')) {
-        creditAccounts.push(accountData);
-      } else {
-        bankAccounts.push(accountData);
-      }
+        saldoInicial: saldoInicial,
+        saldoFinal: saldoFinal,
+        diferencia: diferencia
+      });
     });
     
-    // Calculate totals
-    const totalCash = cashAccounts.reduce((sum, acc) => sum + acc.current, 0);
-    const totalBank = bankAccounts.reduce((sum, acc) => sum + acc.current, 0);
-    const totalCredit = creditAccounts.reduce((sum, acc) => sum + acc.current, 0);
-    const totalBalance = totalCash + totalBank + totalCredit;
+    // Sort accounts by name
+    accountSummary.sort((a, b) => a.name.localeCompare(b.name));
     
     // Generate PDF
     const { jsPDF } = window.jspdf;
@@ -708,20 +703,8 @@ async function generateDailyReport(reportDate) {
     yPos += 8;
     
     doc.setFontSize(10);
-    const tableHeaders = ['Cuenta', '$ Saldo Inicial', '$ Saldo Actual', '$ Diferencia'];
-    const tableData = [];
-    
-    [...cashAccounts, ...bankAccounts, ...creditAccounts].forEach(acc => {
-      tableData.push([
-        acc.name,
-        formatNumber(acc.initial),
-        formatNumber(acc.current),
-        formatNumber(acc.difference)
-      ]);
-    });
-    
-    // Simple table (jsPDF doesn't have built-in table, so we'll draw manually)
-    const colWidths = [60, 40, 40, 40];
+    const tableHeaders = ['Nombre de Cuenta', 'Saldo Inicial', 'Saldo Final', 'Diferencia'];
+    const colWidths = [70, 40, 40, 40];
     const startX = 14;
     let xPos = startX;
     
@@ -735,8 +718,14 @@ async function generateDailyReport(reportDate) {
     
     // Data rows
     doc.setFont(undefined, 'normal');
-    tableData.forEach(row => {
+    accountSummary.forEach(acc => {
       xPos = startX;
+      const row = [
+        acc.name,
+        formatNumber(acc.saldoInicial),
+        formatNumber(acc.saldoFinal),
+        formatNumber(acc.diferencia)
+      ];
       row.forEach((cell, i) => {
         doc.text(cell, xPos, yPos);
         xPos += colWidths[i];
@@ -755,9 +744,9 @@ async function generateDailyReport(reportDate) {
     doc.text('Movimientos', 14, yPos);
     yPos += 8;
     
-    doc.setFontSize(8);
-    const transHeaders = ['Fecha', 'Concepto', 'Descripción', 'Cuenta', 'Estado', '$ Monto'];
-    const transColWidths = [25, 30, 50, 40, 20, 25];
+    doc.setFontSize(9);
+    const transHeaders = ['Fecha', 'Categoría', 'Cuenta', 'Descripción', '$ Monto'];
+    const transColWidths = [25, 40, 40, 60, 30];
     
     // Headers
     doc.setFont(undefined, 'bold');
@@ -778,24 +767,37 @@ async function generateDailyReport(reportDate) {
       if (yPos > 270) {
         doc.addPage();
         yPos = 20;
+        // Redraw headers on new page
+        doc.setFont(undefined, 'bold');
+        xPos = startX;
+        transHeaders.forEach((header, i) => {
+          doc.text(header, xPos, yPos);
+          xPos += transColWidths[i];
+        });
+        yPos += 6;
+        doc.setFont(undefined, 'normal');
       }
       
       const transDate = transaction.date ? new Date(transaction.date) : new Date(transaction.createdAt);
       const dateStr = formatDate24h(transDate);
-      const concept = transaction.type === 'income' ? '(+) ' + (transaction.categoryName || 'Ingresos') : '(-) ' + (transaction.categoryName || 'Egresos');
-      const description = transaction.description || '';
+      const category = transaction.categoryName || 'Sin categoría';
       const accountName = transaction.accountName || 'Sin cuenta';
+      const description = transaction.description || '';
       const amount = parseFloat(transaction.amount) || 0;
       const amountStr = (transaction.type === 'income' ? '+' : '-') + formatNumber(amount);
       
-      const transData = [dateStr, concept, description, accountName, 'Finalizado', amountStr];
+      const transData = [dateStr, category, accountName, description, amountStr];
       
       xPos = startX;
       transData.forEach((cell, i) => {
         // Truncate long text
-        let cellText = cell;
-        if (i === 2 && cellText.length > 30) {
-          cellText = cellText.substring(0, 27) + '...';
+        let cellText = String(cell);
+        if (i === 3 && cellText.length > 35) {
+          cellText = cellText.substring(0, 32) + '...';
+        } else if (i === 1 && cellText.length > 20) {
+          cellText = cellText.substring(0, 17) + '...';
+        } else if (i === 2 && cellText.length > 20) {
+          cellText = cellText.substring(0, 17) + '...';
         }
         doc.text(cellText, xPos, yPos);
         xPos += transColWidths[i];
@@ -805,29 +807,12 @@ async function generateDailyReport(reportDate) {
     
     yPos += 10;
     
-    // Summary
+    // Footer
     if (yPos > 250) {
       doc.addPage();
       yPos = 20;
     }
     
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'bold');
-    doc.text('Efectivo', 14, yPos);
-    doc.text(formatNumber(totalCash), 60, yPos);
-    
-    doc.text('Banco', 100, yPos);
-    doc.text(formatNumber(totalBank), 140, yPos);
-    
-    yPos += 6;
-    
-    doc.text('Crédito', 14, yPos);
-    doc.text(formatNumber(totalCredit), 60, yPos);
-    
-    doc.text('Balance', 100, yPos);
-    doc.text(formatNumber(totalBalance), 140, yPos);
-    
-    yPos += 15;
     doc.setFont(undefined, 'normal');
     doc.setFontSize(10);
     doc.text('Firma del Responsable', 14, yPos);
@@ -853,13 +838,24 @@ function setupReportHandlers() {
   if (reportBtn) {
     // Remove existing listener if any
     reportBtn.removeEventListener('click', showReportModal);
-    reportBtn.addEventListener('click', showReportModal);
+    reportBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      showReportModal();
+    });
   }
   
   // Report modal handlers
+  const modal = document.getElementById('report-date-modal');
   const closeReportModal = document.getElementById('close-report-modal');
   const cancelReportBtn = document.getElementById('cancel-report-btn');
   const reportDateForm = document.getElementById('report-date-form');
+  
+  // Close modal when clicking outside
+  if (modal) {
+    modal.removeEventListener('click', handleModalOutsideClick);
+    modal.addEventListener('click', handleModalOutsideClick);
+  }
   
   if (closeReportModal) {
     closeReportModal.removeEventListener('click', hideReportModal);
@@ -874,6 +870,12 @@ function setupReportHandlers() {
   if (reportDateForm) {
     reportDateForm.removeEventListener('submit', handleReportSubmit);
     reportDateForm.addEventListener('submit', handleReportSubmit);
+  }
+}
+
+function handleModalOutsideClick(e) {
+  if (e.target.id === 'report-date-modal') {
+    hideReportModal();
   }
 }
 
