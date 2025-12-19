@@ -17,12 +17,12 @@ function formatDate24h(date) {
 }
 
 // Load cashflow summary
-function loadCashflow() {
+function loadCashflow(initializeToToday = true) {
   const summaryContainer = document.getElementById('cashflow-summary');
   if (!summaryContainer) return;
   
-  // Initialize filter date to today if not set
-  if (!selectedFilterDate) {
+  // Initialize filter date to today if not set (only if initializeToToday is true)
+  if (!selectedFilterDate && initializeToToday) {
     selectedFilterDate = new Date();
     selectedFilterDate.setHours(0, 0, 0, 0);
   }
@@ -107,7 +107,11 @@ function loadCashflow() {
 
     // Display category summary
     if (Object.keys(categorySummary).length === 0) {
-      summaryContainer.innerHTML = '<p class="text-center text-gray-600 py-6 sm:py-8 text-sm sm:text-base">No hay transacciones para la fecha seleccionada</p>';
+      if (selectedFilterDate) {
+        summaryContainer.innerHTML = '<p class="text-center text-gray-600 py-6 sm:py-8 text-sm sm:text-base">No hay transacciones para la fecha seleccionada</p>';
+      } else {
+        summaryContainer.innerHTML = '<p class="text-center text-gray-600 py-6 sm:py-8 text-sm sm:text-base">No hay transacciones registradas</p>';
+      }
       return;
     }
 
@@ -199,7 +203,8 @@ function nextDate() {
 function clearDateFilter() {
   selectedFilterDate = null;
   updateDateFilterDisplay();
-  loadCashflow();
+  // Pass false to prevent re-initializing to today
+  loadCashflow(false);
 }
 
 // Initialize date filter display on load
@@ -212,12 +217,24 @@ document.addEventListener('DOMContentLoaded', () => {
     selectedFilterDate.setHours(0, 0, 0, 0);
   }
   updateDateFilterDisplay();
+  
+  // Setup event listeners after DOM is ready
+  const todayBtn = document.getElementById('today-date-btn');
+  const prevBtn = document.getElementById('prev-date-btn');
+  const nextBtn = document.getElementById('next-date-btn');
+  const clearBtn = document.getElementById('clear-date-filter-btn');
+  
+  if (todayBtn) todayBtn.addEventListener('click', setToday);
+  if (prevBtn) prevBtn.addEventListener('click', prevDate);
+  if (nextBtn) nextBtn.addEventListener('click', nextDate);
+  if (clearBtn) clearBtn.addEventListener('click', clearDateFilter);
+  
+  // Event listener for report button
+  const reportBtn = document.getElementById('report-cashflow-btn');
+  if (reportBtn) {
+    reportBtn.addEventListener('click', generateCashflowReport);
+  }
 });
-
-document.getElementById('today-date-btn').addEventListener('click', setToday);
-document.getElementById('prev-date-btn').addEventListener('click', prevDate);
-document.getElementById('next-date-btn').addEventListener('click', nextDate);
-document.getElementById('clear-date-filter-btn').addEventListener('click', clearDateFilter);
 
 // Generate cashflow report
 async function generateCashflowReport() {
@@ -422,9 +439,6 @@ async function generateCashflowReport() {
     await showError('Error al generar reporte: ' + error.message);
   }
 }
-
-// Event listener for report button
-document.getElementById('report-cashflow-btn').addEventListener('click', generateCashflowReport);
 
 // Escape HTML to prevent XSS
 function escapeHtml(text) {

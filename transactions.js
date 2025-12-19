@@ -17,12 +17,12 @@ function formatDate24h(date) {
 }
 
 // Load transactions
-function loadTransactions() {
+function loadTransactions(initializeToToday = true) {
   const transactionsList = document.getElementById('transactions-list');
   if (!transactionsList) return;
   
-  // Initialize filter date to today if not set
-  if (!selectedFilterDate) {
+  // Initialize filter date to today if not set (only if initializeToToday is true)
+  if (!selectedFilterDate && initializeToToday) {
     selectedFilterDate = new Date();
     selectedFilterDate.setHours(0, 0, 0, 0);
   }
@@ -71,7 +71,11 @@ function loadTransactions() {
     
     // Show filtered transactions
     if (transactionsToShow.length === 0) {
-      transactionsList.innerHTML = '<p class="text-center text-gray-600 py-6 sm:py-8 text-sm sm:text-base">No hay transacciones para la fecha seleccionada</p>';
+      if (selectedFilterDate) {
+        transactionsList.innerHTML = '<p class="text-center text-gray-600 py-6 sm:py-8 text-sm sm:text-base">No hay transacciones para la fecha seleccionada</p>';
+      } else {
+        transactionsList.innerHTML = '<p class="text-center text-gray-600 py-6 sm:py-8 text-sm sm:text-base">No hay transacciones registradas</p>';
+      }
       return;
     }
     
@@ -496,7 +500,8 @@ function nextTransactionsDate() {
 function clearTransactionsDateFilter() {
   selectedFilterDate = null;
   updateTransactionsDateFilterDisplay();
-  loadTransactions();
+  // Pass false to prevent re-initializing to today
+  loadTransactions(false);
 }
 
 // Initialize filter display on page load

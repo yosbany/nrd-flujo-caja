@@ -38,14 +38,24 @@ function switchView(viewName) {
 
   // Load data for the view
   if (viewName === 'cashflow') {
-    loadCashflow();
+    if (typeof loadCashflow === 'function') {
+      loadCashflow();
+    } else {
+      console.error('loadCashflow function not available');
+    }
     const dateFilter = document.getElementById('date-filter-container');
     if (dateFilter) {
       dateFilter.style.display = 'flex';
     }
   } else if (viewName === 'transactions') {
-    loadTransactions();
-    hideTransactionForm();
+    if (typeof loadTransactions === 'function') {
+      loadTransactions();
+    } else {
+      console.error('loadTransactions function not available');
+    }
+    if (typeof hideTransactionForm === 'function') {
+      hideTransactionForm();
+    }
     const transactionDetail = document.getElementById('transaction-detail');
     if (transactionDetail) transactionDetail.classList.add('hidden');
     const dateFilter = document.getElementById('transactions-date-filter-container');
@@ -53,8 +63,14 @@ function switchView(viewName) {
       dateFilter.style.display = 'flex';
     }
   } else if (viewName === 'categories') {
-    loadCategories();
-    hideCategoryForm();
+    if (typeof loadCategories === 'function') {
+      loadCategories();
+    } else {
+      console.error('loadCategories function not available');
+    }
+    if (typeof hideCategoryForm === 'function') {
+      hideCategoryForm();
+    }
   }
 }
 
