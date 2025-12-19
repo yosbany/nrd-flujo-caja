@@ -7,7 +7,7 @@
   <title>NRD Flujo de Caja</title>
   <link rel="manifest" href="manifest.json">
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="styles.css?v=1766182848135">
+  <link rel="stylesheet" href="styles.css?v=1766183812732">
   <meta name="theme-color" content="#dc2626">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/svg+xml" href="icon-192.svg">
@@ -113,15 +113,33 @@
           <div class="border border-gray-200 p-4 sm:p-6 bg-green-50">
             <div class="text-xs sm:text-sm uppercase tracking-wider text-gray-600 mb-2">Ingresos</div>
             <div id="total-income" class="text-2xl sm:text-3xl font-light text-green-600">$0.00</div>
+            <div id="income-variation" class="text-xs text-gray-500 mt-1"></div>
           </div>
-          <div class="border border-gray-200 p-4 sm:p-6 bg-red-50">
+          <div id="expenses-card" class="border border-gray-200 p-4 sm:p-6 bg-red-50 cursor-pointer hover:bg-red-100 transition-colors">
             <div class="text-xs sm:text-sm uppercase tracking-wider text-gray-600 mb-2">Egresos</div>
             <div id="total-expenses" class="text-2xl sm:text-3xl font-light text-red-600">$0.00</div>
+            <div id="expenses-variation" class="text-xs text-gray-500 mt-1"></div>
+            <!-- Mini desglose TOP 3 categorías -->
+            <div id="expenses-breakdown" class="mt-3 pt-3 border-t border-red-200 space-y-1"></div>
           </div>
-          <div class="border border-gray-200 p-4 sm:p-6 bg-blue-50">
+          <div class="border border-gray-200 p-4 sm:p-6 bg-blue-50 relative">
             <div class="text-xs sm:text-sm uppercase tracking-wider text-gray-600 mb-2">Balance</div>
             <div id="total-balance" class="text-2xl sm:text-3xl font-light text-blue-600">$0.00</div>
+            <div id="balance-percentage" class="text-xs text-gray-500 mt-1"></div>
+            <div id="balance-variation" class="text-xs text-gray-500 mt-1"></div>
+            <div id="balance-trend" class="text-xs text-gray-500 mt-1"></div>
+            <!-- Badge de margen -->
+            <div id="margin-badge" class="absolute top-3 right-3 px-2 py-1 rounded text-xs font-semibold"></div>
           </div>
+        </div>
+        
+        <!-- Panel de drill-down de egresos -->
+        <div id="expenses-drilldown" class="hidden border border-gray-200 p-4 sm:p-6 bg-white mb-4 sm:mb-6">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-light">Desglose de Egresos por Categoría</h3>
+            <button id="close-expenses-drilldown" class="text-gray-500 hover:text-red-600 text-xl">&times;</button>
+          </div>
+          <div id="expenses-drilldown-content" class="space-y-2"></div>
         </div>
         
         <!-- Period Filter -->
@@ -510,16 +528,16 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   
   <!-- App Scripts -->
-  <script src="firebase.js?v=1766182848135"></script>
-  <script src="modal.js?v=1766182848135"></script>
-  <script src="auth.js?v=1766182848135"></script>
-  <script src="db.js?v=1766182848135"></script>
-  <script src="categories.js?v=1766182848135"></script>
-  <script src="transactions.js?v=1766182848135"></script>
-  <script src="cashflow.js?v=1766182848135"></script>
-  <script src="accounts.js?v=1766182848135"></script>
-  <script src="analysis.js?v=1766182848135"></script>
-  <script src="app.js?v=1766182848135"></script>
+  <script src="firebase.js?v=1766183812732"></script>
+  <script src="modal.js?v=1766183812732"></script>
+  <script src="auth.js?v=1766183812732"></script>
+  <script src="db.js?v=1766183812732"></script>
+  <script src="categories.js?v=1766183812732"></script>
+  <script src="transactions.js?v=1766183812732"></script>
+  <script src="cashflow.js?v=1766183812732"></script>
+  <script src="accounts.js?v=1766183812732"></script>
+  <script src="analysis.js?v=1766183812732"></script>
+  <script src="app.js?v=1766183812732"></script>
 
   <script>
     // Global error handler
@@ -570,7 +588,7 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         // Register service worker without version parameter
-        navigator.serviceWorker.register('service-worker.js?v=1766182848135')
+        navigator.serviceWorker.register('service-worker.js?v=1766183812732')
           .then(reg => {
             console.log('Service Worker registered');
             
