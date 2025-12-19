@@ -12,6 +12,14 @@ function formatDate24h(date) {
   return `${day}/${month}/${year}`;
 }
 
+// Format number with comma for decimals and point for thousands
+function formatNumber(number) {
+  return number.toLocaleString('es-UY', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
 // Load cashflow summary
 function loadCashflow(initializeToToday = false) {
   const summaryContainer = document.getElementById('cashflow-summary');
@@ -67,9 +75,9 @@ function loadCashflow(initializeToToday = false) {
     const balance = totalIncome - totalExpenses;
 
     // Update summary cards
-    document.getElementById('total-income').textContent = `$${totalIncome.toFixed(2)}`;
-    document.getElementById('total-expenses').textContent = `$${totalExpenses.toFixed(2)}`;
-    document.getElementById('total-balance').textContent = `$${balance.toFixed(2)}`;
+    document.getElementById('total-income').textContent = `$${formatNumber(totalIncome)}`;
+    document.getElementById('total-expenses').textContent = `$${formatNumber(totalExpenses)}`;
+    document.getElementById('total-balance').textContent = `$${formatNumber(balance)}`;
 
     // Update balance color
     const balanceElement = document.getElementById('total-balance');
@@ -126,11 +134,11 @@ function loadCashflow(initializeToToday = false) {
             <div class="flex justify-between items-center mb-2">
               <div class="text-base sm:text-lg font-light">${escapeHtml(categoryName)}</div>
               <div class="text-base sm:text-lg font-light ${color} font-medium">
-                ${isIncome ? '+' : '-'}$${total.toFixed(2)}
+                ${isIncome ? '+' : '-'}$${formatNumber(total)}
               </div>
             </div>
-            ${data.income > 0 ? `<div class="text-xs sm:text-sm text-gray-600">Ingresos: $${data.income.toFixed(2)}</div>` : ''}
-            ${data.expense > 0 ? `<div class="text-xs sm:text-sm text-gray-600">Egresos: $${data.expense.toFixed(2)}</div>` : ''}
+            ${data.income > 0 ? `<div class="text-xs sm:text-sm text-gray-600">Ingresos: $${formatNumber(data.income)}</div>` : ''}
+            ${data.expense > 0 ? `<div class="text-xs sm:text-sm text-gray-600">Egresos: $${formatNumber(data.expense)}</div>` : ''}
           </div>
         `;
       })

@@ -8,94 +8,102 @@
   },
   "categories": {
     "(+) Ingresos por Venta": {
-      "name": "VENTAS MOSTRADOR",
+      "name": "INGRESOS – VENTAS MOSTRADOR",
       "type": "income"
     },
     "(-) Pago a Proveedores": {
-      "name": "OTROS EGRESOS",
+      "name": "EGRESOS – COMPRAS A PROVEEDORES",
       "type": "expense"
     },
     "(-) Salarios": {
-      "name": "OTROS EGRESOS",
+      "name": "EGRESOS – REMUNERACIONES",
       "type": "expense"
     },
     "(-) Pago de Servicios": {
-      "name": "OTROS EGRESOS",
+      "name": "EGRESOS – SERVICIOS OPERATIVOS",
       "type": "expense"
     },
     "(-) Egresos Varios": {
-      "name": "OTROS EGRESOS",
+      "name": "EGRESOS – OTROS GASTOS",
       "type": "expense"
     },
     "(+) Ingresos Varios": {
-      "name": "OTROS INGRESOS",
+      "name": "INGRESOS – OTROS",
       "type": "income"
     }
   },
   "descriptionRules": [
-    {
-      "keywords": ["supermercado", "super", "coto", "carrefour", "disco", "jumbo"],
-      "category": {
-        "name": "SUPERMERCADO",
-        "type": "expense"
-      }
-    },
-    {
-      "keywords": ["combustible", "nafta", "gasolina", "ypf", "shell", "axion"],
-      "category": {
-        "name": "COMBUSTIBLE",
-        "type": "expense"
-      }
-    },
-    {
-      "keywords": ["farmacia", "farmacity", "dr. ahorro"],
-      "category": {
-        "name": "FARMACIA",
-        "type": "expense"
-      }
-    },
-    {
-      "keywords": ["restaurant", "restaurante", "comida", "delivery", "pedidos ya", "rappi"],
-      "category": {
-        "name": "COMIDA",
-        "type": "expense"
-      }
-    },
-    {
-      "keywords": ["luz", "electricidad", "edenor", "edesur"],
-      "category": {
-        "name": "SERVICIOS",
-        "type": "expense"
-      }
-    },
-    {
-      "keywords": ["agua", "aysa", "aguas"],
-      "category": {
-        "name": "SERVICIOS",
-        "type": "expense"
-      }
-    },
-    {
-      "keywords": ["gas", "metrogas", "camuzzi"],
-      "category": {
-        "name": "SERVICIOS",
-        "type": "expense"
-      }
-    },
-    {
-      "keywords": ["internet", "fibertel", "movistar", "personal", "claro"],
-      "category": {
-        "name": "SERVICIOS",
-        "type": "expense"
-      }
-    },
-    {
-      "keywords": ["sueldo", "salario", "pago empleado"],
-      "category": {
-        "name": "SALARIOS",
-        "type": "expense"
-      }
+  {
+    "keywords": [
+      "venta", "ventas", "facturacion", "conaprole",
+      "efectivo", "tarjeta", "tarjetas"
+    ],
+    "category": {
+      "name": "INGRESOS – VENTAS MOSTRADOR",
+      "type": "income"
     }
-  ]
+  },
+  {
+    "keywords": [
+      "banca", "recibo de venta de la banca", "ingreso de banca"
+    ],
+    "category": {
+      "name": "INGRESOS – BANCA DE JUEGOS",
+      "type": "income"
+    }
+  },
+  {
+    "keywords": [
+      "otros ingreso", "prestamo recibido", "recibido de la caja"
+    ],
+    "category": {
+      "name": "INGRESOS – OTROS",
+      "type": "income"
+    }
+  },
+  {
+    "keywords": [
+      "salario", "sueldos", "jornal"
+    ],
+    "category": {
+      "name": "EGRESOS – REMUNERACIONES",
+      "type": "expense"
+    }
+  },
+  {
+    "keywords": [
+      "coca cola", "la familia", "claldy", "don toto", "franchia", "huevo",
+      "pan de molde", "comitan", "mundo frozzen", "malatic", "salus",
+      "colonial", "sarubi", "sub-producto", "carniceria", "carnelandia",
+      "limol", "kalter", "irazu", "antomi", "asilo packing", "blancor",
+      "cigarro"
+    ],
+    "category": {
+      "name": "EGRESOS – COMPRAS A PROVEEDORES",
+      "type": "expense"
+    }
+  },
+  {
+    "keywords": [
+      "gas", "loimar", "residuo", "recojida", "recoleccion",
+      "flete", "servicios bancario", "cuenta de credito", "banco"
+    ],
+    "category": {
+      "name": "EGRESOS – SERVICIOS OPERATIVOS",
+      "type": "expense"
+    }
+  },
+  {
+    "keywords": [
+      "otros gasto", "otros pagos", "gastos varios"
+    ],
+    "category": {
+      "name": "EGRESOS – OTROS GASTOS",
+      "type": "expense"
+    }
+  }
+
+]
+
 }
 

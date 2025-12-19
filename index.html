@@ -7,7 +7,7 @@
   <title>NRD Flujo de Caja</title>
   <link rel="manifest" href="manifest.json">
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="styles.css?v=1766178531004">
+  <link rel="stylesheet" href="styles.css?v=1766179803305">
   <meta name="theme-color" content="#dc2626">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/svg+xml" href="icon-192.svg">
@@ -98,7 +98,7 @@
     </header>
 
     <nav class="bg-white border-b border-gray-200 flex overflow-x-auto sticky top-[45px] sm:top-[53px] z-10 bg-white">
-      <button class="nav-btn flex-1 px-3 sm:px-4 py-3 sm:py-3.5 border-b-2 border-red-600 text-red-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light" data-view="cashflow">Flujo de Caja</button>
+      <button class="nav-btn flex-1 px-3 sm:px-4 py-3 sm:py-3.5 border-b-2 border-red-600 text-red-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light" data-view="cashflow">Flujo</button>
       <button class="nav-btn flex-1 px-3 sm:px-4 py-3 sm:py-3.5 border-b-2 border-transparent text-gray-600 hover:text-red-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light" data-view="transactions">Transacciones</button>
       <button class="nav-btn flex-1 px-3 sm:px-4 py-3 sm:py-3.5 border-b-2 border-transparent text-gray-600 hover:text-red-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light" data-view="categories">Categorías</button>
       <button class="nav-btn flex-1 px-3 sm:px-4 py-3 sm:py-3.5 border-b-2 border-transparent text-gray-600 hover:text-red-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light" data-view="accounts">Cuentas</button>
@@ -450,16 +450,16 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   
   <!-- App Scripts -->
-  <script src="firebase.js?v=1766178531004"></script>
-  <script src="modal.js?v=1766178531004"></script>
-  <script src="auth.js?v=1766178531004"></script>
-  <script src="db.js?v=1766178531004"></script>
-  <script src="categories.js?v=1766178531004"></script>
-  <script src="transactions.js?v=1766178531004"></script>
-  <script src="cashflow.js?v=1766178531004"></script>
-  <script src="accounts.js?v=1766178531004"></script>
-  <script src="analysis.js?v=1766178531004"></script>
-  <script src="app.js?v=1766178531004"></script>
+  <script src="firebase.js?v=1766179803305"></script>
+  <script src="modal.js?v=1766179803305"></script>
+  <script src="auth.js?v=1766179803305"></script>
+  <script src="db.js?v=1766179803305"></script>
+  <script src="categories.js?v=1766179803305"></script>
+  <script src="transactions.js?v=1766179803305"></script>
+  <script src="cashflow.js?v=1766179803305"></script>
+  <script src="accounts.js?v=1766179803305"></script>
+  <script src="analysis.js?v=1766179803305"></script>
+  <script src="app.js?v=1766179803305"></script>
 
   <script>
     // Global error handler
@@ -510,7 +510,7 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         // Register service worker without version parameter
-        navigator.serviceWorker.register('service-worker.js?v=1766178531004')
+        navigator.serviceWorker.register('service-worker.js?v=1766179803305')
           .then(reg => {
             console.log('Service Worker registered');
             
