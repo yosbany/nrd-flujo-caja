@@ -1,7 +1,12 @@
 // Transaction management
 
 let transactionsListener = null;
-let selectedFilterDate = null;
+// Initialize with today's date by default
+let selectedFilterDate = (() => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
+})();
 
 // Format date in 24-hour format
 function formatDate24h(date) {
@@ -15,6 +20,15 @@ function formatDate24h(date) {
 function loadTransactions() {
   const transactionsList = document.getElementById('transactions-list');
   if (!transactionsList) return;
+  
+  // Initialize filter date to today if not set
+  if (!selectedFilterDate) {
+    selectedFilterDate = new Date();
+    selectedFilterDate.setHours(0, 0, 0, 0);
+  }
+  
+  // Update filter display
+  updateTransactionsDateFilterDisplay();
   
   transactionsList.innerHTML = '';
 
@@ -186,11 +200,18 @@ async function saveTransaction() {
       return;
     }
 
-    // Parse date
-    let transactionDate = Date.now();
-    if (dateInput) {
-      const dateObj = new Date(dateInput);
+    // Parse date - default to today if not provided
+    let transactionDate;
+    if (dateInput && dateInput.value) {
+      const dateObj = new Date(dateInput.value);
+      // Set to start of day (00:00:00) to match filter behavior
+      dateObj.setHours(0, 0, 0, 0);
       transactionDate = dateObj.getTime();
+    } else {
+      // Default to today at start of day
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      transactionDate = today.getTime();
     }
 
     if (isEditing) {
@@ -477,6 +498,11 @@ function clearTransactionsDateFilter() {
   updateTransactionsDateFilterDisplay();
   loadTransactions();
 }
+
+// Initialize filter display on page load
+document.addEventListener('DOMContentLoaded', () => {
+  updateTransactionsDateFilterDisplay();
+});
 
 document.getElementById('transactions-today-date-btn').addEventListener('click', setTransactionsToday);
 document.getElementById('transactions-prev-date-btn').addEventListener('click', prevTransactionsDate);

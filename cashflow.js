@@ -1,7 +1,12 @@
 // Cashflow management
 
 let cashflowListener = null;
-let selectedFilterDate = null;
+// Initialize with today's date by default
+let selectedFilterDate = (() => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
+})();
 
 // Format date in 24-hour format
 function formatDate24h(date) {
@@ -15,6 +20,15 @@ function formatDate24h(date) {
 function loadCashflow() {
   const summaryContainer = document.getElementById('cashflow-summary');
   if (!summaryContainer) return;
+  
+  // Initialize filter date to today if not set
+  if (!selectedFilterDate) {
+    selectedFilterDate = new Date();
+    selectedFilterDate.setHours(0, 0, 0, 0);
+  }
+  
+  // Update filter display
+  updateDateFilterDisplay();
   
   summaryContainer.innerHTML = '';
 
@@ -190,10 +204,14 @@ function clearDateFilter() {
 
 // Initialize date filter display on load
 document.addEventListener('DOMContentLoaded', () => {
-  if (selectedFilterDate) {
+  // Initialize to today if not set
+  if (!selectedFilterDate) {
+    selectedFilterDate = new Date();
     selectedFilterDate.setHours(0, 0, 0, 0);
-    updateDateFilterDisplay();
+  } else {
+    selectedFilterDate.setHours(0, 0, 0, 0);
   }
+  updateDateFilterDisplay();
 });
 
 document.getElementById('today-date-btn').addEventListener('click', setToday);
