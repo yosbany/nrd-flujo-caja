@@ -1,12 +1,8 @@
 // Cashflow management
 
 let cashflowListener = null;
-// Initialize with today's date by default
-let cashflowSelectedFilterDate = (() => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return today;
-})();
+// Initialize with null to show all transactions by default
+let cashflowSelectedFilterDate = null;
 
 // Format date in 24-hour format
 function formatDate24h(date) {
@@ -17,7 +13,7 @@ function formatDate24h(date) {
 }
 
 // Load cashflow summary
-function loadCashflow(initializeToToday = true) {
+function loadCashflow(initializeToToday = false) {
   const summaryContainer = document.getElementById('cashflow-summary');
   if (!summaryContainer) return;
   
@@ -209,11 +205,8 @@ function clearDateFilter() {
 
 // Initialize date filter display on load
 document.addEventListener('DOMContentLoaded', () => {
-  // Initialize to today if not set
-  if (!cashflowSelectedFilterDate) {
-    cashflowSelectedFilterDate = new Date();
-    cashflowSelectedFilterDate.setHours(0, 0, 0, 0);
-  } else {
+  // Keep as null to show all by default, only set hours if date is set
+  if (cashflowSelectedFilterDate) {
     cashflowSelectedFilterDate.setHours(0, 0, 0, 0);
   }
   updateDateFilterDisplay();
