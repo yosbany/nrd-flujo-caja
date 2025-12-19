@@ -7,7 +7,7 @@
   <title>NRD Flujo de Caja</title>
   <link rel="manifest" href="manifest.json">
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="styles.css?v=1766176298583">
+  <link rel="stylesheet" href="styles.css?v=1766176470266">
   <meta name="theme-color" content="#dc2626">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/svg+xml" href="icon-192.svg">
@@ -16,7 +16,7 @@
   <!-- Force cache reload with version parameter in URL -->
   <script>
     (function() {
-      // Get current version from stylesheet link
+      // Get current version from stylesheet link (this is the source of truth)
       const stylesheet = document.querySelector('link[href*="styles.css"]');
       const versionMatch = stylesheet ? stylesheet.href.match(/[?&]v=(\d+)/) : null;
       const currentVersion = versionMatch ? versionMatch[1] : Date.now();
@@ -27,8 +27,28 @@
       
       // If URL version doesn't match current version, reload with new version
       if (urlVersion !== currentVersion) {
+        // Clear service worker cache if available
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for(let registration of registrations) {
+              registration.unregister();
+            }
+          });
+        }
+        
+        // Clear all caches
+        if ('caches' in window) {
+          caches.keys().then(function(names) {
+            for (let name of names) {
+              caches.delete(name);
+            }
+          });
+        }
+        
+        // Reload with new version
         const url = new URL(window.location.href);
         url.searchParams.set('v', currentVersion);
+        url.searchParams.set('_t', Date.now()); // Add timestamp to force reload
         window.location.replace(url.toString());
       }
     })();
@@ -430,16 +450,16 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   
   <!-- App Scripts -->
-  <script src="firebase.js?v=1766176298583"></script>
-  <script src="modal.js?v=1766176298583"></script>
-  <script src="auth.js?v=1766176298583"></script>
-  <script src="db.js?v=1766176298583"></script>
-  <script src="categories.js?v=1766176298583"></script>
-  <script src="transactions.js?v=1766176298583"></script>
-  <script src="cashflow.js?v=1766176298583"></script>
-  <script src="accounts.js?v=1766176298583"></script>
-  <script src="analysis.js?v=1766176298583"></script>
-  <script src="app.js?v=1766176298583"></script>
+  <script src="firebase.js?v=1766176470266"></script>
+  <script src="modal.js?v=1766176470266"></script>
+  <script src="auth.js?v=1766176470266"></script>
+  <script src="db.js?v=1766176470266"></script>
+  <script src="categories.js?v=1766176470266"></script>
+  <script src="transactions.js?v=1766176470266"></script>
+  <script src="cashflow.js?v=1766176470266"></script>
+  <script src="accounts.js?v=1766176470266"></script>
+  <script src="analysis.js?v=1766176470266"></script>
+  <script src="app.js?v=1766176470266"></script>
 
   <script>
     // Global error handler
@@ -490,7 +510,7 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         // Register service worker without version parameter
-        navigator.serviceWorker.register('service-worker.js?v=1766176298583')
+        navigator.serviceWorker.register('service-worker.js?v=1766176470266')
           .then(reg => {
             console.log('Service Worker registered');
             
