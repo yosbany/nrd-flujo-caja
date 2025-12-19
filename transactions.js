@@ -846,13 +846,13 @@ async function generateDailyReport(reportDate) {
   }
 }
 
-// Initialize filter display on page load
-document.addEventListener('DOMContentLoaded', () => {
-  updateTransactionsDateFilterDisplay();
-  
+// Setup report button and modal handlers
+function setupReportHandlers() {
   // Report button
   const reportBtn = document.getElementById('report-btn');
   if (reportBtn) {
+    // Remove existing listener if any
+    reportBtn.removeEventListener('click', showReportModal);
     reportBtn.addEventListener('click', showReportModal);
   }
   
@@ -862,28 +862,39 @@ document.addEventListener('DOMContentLoaded', () => {
   const reportDateForm = document.getElementById('report-date-form');
   
   if (closeReportModal) {
+    closeReportModal.removeEventListener('click', hideReportModal);
     closeReportModal.addEventListener('click', hideReportModal);
   }
   
   if (cancelReportBtn) {
+    cancelReportBtn.removeEventListener('click', hideReportModal);
     cancelReportBtn.addEventListener('click', hideReportModal);
   }
   
   if (reportDateForm) {
-    reportDateForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const dateInput = document.getElementById('report-date');
-      if (!dateInput || !dateInput.value) {
-        await showError('Por favor seleccione una fecha');
-        return;
-      }
-      
-      const selectedDate = new Date(dateInput.value);
-      selectedDate.setHours(0, 0, 0, 0);
-      hideReportModal();
-      await generateDailyReport(selectedDate);
-    });
+    reportDateForm.removeEventListener('submit', handleReportSubmit);
+    reportDateForm.addEventListener('submit', handleReportSubmit);
   }
+}
+
+async function handleReportSubmit(e) {
+  e.preventDefault();
+  const dateInput = document.getElementById('report-date');
+  if (!dateInput || !dateInput.value) {
+    await showError('Por favor seleccione una fecha');
+    return;
+  }
+  
+  const selectedDate = new Date(dateInput.value);
+  selectedDate.setHours(0, 0, 0, 0);
+  hideReportModal();
+  await generateDailyReport(selectedDate);
+}
+
+// Initialize filter display on page load
+document.addEventListener('DOMContentLoaded', () => {
+  updateTransactionsDateFilterDisplay();
+  setupReportHandlers();
 });
 
 document.getElementById('transactions-today-date-btn').addEventListener('click', setTransactionsToday);

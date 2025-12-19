@@ -62,6 +62,10 @@ function switchView(viewName) {
     if (dateFilter) {
       dateFilter.style.display = 'flex';
     }
+    // Setup report handlers when transactions view is loaded
+    if (typeof setupReportHandlers === 'function') {
+      setTimeout(setupReportHandlers, 100);
+    }
   } else if (viewName === 'categories') {
     if (typeof loadCategories === 'function') {
       loadCategories();
