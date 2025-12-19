@@ -466,18 +466,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (yearBtn) yearBtn.addEventListener('click', () => setPeriodFilter('year'));
   if (allBtn) allBtn.addEventListener('click', () => setPeriodFilter('all'));
   
-  // Setup expenses card click handler
-  const expensesCard = document.getElementById('expenses-card');
-  if (expensesCard) {
-    expensesCard.addEventListener('click', showExpensesDrilldown);
-  }
-  
-  // Setup close drill-down handler
-  const closeDrilldown = document.getElementById('close-expenses-drilldown');
-  if (closeDrilldown) {
-    closeDrilldown.addEventListener('click', hideExpensesDrilldown);
-  }
-  
   updatePeriodFilterButtons();
 });
 

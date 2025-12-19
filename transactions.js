@@ -7,6 +7,7 @@ let transactionsSelectedFilterDate = (() => {
   today.setHours(0, 0, 0, 0);
   return today;
 })();
+let transactionsSearchText = '';
 
 // Format date in 24-hour format
 function formatDate24h(date) {
@@ -77,9 +78,34 @@ function loadTransactions(initializeToToday = true) {
       });
     }
     
+    // Filter by search text if provided
+    if (transactionsSearchText && transactionsSearchText.trim()) {
+      const searchLower = transactionsSearchText.toLowerCase().trim();
+      transactionsToShow = transactionsToShow.filter(([id, transaction]) => {
+        // Search in all transaction properties
+        const description = (transaction.description || '').toLowerCase();
+        const categoryName = (transaction.categoryName || '').toLowerCase();
+        const accountName = (transaction.accountName || '').toLowerCase();
+        const notes = (transaction.notes || '').toLowerCase();
+        const amount = formatNumber(parseFloat(transaction.amount || 0)).toLowerCase();
+        const date = transaction.date ? formatDate24h(new Date(transaction.date)) : '';
+        const type = transaction.type === 'income' ? 'ingreso' : 'egreso';
+        
+        return description.includes(searchLower) ||
+               categoryName.includes(searchLower) ||
+               accountName.includes(searchLower) ||
+               notes.includes(searchLower) ||
+               amount.includes(searchLower) ||
+               date.includes(searchLower) ||
+               type.includes(searchLower);
+      });
+    }
+    
     // Show filtered transactions
     if (transactionsToShow.length === 0) {
-      if (transactionsSelectedFilterDate) {
+      if (transactionsSearchText && transactionsSearchText.trim()) {
+        transactionsList.innerHTML = '<p class="text-center text-gray-600 py-6 sm:py-8 text-sm sm:text-base">No se encontraron transacciones que coincidan con la búsqueda</p>';
+      } else if (transactionsSelectedFilterDate) {
         transactionsList.innerHTML = '<p class="text-center text-gray-600 py-6 sm:py-8 text-sm sm:text-base">No hay transacciones para la fecha seleccionada</p>';
       } else {
         transactionsList.innerHTML = '<p class="text-center text-gray-600 py-6 sm:py-8 text-sm sm:text-base">No hay transacciones registradas</p>';
@@ -630,9 +656,18 @@ function updateTransactionsDateFilterDisplay() {
   }
 }
 
+function clearSearchInput() {
+  const searchInput = document.getElementById('transactions-search-input');
+  if (searchInput) {
+    searchInput.value = '';
+    transactionsSearchText = '';
+  }
+}
+
 function setTransactionsToday() {
   transactionsSelectedFilterDate = new Date();
   transactionsSelectedFilterDate.setHours(0, 0, 0, 0);
+  clearSearchInput();
   updateTransactionsDateFilterDisplay();
   loadTransactions();
 }
@@ -647,6 +682,7 @@ function prevTransactionsDate() {
     prev.setHours(0, 0, 0, 0);
     transactionsSelectedFilterDate = prev;
   }
+  clearSearchInput();
   updateTransactionsDateFilterDisplay();
   loadTransactions();
 }
@@ -661,12 +697,14 @@ function nextTransactionsDate() {
     next.setHours(0, 0, 0, 0);
     transactionsSelectedFilterDate = next;
   }
+  clearSearchInput();
   updateTransactionsDateFilterDisplay();
   loadTransactions();
 }
 
 function clearTransactionsDateFilter() {
   transactionsSelectedFilterDate = null;
+  clearSearchInput();
   updateTransactionsDateFilterDisplay();
   // Pass false to prevent re-initializing to today
   loadTransactions(false);
@@ -800,38 +838,38 @@ async function generateDailyReport(reportDate) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
-    let yPos = 8;
+    let yPos = 12;
     
     // Title - more compact
-    doc.setFontSize(12);
+    doc.setFontSize(14);
     doc.text('Cierre Diario', 105, yPos, { align: 'center' });
-    yPos += 4;
-    
-    // Date - more compact
-    doc.setFontSize(9);
-    const dateStr = formatDate24h(reportDate);
-    doc.text(dateStr, 105, yPos, { align: 'center' });
     yPos += 6;
     
-    // Account Summary Table - more compact
+    // Date - more compact
     doc.setFontSize(10);
-    doc.text('Resumen de Cuentas', 14, yPos);
-    yPos += 4;
+    const dateStr = formatDate24h(reportDate);
+    doc.text(dateStr, 105, yPos, { align: 'center' });
+    yPos += 8;
     
-    doc.setFontSize(7);
+    // Account Summary Table - more compact
+    doc.setFontSize(11);
+    doc.text('Resumen de Cuentas', 14, yPos);
+    yPos += 6;
+    
+    doc.setFontSize(8);
     const tableHeaders = ['Nombre de Cuenta', 'Saldo Inicial', 'Saldo Final', 'Diferencia'];
     const colWidths = [70, 40, 40, 40];
     const startX = 14;
-    const headerHeight = 5;
+    const headerHeight = 6;
     const tableWidth = colWidths.reduce((a, b) => a + b, 0);
     
     // Draw header background
     doc.setFillColor(220, 220, 220);
-    doc.rect(startX, yPos - 3, tableWidth, headerHeight, 'F');
+    doc.rect(startX, yPos - 4, tableWidth, headerHeight, 'F');
     
     // Draw header border
     doc.setDrawColor(0, 0, 0);
-    doc.rect(startX, yPos - 3, tableWidth, headerHeight);
+    doc.rect(startX, yPos - 4, tableWidth, headerHeight);
     
     let xPos = startX;
     
@@ -841,7 +879,7 @@ async function generateDailyReport(reportDate) {
       doc.text(header, xPos + 1, yPos);
       // Vertical line between columns
       if (i < tableHeaders.length - 1) {
-        doc.line(xPos + colWidths[i], yPos - 3, xPos + colWidths[i], yPos - 3 + headerHeight);
+        doc.line(xPos + colWidths[i], yPos - 4, xPos + colWidths[i], yPos - 4 + headerHeight);
       }
       xPos += colWidths[i];
     });
@@ -858,11 +896,11 @@ async function generateDailyReport(reportDate) {
         formatNumber(acc.diferencia)
       ];
       
-      let maxHeight = 4; // Reduced default row height
+      let maxHeight = 5; // Reduced default row height
       row.forEach((cell, i) => {
         const cellText = String(cell);
         const lines = doc.splitTextToSize(cellText, colWidths[i] - 2);
-        const cellHeight = lines.length * 3.5;
+        const cellHeight = lines.length * 4;
         if (cellHeight > maxHeight) {
           maxHeight = cellHeight;
         }
@@ -875,10 +913,10 @@ async function generateDailyReport(reportDate) {
       row.forEach((cell, i) => {
         const cellText = String(cell);
         const lines = doc.splitTextToSize(cellText, colWidths[i] - 2);
-        let lineY = yPos - maxHeight + 3.5;
+        let lineY = yPos - maxHeight + 4;
         lines.forEach((line) => {
           doc.text(line, xPos + 1, lineY);
-          lineY += 3.5;
+          lineY += 4;
         });
         // Vertical line between columns
         if (i < row.length - 1) {
@@ -890,33 +928,33 @@ async function generateDailyReport(reportDate) {
       // Draw bottom border of row
       doc.line(startX, yPos, startX + tableWidth, yPos);
       
-      yPos += 0.5; // Minimal spacing between rows
-      if (yPos > 285) {
+      yPos += 1; // Small spacing between rows
+      if (yPos > 280) {
         doc.addPage();
-        yPos = 8;
+        yPos = 12;
       }
     });
     
-    yPos += 4;
+    yPos += 6;
     
     // Transactions Table - more compact
-    doc.setFontSize(10);
+    doc.setFontSize(11);
     doc.text('Movimientos', 14, yPos);
-    yPos += 4;
+    yPos += 6;
     
-    doc.setFontSize(6);
+    doc.setFontSize(7);
     const transHeaders = ['Fecha', 'Categoría', 'Cuenta', 'Descripción', '$ Monto'];
     const transColWidths = [25, 40, 40, 60, 30];
-    const transHeaderHeight = 5;
+    const transHeaderHeight = 6;
     const transTableWidth = transColWidths.reduce((a, b) => a + b, 0);
     
     // Draw header background
     doc.setFillColor(220, 220, 220);
-    doc.rect(startX, yPos - 3, transTableWidth, transHeaderHeight, 'F');
+    doc.rect(startX, yPos - 4, transTableWidth, transHeaderHeight, 'F');
     
     // Draw header border
     doc.setDrawColor(0, 0, 0);
-    doc.rect(startX, yPos - 3, transTableWidth, transHeaderHeight);
+    doc.rect(startX, yPos - 4, transTableWidth, transHeaderHeight);
     
     // Headers with borders
     doc.setFont(undefined, 'bold');
@@ -925,7 +963,7 @@ async function generateDailyReport(reportDate) {
       doc.text(header, xPos + 1, yPos);
       // Vertical line between columns
       if (i < transHeaders.length - 1) {
-        doc.line(xPos + transColWidths[i], yPos - 3, xPos + transColWidths[i], yPos - 3 + transHeaderHeight);
+        doc.line(xPos + transColWidths[i], yPos - 4, xPos + transColWidths[i], yPos - 4 + transHeaderHeight);
       }
       xPos += transColWidths[i];
     });
@@ -938,20 +976,20 @@ async function generateDailyReport(reportDate) {
       const dateB = b.date || b.createdAt;
       return dateA - dateB;
     }).forEach(transaction => {
-      if (yPos > 285) {
+      if (yPos > 280) {
         doc.addPage();
-        yPos = 8;
+        yPos = 12;
         // Redraw headers on new page
         doc.setFillColor(220, 220, 220);
-        doc.rect(startX, yPos - 3, transTableWidth, transHeaderHeight, 'F');
+        doc.rect(startX, yPos - 4, transTableWidth, transHeaderHeight, 'F');
         doc.setDrawColor(0, 0, 0);
-        doc.rect(startX, yPos - 3, transTableWidth, transHeaderHeight);
+        doc.rect(startX, yPos - 4, transTableWidth, transHeaderHeight);
         doc.setFont(undefined, 'bold');
         xPos = startX;
         transHeaders.forEach((header, i) => {
           doc.text(header, xPos + 1, yPos);
           if (i < transHeaders.length - 1) {
-            doc.line(xPos + transColWidths[i], yPos - 3, xPos + transColWidths[i], yPos - 3 + transHeaderHeight);
+            doc.line(xPos + transColWidths[i], yPos - 4, xPos + transColWidths[i], yPos - 4 + transHeaderHeight);
           }
           xPos += transColWidths[i];
         });
@@ -970,11 +1008,11 @@ async function generateDailyReport(reportDate) {
       const transData = [dateStr, category, accountName, description, amountStr];
       
       // Calculate max height for this row - more compact
-      let maxHeight = 4;
+      let maxHeight = 5;
       transData.forEach((cell, i) => {
         const cellText = String(cell);
         const lines = doc.splitTextToSize(cellText, transColWidths[i] - 2);
-        const cellHeight = lines.length * 3;
+        const cellHeight = lines.length * 3.5;
         if (cellHeight > maxHeight) {
           maxHeight = cellHeight;
         }
@@ -988,10 +1026,10 @@ async function generateDailyReport(reportDate) {
       transData.forEach((cell, i) => {
         const cellText = String(cell);
         const lines = doc.splitTextToSize(cellText, transColWidths[i] - 2);
-        let lineY = yPos - maxHeight + 3;
+        let lineY = yPos - maxHeight + 3.5;
         lines.forEach((line) => {
           doc.text(line, xPos + 1, lineY);
-          lineY += 3;
+          lineY += 3.5;
         });
         // Vertical line between columns
         if (i < transData.length - 1) {
@@ -1003,19 +1041,19 @@ async function generateDailyReport(reportDate) {
       // Draw bottom border of row
       doc.line(startX, yPos, startX + transTableWidth, yPos);
       
-      yPos += 0.5; // Minimal spacing between rows
+      yPos += 1; // Small spacing between rows
     });
     
-    yPos += 6;
+    yPos += 8;
     
     // Footer
-    if (yPos > 280) {
+    if (yPos > 275) {
       doc.addPage();
-      yPos = 8;
+      yPos = 12;
     }
     
     doc.setFont(undefined, 'normal');
-    doc.setFontSize(9);
+    doc.setFontSize(10);
     doc.text('Firma del Responsable', 14, yPos);
     doc.line(14, yPos + 3, 80, yPos + 3);
     
@@ -1112,6 +1150,15 @@ async function handleReportSubmit(e) {
 document.addEventListener('DOMContentLoaded', () => {
   updateTransactionsDateFilterDisplay();
   setupReportHandlers();
+  
+  // Setup search input listener
+  const searchInput = document.getElementById('transactions-search-input');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      transactionsSearchText = e.target.value;
+      loadTransactions(false); // Don't reinitialize date filter
+    });
+  }
 });
 
 document.getElementById('transactions-today-date-btn').addEventListener('click', setTransactionsToday);
