@@ -7,7 +7,7 @@
   <title>NRD Flujo de Caja</title>
   <link rel="manifest" href="manifest.json">
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="styles.css?v=1766182521563">
+  <link rel="stylesheet" href="styles.css?v=1766182848135">
   <meta name="theme-color" content="#dc2626">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/svg+xml" href="icon-192.svg">
@@ -205,12 +205,12 @@
           <form id="transaction-form-element">
             <input type="hidden" id="transaction-id">
             <input type="hidden" id="transaction-type">
-            <div class="mb-3 sm:mb-4">
+            <div class="mb-3 sm:mb-4 relative">
               <label class="block mb-1.5 text-xs uppercase tracking-wider text-gray-600">Descripción</label>
-              <input type="text" id="transaction-description" list="description-list" required 
+              <input type="text" id="transaction-description" required 
                 class="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-red-600 bg-white text-sm sm:text-base rounded"
                 autocomplete="off">
-              <datalist id="description-list"></datalist>
+              <div id="description-autocomplete-list" class="hidden absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded shadow-lg max-h-60 overflow-y-auto"></div>
             </div>
             <div class="mb-3 sm:mb-4">
               <label class="block mb-1.5 text-xs uppercase tracking-wider text-gray-600">Monto</label>
@@ -510,16 +510,16 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   
   <!-- App Scripts -->
-  <script src="firebase.js?v=1766182521563"></script>
-  <script src="modal.js?v=1766182521563"></script>
-  <script src="auth.js?v=1766182521563"></script>
-  <script src="db.js?v=1766182521563"></script>
-  <script src="categories.js?v=1766182521563"></script>
-  <script src="transactions.js?v=1766182521563"></script>
-  <script src="cashflow.js?v=1766182521563"></script>
-  <script src="accounts.js?v=1766182521563"></script>
-  <script src="analysis.js?v=1766182521563"></script>
-  <script src="app.js?v=1766182521563"></script>
+  <script src="firebase.js?v=1766182848135"></script>
+  <script src="modal.js?v=1766182848135"></script>
+  <script src="auth.js?v=1766182848135"></script>
+  <script src="db.js?v=1766182848135"></script>
+  <script src="categories.js?v=1766182848135"></script>
+  <script src="transactions.js?v=1766182848135"></script>
+  <script src="cashflow.js?v=1766182848135"></script>
+  <script src="accounts.js?v=1766182848135"></script>
+  <script src="analysis.js?v=1766182848135"></script>
+  <script src="app.js?v=1766182848135"></script>
 
   <script>
     // Global error handler
@@ -570,7 +570,7 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         // Register service worker without version parameter
-        navigator.serviceWorker.register('service-worker.js?v=1766182521563')
+        navigator.serviceWorker.register('service-worker.js?v=1766182848135')
           .then(reg => {
             console.log('Service Worker registered');
             

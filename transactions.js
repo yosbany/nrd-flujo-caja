@@ -182,7 +182,44 @@ async function showNewTransactionForm(type) {
   
   // Load unique descriptions for autocomplete
   await loadDescriptionsForAutocomplete();
+  
+  // Setup autocomplete input listener
+  setupDescriptionAutocomplete();
 }
+
+// Setup description autocomplete listeners
+function setupDescriptionAutocomplete() {
+  const descriptionInput = document.getElementById('transaction-description');
+  if (!descriptionInput) return;
+  
+  // Remove existing listeners by cloning
+  const newInput = descriptionInput.cloneNode(true);
+  descriptionInput.parentNode.replaceChild(newInput, descriptionInput);
+  
+  // Add new listeners
+  newInput.addEventListener('input', (e) => {
+    showDescriptionAutocomplete(e.target.value);
+  });
+  
+  newInput.addEventListener('focus', (e) => {
+    if (e.target.value) {
+      showDescriptionAutocomplete(e.target.value);
+    }
+  });
+  
+  newInput.addEventListener('blur', () => {
+    // Delay hiding to allow click on suggestion
+    setTimeout(() => {
+      const autocompleteList = document.getElementById('description-autocomplete-list');
+      if (autocompleteList) {
+        autocompleteList.classList.add('hidden');
+      }
+    }, 200);
+  });
+}
+
+// Store descriptions for autocomplete
+let availableDescriptions = [];
 
 // Load unique descriptions for autocomplete
 async function loadDescriptionsForAutocomplete() {
@@ -198,20 +235,59 @@ async function loadDescriptionsForAutocomplete() {
       }
     });
     
-    // Populate datalist
-    const datalist = document.getElementById('description-list');
-    if (datalist) {
-      datalist.innerHTML = '';
-      Array.from(descriptions).sort().forEach(desc => {
-        const option = document.createElement('option');
-        option.value = desc;
-        datalist.appendChild(option);
-      });
-    }
+    // Store sorted descriptions
+    availableDescriptions = Array.from(descriptions).sort();
   } catch (error) {
     console.error('Error loading descriptions:', error);
+    availableDescriptions = [];
   }
 }
+
+// Show autocomplete suggestions
+function showDescriptionAutocomplete(inputValue) {
+  const autocompleteList = document.getElementById('description-autocomplete-list');
+  if (!autocompleteList) return;
+  
+  // Filter descriptions based on input
+  const filtered = availableDescriptions.filter(desc => 
+    desc.toLowerCase().includes(inputValue.toLowerCase())
+  );
+  
+  // If no matches or input is empty, hide list
+  if (!inputValue || filtered.length === 0) {
+    autocompleteList.classList.add('hidden');
+    autocompleteList.innerHTML = '';
+    return;
+  }
+  
+  // Show filtered list
+  autocompleteList.innerHTML = '';
+  autocompleteList.classList.remove('hidden');
+  
+  // Limit to 10 suggestions
+  filtered.slice(0, 10).forEach(desc => {
+    const item = document.createElement('div');
+    item.className = 'px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm';
+    item.textContent = desc;
+    item.addEventListener('click', () => {
+      document.getElementById('transaction-description').value = desc;
+      autocompleteList.classList.add('hidden');
+    });
+    autocompleteList.appendChild(item);
+  });
+}
+
+// Hide autocomplete when clicking outside
+document.addEventListener('click', (e) => {
+  const autocompleteList = document.getElementById('description-autocomplete-list');
+  const descriptionInput = document.getElementById('transaction-description');
+  
+  if (autocompleteList && descriptionInput && 
+      !autocompleteList.contains(e.target) && 
+      e.target !== descriptionInput) {
+    autocompleteList.classList.add('hidden');
+  }
+});
 
 // Hide transaction form
 function hideTransactionForm() {
@@ -912,6 +988,20 @@ async function generateDailyReport(reportDate) {
     await showError('Error al generar el reporte: ' + error.message);
   }
 }
+
+// Setup autocomplete click outside handler
+document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('click', (e) => {
+    const autocompleteList = document.getElementById('description-autocomplete-list');
+    const descriptionInput = document.getElementById('transaction-description');
+    
+    if (autocompleteList && descriptionInput && 
+        !autocompleteList.contains(e.target) && 
+        e.target !== descriptionInput) {
+      autocompleteList.classList.add('hidden');
+    }
+  });
+});
 
 // Setup report button and modal handlers
 function setupReportHandlers() {
