@@ -234,7 +234,9 @@ async function saveTransaction() {
     // Parse date - default to today if not provided
     let transactionDate;
     if (dateInput) {
-      const dateObj = new Date(dateInput);
+      // Parse date string (YYYY-MM-DD) as local date to avoid timezone issues
+      const [year, month, day] = dateInput.split('-').map(Number);
+      const dateObj = new Date(year, month - 1, day);
       // Set to start of day (00:00:00) to match filter behavior
       dateObj.setHours(0, 0, 0, 0);
       transactionDate = dateObj.getTime();
@@ -425,10 +427,13 @@ async function editTransaction(transactionId, transaction) {
   document.getElementById('transaction-amount').value = transaction.amount || '';
   document.getElementById('transaction-notes').value = transaction.notes || '';
   
-  // Set date
+  // Set date - use local date to avoid timezone issues
   const dateInput = document.getElementById('transaction-date');
   if (transaction.date && dateInput) {
+    // Create date from timestamp using local timezone
     const date = new Date(transaction.date);
+    // Use UTC methods to get the date components that were originally set
+    // Since we store as local midnight, we need to get local date components
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
