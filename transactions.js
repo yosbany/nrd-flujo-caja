@@ -906,29 +906,31 @@ async function generateDailyReport(reportDate) {
         }
       });
       
+      // Calculate row top position
+      const rowTop = yPos - maxHeight;
+      
       // Draw row border (top and sides)
-      doc.rect(startX, yPos - maxHeight, tableWidth, maxHeight);
+      doc.rect(startX, rowTop, tableWidth, maxHeight);
       
       // Draw row cells with borders
       row.forEach((cell, i) => {
         const cellText = String(cell);
         const lines = doc.splitTextToSize(cellText, colWidths[i] - 2);
-        let lineY = yPos - maxHeight + 5;
+        let lineY = rowTop + 5;
         lines.forEach((line) => {
           doc.text(line, xPos + 1, lineY);
           lineY += 5;
         });
         // Vertical line between columns
         if (i < row.length - 1) {
-          doc.line(xPos + colWidths[i], yPos - maxHeight, xPos + colWidths[i], yPos);
+          doc.line(xPos + colWidths[i], rowTop, xPos + colWidths[i], yPos);
         }
         xPos += colWidths[i];
       });
       
-      // Draw bottom border of row
-      doc.line(startX, yPos, startX + tableWidth, yPos);
-      
-      yPos += maxHeight;
+      // Draw bottom border of row (already part of rect, but ensure it's drawn)
+      // yPos is now the bottom of the row
+      yPos = rowTop + maxHeight;
       if (yPos > 270) {
         doc.addPage();
         yPos = 20;
@@ -1018,30 +1020,32 @@ async function generateDailyReport(reportDate) {
         }
       });
       
+      // Calculate row top position
+      const rowTop = yPos - maxHeight;
+      
       // Draw row border (top and sides)
-      doc.rect(startX, yPos - maxHeight, transTableWidth, maxHeight);
+      doc.rect(startX, rowTop, transTableWidth, maxHeight);
       
       // Draw row cells with borders and text wrapping
       xPos = startX;
       transData.forEach((cell, i) => {
         const cellText = String(cell);
         const lines = doc.splitTextToSize(cellText, transColWidths[i] - 2);
-        let lineY = yPos - maxHeight + 4.5;
+        let lineY = rowTop + 4.5;
         lines.forEach((line) => {
           doc.text(line, xPos + 1, lineY);
           lineY += 4.5;
         });
         // Vertical line between columns
         if (i < transData.length - 1) {
-          doc.line(xPos + transColWidths[i], yPos - maxHeight, xPos + transColWidths[i], yPos);
+          doc.line(xPos + transColWidths[i], rowTop, xPos + transColWidths[i], yPos);
         }
         xPos += transColWidths[i];
       });
       
-      // Draw bottom border of row
-      doc.line(startX, yPos, startX + transTableWidth, yPos);
-      
-      yPos += maxHeight;
+      // Draw bottom border of row (already part of rect, but ensure it's drawn)
+      // yPos is now the bottom of the row
+      yPos = rowTop + maxHeight;
     });
     
     yPos += 10;
