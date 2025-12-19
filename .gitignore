@@ -32,3 +32,14 @@ build/
 # Service worker cache
 sw.js.map
 
+# Python virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# Migration data files (large JSON exports)
+tools/migration/*-export.json
+tools/migration/descriptions-output.txt
+tools/migration/descriptions-list.txt
+

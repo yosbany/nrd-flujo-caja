@@ -21,7 +21,7 @@ html = html.replace(
 
 // Add version parameter to JS files (except Firebase CDN)
 html = html.replace(
-  /(<script[^>]*src=["'])(firebase\.js|modal\.js|auth\.js|db\.js|clients\.js|products\.js|orders\.js|app\.js)(["'][^>]*>)/g,
+  /(<script[^>]*src=["'])(firebase\.js|modal\.js|auth\.js|db\.js|cashflow\.js|transactions\.js|categories\.js|accounts\.js|analysis\.js|app\.js)(["'][^>]*>)/g,
   `$1$2?v=${version}$3`
 );
 

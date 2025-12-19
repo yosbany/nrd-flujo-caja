@@ -1,0 +1,101 @@
+{
+  "accounts": {
+    "account-1": "Efectivo",
+    "account-2": "Efectivo",
+    "account-3": "Cuenta Débito Santander",
+    "account-4": "Cuenta Crédito Visa Santander",
+    "account-5": "Efectivo"
+  },
+  "categories": {
+    "(+) Ingresos por Venta": {
+      "name": "VENTAS MOSTRADOR",
+      "type": "income"
+    },
+    "(-) Pago a Proveedores": {
+      "name": "OTROS EGRESOS",
+      "type": "expense"
+    },
+    "(-) Salarios": {
+      "name": "OTROS EGRESOS",
+      "type": "expense"
+    },
+    "(-) Pago de Servicios": {
+      "name": "OTROS EGRESOS",
+      "type": "expense"
+    },
+    "(-) Egresos Varios": {
+      "name": "OTROS EGRESOS",
+      "type": "expense"
+    },
+    "(+) Ingresos Varios": {
+      "name": "OTROS INGRESOS",
+      "type": "income"
+    }
+  },
+  "descriptionRules": [
+    {
+      "keywords": ["supermercado", "super", "coto", "carrefour", "disco", "jumbo"],
+      "category": {
+        "name": "SUPERMERCADO",
+        "type": "expense"
+      }
+    },
+    {
+      "keywords": ["combustible", "nafta", "gasolina", "ypf", "shell", "axion"],
+      "category": {
+        "name": "COMBUSTIBLE",
+        "type": "expense"
+      }
+    },
+    {
+      "keywords": ["farmacia", "farmacity", "dr. ahorro"],
+      "category": {
+        "name": "FARMACIA",
+        "type": "expense"
+      }
+    },
+    {
+      "keywords": ["restaurant", "restaurante", "comida", "delivery", "pedidos ya", "rappi"],
+      "category": {
+        "name": "COMIDA",
+        "type": "expense"
+      }
+    },
+    {
+      "keywords": ["luz", "electricidad", "edenor", "edesur"],
+      "category": {
+        "name": "SERVICIOS",
+        "type": "expense"
+      }
+    },
+    {
+      "keywords": ["agua", "aysa", "aguas"],
+      "category": {
+        "name": "SERVICIOS",
+        "type": "expense"
+      }
+    },
+    {
+      "keywords": ["gas", "metrogas", "camuzzi"],
+      "category": {
+        "name": "SERVICIOS",
+        "type": "expense"
+      }
+    },
+    {
+      "keywords": ["internet", "fibertel", "movistar", "personal", "claro"],
+      "category": {
+        "name": "SERVICIOS",
+        "type": "expense"
+      }
+    },
+    {
+      "keywords": ["sueldo", "salario", "pago empleado"],
+      "category": {
+        "name": "SALARIOS",
+        "type": "expense"
+      }
+    }
+  ]
+}
+
