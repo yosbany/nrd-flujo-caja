@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Sistema de control de flujo de caja">
+  <title>NRD Flujo de Caja</title>
+  <link rel="manifest" href="manifest.json">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="styles.css?v=1766157162131">
+  <meta name="theme-color" content="#dc2626">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="icon" type="image/svg+xml" href="icon-192.svg">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  
+  <!-- Force cache reload with version parameter in URL -->
+  <script>
+    (function() {
+      // Get current version from stylesheet link
+      const stylesheet = document.querySelector('link[href*="styles.css"]');
+      const versionMatch = stylesheet ? stylesheet.href.match(/[?&]v=(\d+)/) : null;
+      const currentVersion = versionMatch ? versionMatch[1] : Date.now();
+      
+      // Get version from URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlVersion = urlParams.get('v');
+      
+      // If URL version doesn't match current version, reload with new version
+      if (urlVersion !== currentVersion) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('v', currentVersion);
+        window.location.replace(url.toString());
+      }
+    })();
+  </script>
+</head>
+<body class="bg-white text-black font-sans antialiased">
+  <!-- Loading Spinner -->
+  <div id="loading-spinner" class="fixed inset-0 bg-black/20 z-50 hidden flex items-center justify-center">
+    <div class="bg-white rounded-lg p-6 flex flex-col items-center gap-4 shadow-lg">
+      <div class="w-12 h-12 border-4 border-gray-200 border-t-red-600 rounded-full animate-spin"></div>
+      <p class="text-sm text-gray-600 font-light">Cargando...</p>
+    </div>
+  </div>
+
+  <!-- Login Screen -->
+  <div id="login-screen" class="min-h-screen flex items-center justify-center p-4 sm:p-6">
+    <div class="w-full max-w-sm">
+      <h1 class="text-xl sm:text-2xl font-light text-center mb-6 sm:mb-8 tracking-tight">NRD Flujo de Caja</h1>
+      <form id="login-form" class="space-y-3 sm:space-y-4">
+        <input type="email" id="login-email" placeholder="Email" required 
+          class="w-full px-0 py-2.5 sm:py-3 border-0 border-b border-gray-300 focus:outline-none focus:border-red-600 bg-transparent text-sm sm:text-base">
+        <input type="password" id="login-password" placeholder="Contraseña" required 
+          class="w-full px-0 py-2.5 sm:py-3 border-0 border-b border-gray-300 focus:outline-none focus:border-red-600 bg-transparent text-sm sm:text-base">
+        <button type="submit" 
+          class="w-full mt-4 sm:mt-6 py-2.5 sm:py-3 bg-red-600 text-white border border-red-600 hover:bg-red-700 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
+          Iniciar Sesión
+        </button>
+      </form>
+      <div id="login-error" class="mt-3 sm:mt-4 text-center text-xs sm:text-sm text-gray-600"></div>
+    </div>
+  </div>
+
+  <!-- Main App Screen -->
+  <div id="app-screen" class="min-h-screen flex flex-col hidden">
+    <header class="bg-red-600 border-b border-red-700 px-3 sm:px-4 py-2.5 sm:py-3 flex justify-between items-center sticky top-0 z-10">
+      <h1 class="text-lg sm:text-xl font-light tracking-tight text-white">NRD Flujo de Caja</h1>
+      <div class="flex gap-2 items-center">
+        <button id="install-btn" 
+          class="px-3 sm:px-4 py-1.5 sm:py-2 border border-white/30 hover:border-white text-white hover:bg-white/10 transition-colors uppercase tracking-wider text-xs font-light hidden">
+          Instalar
+        </button>
+        <button id="logout-btn" 
+          class="px-3 sm:px-4 py-1.5 sm:py-2 border border-white/30 hover:border-white text-white hover:bg-white/10 transition-colors uppercase tracking-wider text-xs font-light">
+          Salir
+        </button>
+      </div>
+    </header>
+
+    <nav class="bg-white border-b border-gray-200 flex overflow-x-auto sticky top-[45px] sm:top-[53px] z-10 bg-white">
+      <button class="nav-btn flex-1 px-3 sm:px-4 py-3 sm:py-3.5 border-b-2 border-red-600 text-red-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light" data-view="cashflow">Flujo de Caja</button>
+      <button class="nav-btn flex-1 px-3 sm:px-4 py-3 sm:py-3.5 border-b-2 border-transparent text-gray-600 hover:text-red-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light" data-view="transactions">Transacciones</button>
+      <button class="nav-btn flex-1 px-3 sm:px-4 py-3 sm:py-3.5 border-b-2 border-transparent text-gray-600 hover:text-red-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light" data-view="categories">Categorías</button>
+    </nav>
+
+    <main class="flex-1 p-3 sm:p-4 md:p-6 overflow-y-auto max-w-6xl mx-auto w-full">
+      <!-- Cashflow View -->
+      <div id="cashflow-view" class="view space-y-3 sm:space-y-4">
+        <!-- Balance Summary -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <div class="border border-gray-200 p-4 sm:p-6 bg-green-50">
+            <div class="text-xs sm:text-sm uppercase tracking-wider text-gray-600 mb-2">Ingresos</div>
+            <div id="total-income" class="text-2xl sm:text-3xl font-light text-green-600">$0.00</div>
+          </div>
+          <div class="border border-gray-200 p-4 sm:p-6 bg-red-50">
+            <div class="text-xs sm:text-sm uppercase tracking-wider text-gray-600 mb-2">Egresos</div>
+            <div id="total-expenses" class="text-2xl sm:text-3xl font-light text-red-600">$0.00</div>
+          </div>
+          <div class="border border-gray-200 p-4 sm:p-6 bg-blue-50">
+            <div class="text-xs sm:text-sm uppercase tracking-wider text-gray-600 mb-2">Balance</div>
+            <div id="total-balance" class="text-2xl sm:text-3xl font-light text-blue-600">$0.00</div>
+          </div>
+        </div>
+        
+        <!-- Date Filter -->
+        <div id="date-filter-container" class="flex items-center justify-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+          <button id="today-date-btn" 
+            class="px-3 py-2 text-xs text-gray-500 hover:text-red-600 transition-colors">
+            Hoy
+          </button>
+          <button id="prev-date-btn" 
+            class="px-3 py-2 text-gray-600 hover:text-red-600 transition-colors text-lg sm:text-xl">
+            ‹
+          </button>
+          <div id="filter-date-display" 
+            class="px-4 py-2 text-sm sm:text-base font-light text-gray-700 min-w-[120px] text-center">
+            Todas las fechas
+          </div>
+          <button id="next-date-btn" 
+            class="px-3 py-2 text-gray-600 hover:text-red-600 transition-colors text-lg sm:text-xl">
+            ›
+          </button>
+          <button id="clear-date-filter-btn" 
+            class="px-3 py-2 text-xs text-gray-500 hover:text-red-600 transition-colors">
+            Limpiar
+          </button>
+        </div>
+        
+        <div class="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-2 sm:gap-0 mb-2 sm:mb-3">
+          <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <button id="report-cashflow-btn" 
+              class="w-full sm:w-auto px-4 sm:px-6 py-2 border border-gray-300 hover:border-red-600 hover:text-red-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
+              Reporte
+            </button>
+          </div>
+        </div>
+        
+        <div id="cashflow-summary" class="space-y-2 sm:space-y-3"></div>
+
+      </div>
+
+      <!-- Transactions View -->
+      <div id="transactions-view" class="view space-y-3 sm:space-y-4 hidden">
+        <div class="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-2 sm:gap-0 mb-2 sm:mb-3">
+          <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <button id="new-income-btn" 
+              class="w-full sm:w-auto px-4 sm:px-6 py-2 bg-green-600 text-white border border-green-600 hover:bg-green-700 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
+              Nuevo Ingreso
+            </button>
+            <button id="new-expense-btn" 
+              class="w-full sm:w-auto px-4 sm:px-6 py-2 bg-red-600 text-white border border-red-600 hover:bg-red-700 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
+              Nuevo Egreso
+            </button>
+          </div>
+        </div>
+        
+        <!-- Date Filter -->
+        <div id="transactions-date-filter-container" class="flex items-center justify-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+          <button id="transactions-today-date-btn" 
+            class="px-3 py-2 text-xs text-gray-500 hover:text-red-600 transition-colors">
+            Hoy
+          </button>
+          <button id="transactions-prev-date-btn" 
+            class="px-3 py-2 text-gray-600 hover:text-red-600 transition-colors text-lg sm:text-xl">
+            ‹
+          </button>
+          <div id="transactions-filter-date-display" 
+            class="px-4 py-2 text-sm sm:text-base font-light text-gray-700 min-w-[120px] text-center">
+            Todas las fechas
+          </div>
+          <button id="transactions-next-date-btn" 
+            class="px-3 py-2 text-gray-600 hover:text-red-600 transition-colors text-lg sm:text-xl">
+            ›
+          </button>
+          <button id="transactions-clear-date-filter-btn" 
+            class="px-3 py-2 text-xs text-gray-500 hover:text-red-600 transition-colors">
+            Limpiar
+          </button>
+        </div>
+        
+        <div id="transactions-list" class="space-y-2 sm:space-y-3"></div>
+
+        <!-- Transaction Form -->
+        <div id="transaction-form" class="border border-gray-200 p-3 sm:p-4 md:p-6 mt-3 sm:mt-4 hidden">
+          <div class="flex items-center justify-between mb-3 sm:mb-4">
+            <h3 id="transaction-form-title" class="text-lg sm:text-xl font-light tracking-tight">Nueva Transacción</h3>
+            <button id="close-transaction-form" class="text-gray-400 hover:text-red-600 text-xl font-light">×</button>
+          </div>
+          <form id="transaction-form-element">
+            <input type="hidden" id="transaction-id">
+            <input type="hidden" id="transaction-type">
+            <div class="mb-3 sm:mb-4">
+              <label class="block mb-1.5 text-xs uppercase tracking-wider text-gray-600">Descripción</label>
+              <input type="text" id="transaction-description" required 
+                class="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-red-600 bg-white text-sm sm:text-base rounded">
+            </div>
+            <div class="mb-3 sm:mb-4">
+              <label class="block mb-1.5 text-xs uppercase tracking-wider text-gray-600">Monto</label>
+              <input type="number" id="transaction-amount" step="0.01" min="0" required 
+                class="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-red-600 bg-white text-sm sm:text-base rounded">
+            </div>
+            <div class="mb-3 sm:mb-4">
+              <label class="block mb-1.5 text-xs uppercase tracking-wider text-gray-600">Categoría</label>
+              <select id="transaction-category" required 
+                class="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-red-600 bg-white text-sm sm:text-base rounded">
+                <option value="">Seleccionar categoría</option>
+              </select>
+            </div>
+            <div class="mb-3 sm:mb-4">
+              <label class="block mb-1.5 text-xs uppercase tracking-wider text-gray-600">Fecha</label>
+              <input type="date" id="transaction-date" required 
+                class="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-red-600 bg-white text-sm sm:text-base rounded">
+            </div>
+            <div class="mb-3 sm:mb-4">
+              <label class="block mb-1.5 text-xs uppercase tracking-wider text-gray-600">Notas</label>
+              <textarea id="transaction-notes" rows="3" placeholder="Notas adicionales..." 
+                class="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-red-600 bg-white resize-y text-sm sm:text-base rounded"></textarea>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-2 pt-3 sm:pt-4 border-t border-gray-200">
+              <button type="submit" 
+                class="flex-1 px-4 sm:px-6 py-2.5 bg-red-600 text-white border border-red-600 hover:bg-red-700 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
+                Guardar
+              </button>
+              <button type="button" id="cancel-transaction-btn" 
+                class="flex-1 px-4 sm:px-6 py-2.5 border border-gray-300 hover:border-red-600 hover:text-red-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Transaction Detail View -->
+        <div id="transaction-detail" class="border border-gray-200 p-3 sm:p-4 md:p-6 hidden relative">
+          <div class="mb-3 sm:mb-4 pb-3 sm:pb-4 border-b border-gray-200">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-lg sm:text-xl font-light tracking-tight">Detalle de la Transacción</h3>
+              <button id="back-to-transactions" 
+                class="text-gray-400 hover:text-red-600 text-xl font-light">×</button>
+            </div>
+          </div>
+          <div id="transaction-detail-content"></div>
+          <div class="flex flex-col sm:flex-row gap-2 sm:gap-4 mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-200">
+            <button id="edit-transaction-btn" 
+              class="flex-1 px-4 sm:px-6 py-2 bg-red-600 text-white border border-red-600 hover:bg-red-700 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
+              Editar
+            </button>
+            <button id="delete-transaction-btn" 
+              class="flex-1 px-4 sm:px-6 py-2 border border-gray-300 hover:border-red-600 hover:text-red-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
+              Eliminar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Categories View -->
+      <div id="categories-view" class="view space-y-3 sm:space-y-4 hidden">
+        <div class="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-2 sm:gap-0 mb-2 sm:mb-3">
+          <button id="new-category-btn" 
+            class="w-full sm:w-auto px-4 sm:px-6 py-2 bg-red-600 text-white border border-red-600 hover:bg-red-700 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
+            Nueva Categoría
+          </button>
+        </div>
+        
+        <div id="categories-list" class="space-y-2 sm:space-y-3"></div>
+
+        <div id="category-form" class="border border-gray-200 p-3 sm:p-4 md:p-6 mt-3 sm:mt-4 hidden">
+          <div class="flex items-center justify-between mb-3 sm:mb-4">
+            <h3 id="category-form-title" class="text-lg sm:text-xl font-light tracking-tight">Nueva Categoría</h3>
+            <button id="close-category-form" class="text-gray-400 hover:text-red-600 text-xl font-light">×</button>
+          </div>
+          <form id="category-form-element">
+            <input type="hidden" id="category-id">
+            <div class="mb-4 sm:mb-6">
+              <label class="block mb-1.5 sm:mb-2 text-xs uppercase tracking-wider text-gray-600">Nombre</label>
+              <input type="text" id="category-name" required 
+                class="w-full px-0 py-2 border-0 border-b border-gray-300 focus:outline-none focus:border-red-600 bg-transparent text-sm sm:text-base">
+            </div>
+            <div class="mb-4 sm:mb-6">
+              <label class="block mb-1.5 sm:mb-2 text-xs uppercase tracking-wider text-gray-600">Tipo</label>
+              <select id="category-type" required 
+                class="w-full px-0 py-2 border-0 border-b border-gray-300 focus:outline-none focus:border-red-600 bg-transparent text-sm sm:text-base">
+                <option value="income">Ingreso</option>
+                <option value="expense">Egreso</option>
+              </select>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-2 sm:gap-4 pt-4 sm:pt-6 border-t border-gray-200">
+              <button type="submit" 
+                class="flex-1 px-4 sm:px-6 py-2 bg-red-600 text-white border border-red-600 hover:bg-red-700 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
+                Guardar
+              </button>
+              <button type="button" id="cancel-category-btn" 
+                class="flex-1 px-4 sm:px-6 py-2 border border-gray-300 hover:border-red-600 hover:text-red-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Custom Modal -->
+  <div id="custom-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg max-w-md w-full border border-gray-200 shadow-lg">
+      <div class="p-4 sm:p-6">
+        <h3 id="modal-title" class="text-lg sm:text-xl font-light mb-3 sm:mb-4 text-black"></h3>
+        <p id="modal-message" class="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6"></p>
+        <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
+          <button id="modal-confirm" class="flex-1 px-4 sm:px-6 py-2 bg-red-600 text-white border border-red-600 hover:bg-red-700 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
+            Confirmar
+          </button>
+          <button id="modal-cancel" class="flex-1 px-4 sm:px-6 py-2 border border-gray-300 hover:border-red-600 hover:text-red-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Alert -->
+  <div id="custom-alert" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg max-w-md w-full border border-gray-200 shadow-lg">
+      <div class="p-4 sm:p-6">
+        <h3 id="alert-title" class="text-lg sm:text-xl font-light mb-3 sm:mb-4 text-black"></h3>
+        <p id="alert-message" class="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6"></p>
+        <div class="flex justify-end">
+          <button id="alert-ok" class="px-4 sm:px-6 py-2 bg-red-600 text-white border border-red-600 hover:bg-red-700 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
+            Aceptar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  
+  <!-- jsPDF for PDF generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  
+  <!-- App Scripts -->
+  <script src="firebase.js?v=1766157162131"></script>
+  <script src="modal.js?v=1766157162131"></script>
+  <script src="auth.js?v=1766157162131"></script>
+  <script src="db.js?v=1766157162131"></script>
+  <script src="categories.js?v=1766157162131"></script>
+  <script src="transactions.js?v=1766157162131"></script>
+  <script src="cashflow.js?v=1766157162131"></script>
+  <script src="app.js?v=1766157162131"></script>
+
+  <script>
+    // Global error handler
+    window.addEventListener('error', (event) => {
+      console.error('Global error:', event.error);
+      // Show error message if app screen is visible
+      const appScreen = document.getElementById('app-screen');
+      if (appScreen && !appScreen.classList.contains('hidden')) {
+        const errorMsg = document.createElement('div');
+        errorMsg.className = 'fixed top-20 left-0 right-0 bg-red-600 text-white p-4 z-50 text-center';
+        errorMsg.textContent = 'Error al cargar la aplicación. Por favor, recarga la página.';
+        document.body.appendChild(errorMsg);
+        setTimeout(() => errorMsg.remove(), 5000);
+      }
+    });
+
+    // Unhandled promise rejection handler
+    window.addEventListener('unhandledrejection', (event) => {
+      console.error('Unhandled promise rejection:', event.reason);
+    });
+
+    // Check if page is loaded after timeout
+    let pageLoaded = false;
+    setTimeout(() => {
+      if (!pageLoaded) {
+        const loginScreen = document.getElementById('login-screen');
+        const appScreen = document.getElementById('app-screen');
+        if (loginScreen && loginScreen.classList.contains('hidden') && 
+            appScreen && appScreen.classList.contains('hidden')) {
+          // Both screens are hidden, something is wrong
+          console.error('App screens not visible, forcing login screen');
+          if (loginScreen) loginScreen.classList.remove('hidden');
+          if (appScreen) appScreen.classList.add('hidden');
+        }
+      }
+    }, 3000);
+
+    // Mark as loaded when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        pageLoaded = true;
+      });
+    } else {
+      pageLoaded = true;
+    }
+
+    // Register service worker (non-blocking)
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        // Register service worker without version parameter
+        navigator.serviceWorker.register('service-worker.js?v=1766157162131')
+          .then(reg => {
+            console.log('Service Worker registered');
+            
+            // Check for updates every time
+            reg.addEventListener('updatefound', () => {
+              const newWorker = reg.installing;
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // New service worker available, reload page
+                  console.log('New service worker available, reloading...');
+                  window.location.reload();
+                }
+              });
+            });
+            
+            // Check for updates periodically
+            setInterval(() => {
+              reg.update();
+            }, 60000); // Check every minute
+            
+            // Force update on page load
+            reg.update();
+          })
+          .catch(err => {
+            console.log('Service Worker registration failed:', err);
+          });
+      });
+    }
+
+    // PWA Install prompt
+    let deferredPrompt = null;
+    const installBtn = document.getElementById('install-btn');
+
+    // Debug: Log PWA installability
+    function checkInstallability() {
+      console.log('=== PWA Installability Check ===');
+      console.log('Service Worker:', 'serviceWorker' in navigator ? 'Available' : 'Not available');
+      console.log('Standalone mode:', window.matchMedia('(display-mode: standalone)').matches ? 'Yes (already installed)' : 'No');
+      console.log('Install button element:', installBtn ? 'Found' : 'Not found');
+      console.log('Deferred prompt:', deferredPrompt ? 'Available' : 'Not available');
+      
+      // Check manifest
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistration().then(reg => {
+          console.log('Service Worker registered:', reg ? 'Yes' : 'No');
+        });
+      }
+    }
+
+    // Check if app is already installed
+    if (window.matchMedia('(display-mode: standalone)').matches || 
+        window.navigator.standalone === true) {
+      // App is installed, hide install button
+      if (installBtn) installBtn.classList.add('hidden');
+      console.log('App is already installed');
+    }
+
+    // Listen for beforeinstallprompt event (Chrome, Edge, etc.)
+    window.addEventListener('beforeinstallprompt', (e) => {
+      console.log('beforeinstallprompt event fired');
+      // Prevent the mini-infobar from appearing on mobile
+      e.preventDefault();
+      // Stash the event so it can be triggered later
+      deferredPrompt = e;
+      // Show install button
+      if (installBtn) {
+        installBtn.classList.remove('hidden');
+        console.log('Install button shown');
+      }
+    });
+
+    // Handle install button click
+    if (installBtn) {
+      installBtn.addEventListener('click', async () => {
+        console.log('Install button clicked');
+        
+        if (!deferredPrompt) {
+          // Show manual install instructions
+          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+          const isAndroid = /Android/.test(navigator.userAgent);
+          
+          let message = 'Para instalar la app:\n\n';
+          if (isIOS) {
+            message += '1. Toca el botón "Compartir" (cuadrado con flecha)\n';
+            message += '2. Selecciona "Agregar a pantalla de inicio"\n';
+            message += '3. Confirma la instalación';
+          } else if (isAndroid) {
+            message += '1. Abre el menú del navegador (3 puntos)\n';
+            message += '2. Busca "Instalar app" o "Agregar a pantalla de inicio"\n';
+            message += '3. Confirma la instalación';
+          } else {
+            message += 'Chrome: Menú → "Instalar app"\n';
+            message += 'Safari: Compartir → "Agregar a pantalla de inicio"';
+          }
+          
+          await showInfo(message);
+          return;
+        }
+        
+        try {
+          // Show the install prompt
+          deferredPrompt.prompt();
+          
+          // Wait for the user to respond to the prompt
+          const { outcome } = await deferredPrompt.userChoice;
+          console.log(`User response to the install prompt: ${outcome}`);
+          
+          if (outcome === 'accepted') {
+            console.log('User accepted the install prompt');
+          } else {
+            console.log('User dismissed the install prompt');
+          }
+          
+          // Clear the deferredPrompt
+          deferredPrompt = null;
+          
+          // Hide install button
+          installBtn.classList.add('hidden');
+        } catch (error) {
+          console.error('Error showing install prompt:', error);
+          await showError('Error al mostrar la opción de instalación. Intenta desde el menú del navegador.');
+        }
+      });
+    }
+
+    // Listen for app installed event
+    window.addEventListener('appinstalled', () => {
+      console.log('PWA was installed');
+      deferredPrompt = null;
+      if (installBtn) installBtn.classList.add('hidden');
+    });
+
+    // Run check after page loads
+    setTimeout(checkInstallability, 2000);
+  </script>
+</body>
+</html>

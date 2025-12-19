@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Create Icons</title>
+</head>
+<body>
+  <canvas id="canvas192" width="192" height="192"></canvas>
+  <canvas id="canvas512" width="512" height="512"></canvas>
+  <script>
+    function createIcon(canvasId, size) {
+      const canvas = document.getElementById(canvasId);
+      const ctx = canvas.getContext('2d');
+      
+      // Red gradient background
+      const gradient = ctx.createLinearGradient(0, 0, size, size);
+      gradient.addColorStop(0, '#dc2626');
+      gradient.addColorStop(1, '#b91c1c');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, size, size);
+      
+      // White money symbol
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `bold ${size * 0.33}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('$', size / 2, size / 2 - size * 0.15);
+      
+      // White text
+      ctx.font = `bold ${size * 0.12}px Arial`;
+      ctx.fillText('FLUJO', size / 2, size / 2 + size * 0.15);
+      
+      // Draw arrows for cash flow
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      const arrowSize = size * 0.15;
+      const arrowY = size / 2 + size * 0.05;
+      
+      // Left arrow
+      ctx.beginPath();
+      ctx.moveTo(size * 0.25, arrowY);
+      ctx.lineTo(size * 0.25 + arrowSize * 0.3, arrowY - arrowSize * 0.2);
+      ctx.lineTo(size * 0.25 + arrowSize * 0.3, arrowY - arrowSize * 0.1);
+      ctx.lineTo(size * 0.25 + arrowSize * 0.6, arrowY - arrowSize * 0.1);
+      ctx.lineTo(size * 0.25 + arrowSize * 0.6, arrowY + arrowSize * 0.1);
+      ctx.lineTo(size * 0.25 + arrowSize * 0.3, arrowY + arrowSize * 0.1);
+      ctx.lineTo(size * 0.25 + arrowSize * 0.3, arrowY + arrowSize * 0.2);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Right arrow
+      ctx.beginPath();
+      ctx.moveTo(size * 0.75, arrowY);
+      ctx.lineTo(size * 0.75 - arrowSize * 0.3, arrowY - arrowSize * 0.2);
+      ctx.lineTo(size * 0.75 - arrowSize * 0.3, arrowY - arrowSize * 0.1);
+      ctx.lineTo(size * 0.75 - arrowSize * 0.6, arrowY - arrowSize * 0.1);
+      ctx.lineTo(size * 0.75 - arrowSize * 0.6, arrowY + arrowSize * 0.1);
+      ctx.lineTo(size * 0.75 - arrowSize * 0.3, arrowY + arrowSize * 0.1);
+      ctx.lineTo(size * 0.75 - arrowSize * 0.3, arrowY + arrowSize * 0.2);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Convert to blob and download
+      canvas.toBlob((blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `icon-${size}.png`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }, 'image/png');
+    }
+    
+    // Create icons after page loads
+    window.onload = () => {
+      setTimeout(() => {
+        createIcon('canvas192', 192);
+        setTimeout(() => {
+          createIcon('canvas512', 512);
+        }, 500);
+      }, 500);
+    };
+  </script>
+</body>
+</html>
+

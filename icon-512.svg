@@ -1,0 +1,19 @@
+<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#dc2626;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#b91c1c;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#grad)" rx="64"/>
+  
+  <!-- Money symbol -->
+  <text x="256" y="200" font-family="Arial, sans-serif" font-size="180" font-weight="bold" fill="#ffffff" text-anchor="middle">$</text>
+  
+  <!-- Arrows representing cash flow -->
+  <path d="M 120 320 L 180 290 L 180 300 L 220 300 L 220 290 L 280 320 L 220 350 L 220 340 L 180 340 L 180 350 Z" fill="#ffffff" opacity="0.9"/>
+  <path d="M 392 320 L 332 290 L 332 300 L 292 300 L 292 290 L 232 320 L 292 350 L 292 340 L 332 340 L 332 350 Z" fill="#ffffff" opacity="0.9"/>
+  
+  <!-- Text -->
+  <text x="256" y="420" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="#ffffff" text-anchor="middle">FLUJO</text>
+</svg>

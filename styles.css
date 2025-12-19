@@ -1,0 +1,10 @@
+/* Minimal custom styles - most styling handled by Tailwind */
+.hidden {
+  display: none !important;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
