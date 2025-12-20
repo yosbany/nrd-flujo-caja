@@ -910,12 +910,12 @@ async function generateDailyReport(reportDate) {
       doc.text('Resumen de Cuentas', startX, yPos);
       yPos += 10;
       
-      doc.setFontSize(8);
+      doc.setFontSize(9);
       const tableHeaders = ['Cuenta', 'Saldo Inicial', 'Saldo Final', 'Diferencia'];
-      // Total width should be less than page width (190mm) minus margins (28mm) = 162mm ~ 612 points
-      // Adjusting to fit: 80 + 40 + 40 + 40 = 200 points (safe margin)
-      const colWidths = [80, 40, 40, 40];
-      const headerHeight = 8;
+      // Ajustar anchos para evitar solapamiento - usar todo el ancho disponible
+      const pageAvailableWidth = pageWidth - (startX * 2);
+      const colWidths = [90, 45, 45, 45];
+      const headerHeight = 7;
       const tableWidth = colWidths.reduce((a, b) => a + b, 0);
       
       // Draw header background
@@ -931,20 +931,19 @@ async function generateDailyReport(reportDate) {
       // Headers with borders
       doc.setFont(undefined, 'bold');
       doc.setTextColor(0, 0, 0);
+      const headerY = yPos - 5;
       tableHeaders.forEach((header, i) => {
         const align = i > 0 ? 'right' : 'left';
-        const padding = i > 0 ? colWidths[i] - 2 : 2;
-        // Use header as-is, splitTextToSize will handle wrapping
-        let headerText = header;
-        doc.text(headerText, xPos + padding, yPos, { align: align });
+        const textX = i > 0 ? xPos + colWidths[i] - 3 : xPos + 3;
+        doc.text(header, textX, headerY, { align: align });
         // Vertical line between columns
         if (i < tableHeaders.length - 1) {
           doc.setDrawColor(200, 200, 200);
-          doc.line(xPos + colWidths[i], yPos - 6, xPos + colWidths[i], yPos - 6 + headerHeight);
+          doc.line(xPos + colWidths[i], headerY - 5, xPos + colWidths[i], headerY + 2);
         }
         xPos += colWidths[i];
       });
-      yPos += headerHeight + 2;
+      yPos += 3;
       
       // Data rows with borders
       doc.setFont(undefined, 'normal');
@@ -960,26 +959,25 @@ async function generateDailyReport(reportDate) {
           doc.rect(startX, yPos - 6, tableWidth, headerHeight, 'D');
           doc.setFont(undefined, 'bold');
           xPos = startX;
+          const headerY = yPos - 5;
           tableHeaders.forEach((header, i) => {
             const align = i > 0 ? 'right' : 'left';
-            const padding = i > 0 ? colWidths[i] - 2 : 2;
-            // Use header as-is, splitTextToSize will handle wrapping
-            let headerText = header;
-            doc.text(headerText, xPos + padding, yPos, { align: align });
+            const textX = i > 0 ? xPos + colWidths[i] - 3 : xPos + 3;
+            doc.text(header, textX, headerY, { align: align });
             if (i < tableHeaders.length - 1) {
               doc.setDrawColor(200, 200, 200);
-              doc.line(xPos + colWidths[i], yPos - 6, xPos + colWidths[i], yPos - 6 + headerHeight);
+              doc.line(xPos + colWidths[i], headerY - 5, xPos + colWidths[i], headerY + 2);
             }
             xPos += colWidths[i];
           });
-          yPos += headerHeight + 2;
+          yPos += 3;
         }
         
         xPos = startX;
         
-        // Truncate account name if too long (approximately 24 chars for width 80)
+        // Truncate account name if too long (approximately 27 chars for width 90)
         let accountName = acc.name;
-        const maxChars = 24;
+        const maxChars = 27;
         if (accountName.length > maxChars) {
           accountName = accountName.substring(0, maxChars - 3) + '...';
         }
@@ -991,42 +989,42 @@ async function generateDailyReport(reportDate) {
           '$' + formatNumber(acc.diferencia)
         ];
         
-        // Calculate row height based on content
-        let maxHeight = 6;
-        row.forEach((cell, i) => {
-          const cellText = String(cell);
-          const lines = doc.splitTextToSize(cellText, colWidths[i] - 4);
-          const cellHeight = lines.length * 4;
-          if (cellHeight > maxHeight) {
-            maxHeight = cellHeight;
-          }
-        });
-        
-        const rowTop = yPos - maxHeight;
+        const rowHeight = 6;
+        const rowTop = yPos;
         
         // Draw row border
         doc.setDrawColor(220, 220, 220);
-        doc.rect(startX, rowTop, tableWidth, maxHeight);
+        doc.rect(startX, rowTop, tableWidth, rowHeight);
         
         // Draw row cells
         row.forEach((cell, i) => {
           const align = i > 0 ? 'right' : 'left';
-          const padding = i > 0 ? colWidths[i] - 2 : 2;
-          const lines = doc.splitTextToSize(String(cell), colWidths[i] - 4);
-          let lineY = rowTop + 5;
-          lines.forEach((line) => {
-            doc.text(line, xPos + padding, lineY, { align: align });
-            lineY += 4;
-          });
+          const textX = i > 0 ? xPos + colWidths[i] - 3 : xPos + 3;
+          const textY = rowTop + 4.5;
+          
+          // For account name, allow wrapping if needed
+          if (i === 0) {
+            const lines = doc.splitTextToSize(String(cell), colWidths[i] - 6);
+            let lineY = textY;
+            lines.forEach((line, idx) => {
+              if (idx === 0 || (rowTop + (idx + 1) * 4) <= rowTop + rowHeight - 1) {
+                doc.text(line, textX, lineY, { align: align });
+                lineY += 4;
+              }
+            });
+          } else {
+            doc.text(String(cell), textX, textY, { align: align });
+          }
+          
           // Vertical line between columns
           if (i < row.length - 1) {
             doc.setDrawColor(220, 220, 220);
-            doc.line(xPos + colWidths[i], rowTop, xPos + colWidths[i], rowTop + maxHeight);
+            doc.line(xPos + colWidths[i], rowTop, xPos + colWidths[i], rowTop + rowHeight);
           }
           xPos += colWidths[i];
         });
         
-        yPos = rowTop + maxHeight + 1;
+        yPos = rowTop + rowHeight + 1;
       });
       
       yPos += 8;
@@ -1038,36 +1036,37 @@ async function generateDailyReport(reportDate) {
     doc.text('Movimientos del Día', startX, yPos);
     yPos += 10;
     
-    doc.setFontSize(7.5);
+    doc.setFontSize(8);
     const transHeaders = ['Tipo', 'Hora', 'Categoría', 'Cuenta', 'Descripción', 'Monto'];
-    // Total: 18 + 20 + 40 + 34 + 50 + 38 = 200 points (safe margin)
-    const transColWidths = [18, 20, 40, 34, 50, 38];
-    const transHeaderHeight = 8;
+    // Ajustar anchos para mejor legibilidad
+    const transColWidths = [18, 22, 42, 32, 52, 38];
+    const transHeaderHeight = 7;
     const transTableWidth = transColWidths.reduce((a, b) => a + b, 0);
     
     // Draw header background
     doc.setFillColor(230, 230, 230);
-    doc.rect(startX, yPos - 6, transTableWidth, transHeaderHeight, 'F');
+    doc.rect(startX, yPos - 5, transTableWidth, transHeaderHeight, 'F');
     
     // Draw header border
     doc.setDrawColor(150, 150, 150);
-    doc.rect(startX, yPos - 6, transTableWidth, transHeaderHeight, 'D');
+    doc.rect(startX, yPos - 5, transTableWidth, transHeaderHeight, 'D');
     
     // Headers with borders
     doc.setFont(undefined, 'bold');
     xPos = startX;
+    const transHeaderY = yPos - 5;
     transHeaders.forEach((header, i) => {
       const align = i === transHeaders.length - 1 ? 'right' : 'left';
-      const padding = i === transHeaders.length - 1 ? transColWidths[i] - 2 : 2;
-      doc.text(header, xPos + padding, yPos, { align: align });
+      const textX = i === transHeaders.length - 1 ? xPos + transColWidths[i] - 2 : xPos + 2;
+      doc.text(header, textX, transHeaderY, { align: align });
       // Vertical line between columns
       if (i < transHeaders.length - 1) {
         doc.setDrawColor(200, 200, 200);
-        doc.line(xPos + transColWidths[i], yPos - 6, xPos + transColWidths[i], yPos - 6 + transHeaderHeight);
+        doc.line(xPos + transColWidths[i], transHeaderY - 5, xPos + transColWidths[i], transHeaderY + 2);
       }
       xPos += transColWidths[i];
     });
-    yPos += transHeaderHeight + 2;
+    yPos += 3;
     
     // Transaction rows with borders
     doc.setFont(undefined, 'normal');
@@ -1084,43 +1083,44 @@ async function generateDailyReport(reportDate) {
         yPos = 20;
         // Redraw headers on new page
         doc.setFillColor(230, 230, 230);
-        doc.rect(startX, yPos - 6, transTableWidth, transHeaderHeight, 'F');
+        doc.rect(startX, yPos - 5, transTableWidth, transHeaderHeight, 'F');
         doc.setDrawColor(150, 150, 150);
-        doc.rect(startX, yPos - 6, transTableWidth, transHeaderHeight, 'D');
+        doc.rect(startX, yPos - 5, transTableWidth, transHeaderHeight, 'D');
         doc.setFont(undefined, 'bold');
         xPos = startX;
+        const transHeaderY = yPos - 5;
         transHeaders.forEach((header, i) => {
           const align = i === transHeaders.length - 1 ? 'right' : 'left';
-          const padding = i === transHeaders.length - 1 ? transColWidths[i] - 2 : 2;
-          doc.text(header, xPos + padding, yPos, { align: align });
+          const textX = i === transHeaders.length - 1 ? xPos + transColWidths[i] - 2 : xPos + 2;
+          doc.text(header, textX, transHeaderY, { align: align });
           if (i < transHeaders.length - 1) {
             doc.setDrawColor(200, 200, 200);
-            doc.line(xPos + transColWidths[i], yPos - 6, xPos + transColWidths[i], yPos - 6 + transHeaderHeight);
+            doc.line(xPos + transColWidths[i], transHeaderY - 5, xPos + transColWidths[i], transHeaderY + 2);
           }
           xPos += transColWidths[i];
         });
-        yPos += transHeaderHeight + 2;
+        yPos += 3;
         doc.setFont(undefined, 'normal');
       }
       
       const transDate = transaction.date ? new Date(transaction.date) : new Date(transaction.createdAt);
       const timeStr = transDate.toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit' });
       
-      // Smart truncation based on column width (approximate chars: 40->21, 34->17, 50->25)
+      // Smart truncation based on column width (approximate chars: 42->22, 32->16, 52->26)
       let category = transaction.categoryName || 'Sin categoría';
-      const maxCategoryChars = 21;
+      const maxCategoryChars = 22;
       if (category.length > maxCategoryChars) {
         category = category.substring(0, maxCategoryChars - 3) + '...';
       }
       
       let accountName = transaction.accountName || 'Sin cuenta';
-      const maxAccountChars = 17;
+      const maxAccountChars = 16;
       if (accountName.length > maxAccountChars) {
         accountName = accountName.substring(0, maxAccountChars - 3) + '...';
       }
       
       let description = transaction.description || '';
-      const maxDescChars = 25;
+      const maxDescChars = 26;
       if (description.length > maxDescChars) {
         description = description.substring(0, maxDescChars - 3) + '...';
       }
@@ -1137,19 +1137,9 @@ async function generateDailyReport(reportDate) {
         '$' + formatNumber(amount)
       ];
       
-      // Calculate max height for this row
-      let maxHeight = 7;
-      transData.forEach((cell, i) => {
-        const cellText = String(cell);
-        const lines = doc.splitTextToSize(cellText, transColWidths[i] - 4);
-        const cellHeight = lines.length * 4;
-        if (cellHeight > maxHeight) {
-          maxHeight = cellHeight;
-        }
-      });
-      
-      // Calculate row top position
-      const rowTop = yPos - maxHeight;
+      // Fixed row height for consistency
+      const rowHeight = 6;
+      const rowTop = yPos;
       
       // Alternating row colors
       if (idx % 2 === 0) {
@@ -1168,10 +1158,10 @@ async function generateDailyReport(reportDate) {
       xPos = startX;
       transData.forEach((cell, i) => {
         const align = i === transData.length - 1 ? 'right' : 'left';
-        const padding = i === transData.length - 1 ? transColWidths[i] - 2 : 2;
-        const lines = doc.splitTextToSize(String(cell), transColWidths[i] - 4);
+        const textX = i === transData.length - 1 ? xPos + transColWidths[i] - 2 : xPos + 2;
+        const textY = rowTop + 4.5;
         
-        // Set text color for amount
+        // Set text color for amount and type
         if (i === transData.length - 1) {
           doc.setTextColor(...amountColor);
         } else if (i === 0) {
@@ -1180,11 +1170,19 @@ async function generateDailyReport(reportDate) {
           doc.setTextColor(0, 0, 0);
         }
         
-        let lineY = rowTop + 5;
-        lines.forEach((line) => {
-          doc.text(line, xPos + padding, lineY, { align: align });
-          lineY += 4;
-        });
+        // Allow wrapping only for description column
+        if (i === 4) { // Description column
+          const lines = doc.splitTextToSize(String(cell), transColWidths[i] - 4);
+          let lineY = textY;
+          lines.forEach((line, lineIdx) => {
+            if (lineIdx === 0 || (rowTop + (lineIdx + 1) * 4) <= rowTop + rowHeight - 1) {
+              doc.text(line, textX, lineY, { align: align });
+              lineY += 4;
+            }
+          });
+        } else {
+          doc.text(String(cell), textX, textY, { align: align });
+        }
         
         // Reset text color
         doc.setTextColor(0, 0, 0);
@@ -1192,12 +1190,12 @@ async function generateDailyReport(reportDate) {
         // Vertical line between columns
         if (i < transData.length - 1) {
           doc.setDrawColor(220, 220, 220);
-          doc.line(xPos + transColWidths[i], rowTop, xPos + transColWidths[i], rowTop + maxHeight);
+          doc.line(xPos + transColWidths[i], rowTop, xPos + transColWidths[i], rowTop + rowHeight);
         }
         xPos += transColWidths[i];
       });
       
-      yPos = rowTop + maxHeight + 1;
+      yPos = rowTop + rowHeight + 1;
     });
     
     // Total row
