@@ -67,15 +67,30 @@ function loadTransactions(initializeToToday = true) {
 
     // Filter transactions by date if filter is active
     let transactionsToShow = sortedTransactions;
+    let dayTransactions = []; // Transactions for the selected day (before search filter)
+    
     if (transactionsSelectedFilterDate) {
       const filterDateStart = new Date(transactionsSelectedFilterDate.getFullYear(), transactionsSelectedFilterDate.getMonth(), transactionsSelectedFilterDate.getDate(), 0, 0, 0, 0).getTime();
       const filterDateEnd = new Date(transactionsSelectedFilterDate.getFullYear(), transactionsSelectedFilterDate.getMonth(), transactionsSelectedFilterDate.getDate(), 23, 59, 59, 999).getTime();
       
-      transactionsToShow = sortedTransactions.filter(([id, transaction]) => {
+      dayTransactions = sortedTransactions.filter(([id, transaction]) => {
         const transactionDate = transaction.date || transaction.createdAt;
         if (!transactionDate) return false;
         return transactionDate >= filterDateStart && transactionDate <= filterDateEnd;
       });
+      
+      transactionsToShow = dayTransactions;
+    } else {
+      // Hide summary if no date is selected
+      const summaryContainer = document.getElementById('transactions-day-summary');
+      if (summaryContainer) {
+        summaryContainer.classList.add('hidden');
+      }
+    }
+    
+    // Calculate totals for the selected day
+    if (transactionsSelectedFilterDate) {
+      updateDaySummary(dayTransactions);
     }
     
     // Filter by search text if provided
@@ -1299,6 +1314,45 @@ document.getElementById('transactions-today-date-btn').addEventListener('click',
 document.getElementById('transactions-prev-date-btn').addEventListener('click', prevTransactionsDate);
 document.getElementById('transactions-next-date-btn').addEventListener('click', nextTransactionsDate);
 document.getElementById('transactions-clear-date-filter-btn').addEventListener('click', clearTransactionsDateFilter);
+
+// Update day summary (Ingresos, Egresos, Balance)
+function updateDaySummary(dayTransactions) {
+  const summaryContainer = document.getElementById('transactions-day-summary');
+  const totalIncomeEl = document.getElementById('day-total-income');
+  const totalExpensesEl = document.getElementById('day-total-expenses');
+  const totalBalanceEl = document.getElementById('day-total-balance');
+  
+  if (!summaryContainer || !totalIncomeEl || !totalExpensesEl || !totalBalanceEl) return;
+  
+  // Only show summary if a date is selected
+  if (!transactionsSelectedFilterDate || !dayTransactions || dayTransactions.length === 0) {
+    summaryContainer.classList.add('hidden');
+    return;
+  }
+  
+  // Calculate totals
+  let totalIncome = 0;
+  let totalExpenses = 0;
+  
+  dayTransactions.forEach(([id, transaction]) => {
+    const amount = parseFloat(transaction.amount || 0);
+    if (transaction.type === 'income') {
+      totalIncome += amount;
+    } else {
+      totalExpenses += amount;
+    }
+  });
+  
+  const balance = totalIncome - totalExpenses;
+  
+  // Update display
+  totalIncomeEl.textContent = formatNumber(totalIncome);
+  totalExpensesEl.textContent = formatNumber(totalExpenses);
+  totalBalanceEl.textContent = formatNumber(balance);
+  
+  // Show summary
+  summaryContainer.classList.remove('hidden');
+}
 
 // Escape HTML to prevent XSS
 function escapeHtml(text) {
