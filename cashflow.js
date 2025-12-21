@@ -235,24 +235,24 @@ function renderTopCategories(categories) {
   if (!container) return;
   
   if (categories.length === 0) {
-    container.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">No hay categorías</p>';
+    container.innerHTML = '<p class="text-[10px] text-gray-500 text-center py-4">No hay categorías</p>';
     return;
   }
   
   container.innerHTML = '';
   categories.forEach((category, index) => {
     const item = document.createElement('div');
-    item.className = 'flex justify-between items-center py-2 border-b border-gray-100';
+    item.className = 'flex justify-between items-center py-1 border-b border-gray-100';
     const isIncome = category.type === 'income';
     const amountColor = isIncome ? 'text-green-600' : 'text-red-600';
     const prefix = isIncome ? '+' : '-';
     
     item.innerHTML = `
-      <div class="flex items-center gap-2 flex-1 min-w-0">
-        <span class="text-xs text-gray-500 font-medium">${index + 1}.</span>
-        <span class="text-xs sm:text-sm font-light truncate">${escapeHtml(category.name)}</span>
+      <div class="flex items-center gap-1.5 flex-1 min-w-0">
+        <span class="text-[10px] text-gray-500 font-medium">${index + 1}.</span>
+        <span class="text-[10px] font-light truncate">${escapeHtml(category.name)}</span>
       </div>
-      <span class="text-xs sm:text-sm font-medium ${amountColor} ml-2">${prefix}$${formatNumber(Math.abs(category.amount))}</span>
+      <span class="text-[10px] font-medium ${amountColor} ml-2 whitespace-nowrap">${prefix}$${formatNumber(Math.abs(category.amount))}</span>
     `;
     container.appendChild(item);
   });
@@ -264,23 +264,23 @@ function renderTopSubcategories(subcategories) {
   if (!container) return;
   
   if (subcategories.length === 0) {
-    container.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">No hay subcategorías</p>';
+    container.innerHTML = '<p class="text-[10px] text-gray-500 text-center py-4">No hay subcategorías</p>';
     return;
   }
   
   container.innerHTML = '';
   subcategories.forEach((subcategory, index) => {
     const item = document.createElement('div');
-    item.className = 'flex justify-between items-center py-2 border-b border-gray-100';
+    item.className = 'flex justify-between items-center py-1 border-b border-gray-100';
     const amountColor = subcategory.amount >= 0 ? 'text-green-600' : 'text-red-600';
     const prefix = subcategory.amount >= 0 ? '+' : '-';
     
     item.innerHTML = `
-      <div class="flex items-center gap-2 flex-1 min-w-0">
-        <span class="text-xs text-gray-500 font-medium">${index + 1}.</span>
-        <span class="text-xs sm:text-sm font-light truncate">${escapeHtml(subcategory.name)}</span>
+      <div class="flex items-center gap-1.5 flex-1 min-w-0">
+        <span class="text-[10px] text-gray-500 font-medium">${index + 1}.</span>
+        <span class="text-[10px] font-light truncate">${escapeHtml(subcategory.name)}</span>
       </div>
-      <span class="text-xs sm:text-sm font-medium ${amountColor} ml-2">${prefix}$${formatNumber(Math.abs(subcategory.amount))}</span>
+      <span class="text-[10px] font-medium ${amountColor} ml-2 whitespace-nowrap">${prefix}$${formatNumber(Math.abs(subcategory.amount))}</span>
     `;
     container.appendChild(item);
   });
@@ -292,14 +292,14 @@ function renderTopTransactions(transactions) {
   if (!container) return;
   
   if (transactions.length === 0) {
-    container.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">No hay transacciones</p>';
+    container.innerHTML = '<p class="text-[10px] text-gray-500 text-center py-4">No hay transacciones</p>';
     return;
   }
   
   container.innerHTML = '';
   transactions.forEach((transaction, index) => {
     const item = document.createElement('div');
-    item.className = 'flex justify-between items-start py-2 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors';
+    item.className = 'flex justify-between items-start py-1 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors';
     if (transaction.id) {
       item.dataset.transactionId = transaction.id;
       item.addEventListener('click', () => {
@@ -320,14 +320,14 @@ function renderTopTransactions(transactions) {
     const date = transaction.date ? new Date(transaction.date) : new Date(transaction.createdAt);
     
     item.innerHTML = `
-      <div class="flex items-start gap-2 flex-1 min-w-0">
-        <span class="text-xs text-gray-500 font-medium">${index + 1}.</span>
+      <div class="flex items-start gap-1.5 flex-1 min-w-0">
+        <span class="text-[10px] text-gray-500 font-medium">${index + 1}.</span>
         <div class="flex-1 min-w-0">
-          <div class="text-xs sm:text-sm font-light truncate">${escapeHtml(transaction.description)}</div>
-          <div class="text-xs text-gray-500 mt-0.5">${formatDate24h(date)}</div>
+          <div class="text-[10px] font-light truncate">${escapeHtml(transaction.description)}</div>
+          <div class="text-[9px] text-gray-500 mt-0.5">${formatDate24h(date)}</div>
         </div>
       </div>
-      <span class="text-xs sm:text-sm font-medium ${amountColor} ml-2">${prefix}$${formatNumber(Math.abs(transaction.amount))}</span>
+      <span class="text-[10px] font-medium ${amountColor} ml-2 whitespace-nowrap">${prefix}$${formatNumber(Math.abs(transaction.amount))}</span>
     `;
     container.appendChild(item);
   });
