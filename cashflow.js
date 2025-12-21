@@ -459,11 +459,11 @@ function updatePeriodFilterButtons() {
   Object.entries(buttons).forEach(([period, btn]) => {
     if (btn) {
       if (period === cashflowSelectedFilterPeriod) {
-        btn.classList.add('bg-red-600', 'text-white', 'border-red-600');
-        btn.classList.remove('text-gray-600', 'border-gray-300');
+        btn.classList.add('bg-red-600', 'text-white', 'border-red-600', 'hover:bg-red-700', 'hover:text-white');
+        btn.classList.remove('text-gray-600', 'border-gray-300', 'hover:text-red-600');
       } else {
-        btn.classList.remove('bg-red-600', 'text-white', 'border-red-600');
-        btn.classList.add('text-gray-600', 'border-gray-300');
+        btn.classList.remove('bg-red-600', 'text-white', 'border-red-600', 'hover:bg-red-700', 'hover:text-white');
+        btn.classList.add('text-gray-600', 'border-gray-300', 'hover:text-red-600');
       }
     }
   });
