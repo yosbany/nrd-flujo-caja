@@ -869,397 +869,104 @@ async function generateDailyReport(reportDate) {
     doc.text(dateStr, pageWidth / 2, yPos, { align: 'center' });
     yPos += 12;
     
-    // Summary Box - Mejorado con mejor layout
-    const summaryBoxHeight = 28;
-    const summaryBoxWidth = pageWidth - 28;
-    doc.setFillColor(248, 248, 248);
-    doc.rect(startX, yPos, summaryBoxWidth, summaryBoxHeight, 'F');
-    doc.setDrawColor(180, 180, 180);
-    doc.rect(startX, yPos, summaryBoxWidth, summaryBoxHeight, 'D');
-    
-    // Título del resumen
+    // Resumen del Día - Formato simple sin cajas ni tablas
     doc.setFontSize(12);
     doc.setFont(undefined, 'bold');
-    doc.text('Resumen del Día', startX + summaryBoxWidth / 2, yPos + 8, { align: 'center' });
+    doc.text('Resumen del Día', startX, yPos);
+    yPos += 8;
     
-    // Línea separadora debajo del título
-    doc.setDrawColor(200, 200, 200);
-    doc.line(startX + 5, yPos + 10, startX + summaryBoxWidth - 5, yPos + 10);
-    
-    // Tres columnas bien organizadas
-    doc.setFontSize(9);
-    doc.setFont(undefined, 'normal');
-    const summaryY = yPos + 18;
-    const summaryColWidth = summaryBoxWidth / 3;
-    const summaryColCenter = summaryColWidth / 2;
-    
-    // Columna 1: Ingresos - Solo blanco y negro
-    const col1X = startX + summaryColCenter;
-    doc.text('Ingresos', col1X, summaryY, { align: 'center' });
-    doc.setFont(undefined, 'bold');
     doc.setFontSize(10);
-    doc.setTextColor(0, 0, 0);
-    doc.text('$' + formatNumber(totalIngresos), col1X, summaryY + 6, { align: 'center' });
-    
-    // Columna 2: Egresos - Solo blanco y negro
-    const col2X = startX + summaryColWidth + summaryColCenter;
     doc.setFont(undefined, 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(0, 0, 0);
-    doc.text('Egresos', col2X, summaryY, { align: 'center' });
-    doc.setFont(undefined, 'bold');
-    doc.setFontSize(10);
-    doc.setTextColor(0, 0, 0);
-    doc.text('$' + formatNumber(totalEgresos), col2X, summaryY + 6, { align: 'center' });
+    doc.text('Ingresos: $' + formatNumber(totalIngresos), startX, yPos);
+    yPos += 6;
+    doc.text('Egresos: $' + formatNumber(totalEgresos), startX, yPos);
+    yPos += 6;
+    doc.text('Balance: $' + formatNumber(totalDiferencia), startX, yPos);
+    yPos += 10;
     
-    // Columna 3: Balance - Solo blanco y negro
-    const col3X = startX + (summaryColWidth * 2) + summaryColCenter;
-    doc.setFont(undefined, 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(0, 0, 0);
-    doc.text('Balance', col3X, summaryY, { align: 'center' });
-    doc.setFont(undefined, 'bold');
-    doc.setFontSize(10);
-    doc.setTextColor(0, 0, 0);
-    doc.text('$' + formatNumber(totalDiferencia), col3X, summaryY + 6, { align: 'center' });
-    
-    // Líneas verticales separadoras
-    doc.setDrawColor(220, 220, 220);
-    doc.line(startX + summaryColWidth, yPos + 10, startX + summaryColWidth, yPos + summaryBoxHeight);
-    doc.line(startX + summaryColWidth * 2, yPos + 10, startX + summaryColWidth * 2, yPos + summaryBoxHeight);
-    
-    yPos += summaryBoxHeight + 10;
-    
-    // Account Summary Table - Mejorado con mejor padding y bordes
+    // Resumen de Cuentas - Formato simple sin tablas
     if (accountSummary.length > 0) {
-      doc.setFontSize(14);
+      doc.setFontSize(12);
       doc.setFont(undefined, 'bold');
       doc.text('Resumen de Cuentas', startX, yPos);
       yPos += 8;
       
-      doc.setFontSize(9);
-      const tableHeaders = ['Cuenta', 'Saldo Inicial', 'Saldo Final', 'Diferencia'];
-      // Ajustar anchos para usar mejor el espacio disponible
-      const pageAvailableWidth = pageWidth - (startX * 2);
-      const colWidths = [95, 50, 50, 50];
-      const headerHeight = 8;
-      const tableWidth = colWidths.reduce((a, b) => a + b, 0);
-      
-      // Draw header background
-      doc.setFillColor(240, 240, 240);
-      doc.rect(startX, yPos - 6, tableWidth, headerHeight, 'F');
-      
-      // Draw header border
-      doc.setDrawColor(120, 120, 120);
-      doc.rect(startX, yPos - 6, tableWidth, headerHeight, 'D');
-      
-      let xPos = startX;
-      
-      // Headers with proper padding and alignment
-      doc.setFont(undefined, 'bold');
-      doc.setFontSize(9);
-      doc.setTextColor(0, 0, 0);
-      const headerY = yPos - 4;
-      tableHeaders.forEach((header, i) => {
-        const align = i > 0 ? 'right' : 'left';
-        const textX = i > 0 ? xPos + colWidths[i] - 5 : xPos + 5;
-        doc.text(header, textX, headerY, { align: align });
-        // Vertical line between columns - más visible
-        if (i < tableHeaders.length - 1) {
-          doc.setDrawColor(180, 180, 180);
-          doc.line(xPos + colWidths[i], yPos - 6, xPos + colWidths[i], yPos - 6 + headerHeight);
-        }
-        xPos += colWidths[i];
-      });
-      yPos += 4;
-      
-      // Data rows with borders - Mejorado con mejor padding
+      doc.setFontSize(10);
       doc.setFont(undefined, 'normal');
-      doc.setFontSize(9);
-      accountSummary.forEach((acc, idx) => {
+      accountSummary.forEach((acc) => {
         // Check if we need a new page
-        if (yPos > 250) {
+        if (yPos > 270) {
           doc.addPage();
           yPos = 20;
-          // Redraw headers on new page
-          doc.setFillColor(240, 240, 240);
-          doc.rect(startX, yPos - 6, tableWidth, headerHeight, 'F');
-          doc.setDrawColor(120, 120, 120);
-          doc.rect(startX, yPos - 6, tableWidth, headerHeight, 'D');
-          doc.setFont(undefined, 'bold');
-          doc.setFontSize(9);
-          xPos = startX;
-          const headerY = yPos - 4;
-          tableHeaders.forEach((header, i) => {
-            const align = i > 0 ? 'right' : 'left';
-            const textX = i > 0 ? xPos + colWidths[i] - 5 : xPos + 5;
-            doc.text(header, textX, headerY, { align: align });
-            if (i < tableHeaders.length - 1) {
-              doc.setDrawColor(180, 180, 180);
-              doc.line(xPos + colWidths[i], yPos - 6, xPos + colWidths[i], yPos - 6 + headerHeight);
-            }
-            xPos += colWidths[i];
-          });
-          yPos += 4;
         }
         
-        xPos = startX;
-        
-        // Truncate account name if too long
-        let accountName = acc.name;
-        const maxChars = 30;
-        if (accountName.length > maxChars) {
-          accountName = accountName.substring(0, maxChars - 3) + '...';
-        }
-        
-        const row = [
-          accountName,
-          '$' + formatNumber(acc.saldoInicial),
-          '$' + formatNumber(acc.saldoFinal),
-          '$' + formatNumber(acc.diferencia)
-        ];
-        
-        const rowHeight = 7;
-        const rowTop = yPos;
-        
-        // Alternating row colors for better readability
-        if (idx % 2 === 0) {
-          doc.setFillColor(252, 252, 252);
-          doc.rect(startX, rowTop, tableWidth, rowHeight, 'F');
-        }
-        
-        // Draw row border - más visible
-        doc.setDrawColor(200, 200, 200);
-        doc.rect(startX, rowTop, tableWidth, rowHeight, 'D');
-        
-        // Draw row cells with proper padding
-        row.forEach((cell, i) => {
-          const align = i > 0 ? 'right' : 'left';
-          const textX = i > 0 ? xPos + colWidths[i] - 5 : xPos + 5;
-          const textY = rowTop + 5;
-          
-          // For account name, allow wrapping if needed
-          if (i === 0) {
-            const lines = doc.splitTextToSize(String(cell), colWidths[i] - 10);
-            let lineY = textY;
-            lines.forEach((line, lineIdx) => {
-              if (lineIdx === 0 || (rowTop + (lineIdx + 1) * 4) <= rowTop + rowHeight - 1) {
-                doc.text(line, textX, lineY, { align: align });
-                lineY += 4;
-              }
-            });
-          } else {
-            doc.text(String(cell), textX, textY, { align: align });
-          }
-          
-          // Vertical line between columns - más visible
-          if (i < row.length - 1) {
-            doc.setDrawColor(200, 200, 200);
-            doc.line(xPos + colWidths[i], rowTop, xPos + colWidths[i], rowTop + rowHeight);
-          }
-          xPos += colWidths[i];
-        });
-        
-        yPos = rowTop + rowHeight;
+        doc.text(acc.name + ':', startX, yPos);
+        yPos += 6;
+        doc.text('  Saldo Inicial: $' + formatNumber(acc.saldoInicial), startX + 5, yPos);
+        yPos += 6;
+        doc.text('  Saldo Final: $' + formatNumber(acc.saldoFinal), startX + 5, yPos);
+        yPos += 6;
+        doc.text('  Diferencia: $' + formatNumber(acc.diferencia), startX + 5, yPos);
+        yPos += 8;
       });
-      
-      yPos += 8;
     }
     
-    // Transactions Table - Mejorado con anchos ajustados para que quepan todas las columnas
-    doc.setFontSize(14);
+    // Movimientos del Día - Formato simple sin tablas
+    doc.setFontSize(12);
     doc.setFont(undefined, 'bold');
     doc.text('Movimientos del Día', startX, yPos);
     yPos += 8;
     
-    doc.setFontSize(8);
-    const transHeaders = ['Tipo', 'Hora', 'Categoría', 'Cuenta', 'Descripción', 'Monto'];
-    // Ajustar anchos para que quepan todas las columnas en el ancho de página (210mm - 28mm margen = 182mm)
-    // Distribuir mejor el espacio: Tipo(16), Hora(20), Categoría(38), Cuenta(28), Descripción(48), Monto(32) = 182
-    const transColWidths = [16, 20, 38, 28, 48, 32];
-    const transHeaderHeight = 8;
-    const transTableWidth = transColWidths.reduce((a, b) => a + b, 0);
-    
-    // Draw header background
-    doc.setFillColor(240, 240, 240);
-    doc.rect(startX, yPos - 6, transTableWidth, transHeaderHeight, 'F');
-    
-    // Draw header border
-    doc.setDrawColor(120, 120, 120);
-    doc.rect(startX, yPos - 6, transTableWidth, transHeaderHeight, 'D');
-    
-    // Headers with borders and proper padding
-    doc.setFont(undefined, 'bold');
-    doc.setFontSize(8);
-    xPos = startX;
-    const transHeaderY = yPos - 4;
-    transHeaders.forEach((header, i) => {
-      const align = i === transHeaders.length - 1 ? 'right' : 'left';
-      const textX = i === transHeaders.length - 1 ? xPos + transColWidths[i] - 3 : xPos + 3;
-      doc.text(header, textX, transHeaderY, { align: align });
-      // Vertical line between columns - más visible
-      if (i < transHeaders.length - 1) {
-        doc.setDrawColor(180, 180, 180);
-        doc.line(xPos + transColWidths[i], yPos - 6, xPos + transColWidths[i], yPos - 6 + transHeaderHeight);
-      }
-      xPos += transColWidths[i];
-    });
-    yPos += 4;
-    
-    // Transaction rows with borders - Mejorado con mejor padding
+    doc.setFontSize(10);
     doc.setFont(undefined, 'normal');
-    doc.setFontSize(8);
     const sortedTransactions = dayTransactions.sort((a, b) => {
       const dateA = a.date || a.createdAt;
       const dateB = b.date || b.createdAt;
       return dateA - dateB;
     });
     
-    sortedTransactions.forEach((transaction, idx) => {
+    sortedTransactions.forEach((transaction) => {
       // Check if we need a new page
-      if (yPos > 265) {
+      if (yPos > 270) {
         doc.addPage();
         yPos = 20;
-        // Redraw headers on new page
-        doc.setFillColor(240, 240, 240);
-        doc.rect(startX, yPos - 6, transTableWidth, transHeaderHeight, 'F');
-        doc.setDrawColor(120, 120, 120);
-        doc.rect(startX, yPos - 6, transTableWidth, transHeaderHeight, 'D');
-        doc.setFont(undefined, 'bold');
-        doc.setFontSize(8);
-        xPos = startX;
-        const transHeaderY = yPos - 4;
-        transHeaders.forEach((header, i) => {
-          const align = i === transHeaders.length - 1 ? 'right' : 'left';
-          const textX = i === transHeaders.length - 1 ? xPos + transColWidths[i] - 3 : xPos + 3;
-          doc.text(header, textX, transHeaderY, { align: align });
-          if (i < transHeaders.length - 1) {
-            doc.setDrawColor(180, 180, 180);
-            doc.line(xPos + transColWidths[i], yPos - 6, xPos + transColWidths[i], yPos - 6 + transHeaderHeight);
-          }
-          xPos += transColWidths[i];
-        });
-        yPos += 4;
-        doc.setFont(undefined, 'normal');
-        doc.setFontSize(8);
       }
       
       const transDate = transaction.date ? new Date(transaction.date) : new Date(transaction.createdAt);
       const timeStr = transDate.toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit' });
-      
-      // Smart truncation based on column width ajustado
-      let category = transaction.categoryName || 'Sin categoría';
-      const maxCategoryChars = 20;
-      if (category.length > maxCategoryChars) {
-        category = category.substring(0, maxCategoryChars - 3) + '...';
-      }
-      
-      let accountName = transaction.accountName || 'Sin cuenta';
-      const maxAccountChars = 14;
-      if (accountName.length > maxAccountChars) {
-        accountName = accountName.substring(0, maxAccountChars - 3) + '...';
-      }
-      
-      let description = transaction.description || '';
-      const maxDescChars = 24;
-      if (description.length > maxDescChars) {
-        description = description.substring(0, maxDescChars - 3) + '...';
-      }
-      
-      const amount = parseFloat(transaction.amount) || 0;
       const type = transaction.type === 'income' ? 'ING' : 'EGR';
+      const amount = parseFloat(transaction.amount) || 0;
+      const category = transaction.categoryName || 'Sin categoría';
+      const accountName = transaction.accountName || 'Sin cuenta';
+      const description = transaction.description || '';
       
-      const transData = [
-        type,
-        timeStr,
-        category,
-        accountName,
-        description,
-        '$' + formatNumber(amount)
-      ];
-      
-      // Fixed row height for consistency
-      const rowHeight = 7;
-      const rowTop = yPos;
-      
-      // Alternating row colors
-      if (idx % 2 === 0) {
-        doc.setFillColor(252, 252, 252);
-        doc.rect(startX, rowTop, transTableWidth, rowHeight, 'F');
+      doc.text(type + ' - ' + timeStr + ' - $' + formatNumber(amount), startX, yPos);
+      yPos += 6;
+      doc.text('  Categoría: ' + category, startX + 5, yPos);
+      yPos += 6;
+      doc.text('  Cuenta: ' + accountName, startX + 5, yPos);
+      yPos += 6;
+      if (description) {
+        doc.text('  Descripción: ' + description, startX + 5, yPos);
+        yPos += 6;
       }
-      
-      // Draw row border - más visible
-      doc.setDrawColor(200, 200, 200);
-      doc.rect(startX, rowTop, transTableWidth, rowHeight, 'D');
-      
-      // Draw row cells with borders and text wrapping - Solo blanco y negro
-      xPos = startX;
-      transData.forEach((cell, i) => {
-        const align = i === transData.length - 1 ? 'right' : 'left';
-        const textX = i === transData.length - 1 ? xPos + transColWidths[i] - 3 : xPos + 3;
-        const textY = rowTop + 5;
-        
-        // Todo en blanco y negro - sin colores
-        doc.setTextColor(0, 0, 0);
-        
-        // Allow wrapping only for description column
-        if (i === 4) { // Description column
-          const lines = doc.splitTextToSize(String(cell), transColWidths[i] - 6);
-          let lineY = textY;
-          lines.forEach((line, lineIdx) => {
-            if (lineIdx === 0 || (rowTop + (lineIdx + 1) * 4) <= rowTop + rowHeight - 1) {
-              doc.text(line, textX, lineY, { align: align });
-              lineY += 4;
-            }
-          });
-        } else {
-          doc.text(String(cell), textX, textY, { align: align });
-        }
-        
-        // Vertical line between columns - más visible
-        if (i < transData.length - 1) {
-          doc.setDrawColor(200, 200, 200);
-          doc.line(xPos + transColWidths[i], rowTop, xPos + transColWidths[i], rowTop + rowHeight);
-        }
-        xPos += transColWidths[i];
-      });
-      
-      yPos = rowTop + rowHeight;
+      yPos += 4;
     });
     
-    // Total row - Mejorado con mejor estilo
+    // Totales - Formato simple
     if (sortedTransactions.length > 0) {
-      yPos += 4;
-      const totalRowTop = yPos;
-      const totalRowHeight = 10;
-      
-      doc.setFillColor(245, 245, 245);
-      doc.rect(startX, totalRowTop, transTableWidth, totalRowHeight, 'F');
-      doc.setDrawColor(120, 120, 120);
-      doc.rect(startX, totalRowTop, transTableWidth, totalRowHeight, 'D');
-      
-      // Línea superior más gruesa
-      doc.setDrawColor(100, 100, 100);
-      doc.setLineWidth(0.5);
-      doc.line(startX, totalRowTop, startX + transTableWidth, totalRowTop);
-      doc.setLineWidth(0.2);
-      
+      yPos += 6;
       doc.setFont(undefined, 'bold');
-      doc.setFontSize(9);
-      doc.setTextColor(0, 0, 0);
-      doc.text('TOTALES:', startX + 5, totalRowTop + 6);
-      const totalX = startX + transTableWidth - 5;
-      
-      // Todo en blanco y negro - sin colores
-      doc.setFontSize(8);
-      doc.setTextColor(0, 0, 0);
-      doc.text('Ingresos: $' + formatNumber(totalIngresos), totalX, totalRowTop + 4, { align: 'right' });
-      doc.text('Egresos: $' + formatNumber(totalEgresos), totalX, totalRowTop + 6.5, { align: 'right' });
-      doc.setFontSize(9);
-      doc.setTextColor(0, 0, 0);
-      doc.text('Balance: $' + formatNumber(totalDiferencia), totalX, totalRowTop + 9, { align: 'right' });
-      
-      yPos = totalRowTop + totalRowHeight + 8;
+      doc.setFontSize(10);
+      doc.text('TOTALES', startX, yPos);
+      yPos += 8;
+      doc.setFont(undefined, 'normal');
+      doc.text('Ingresos: $' + formatNumber(totalIngresos), startX, yPos);
+      yPos += 6;
+      doc.text('Egresos: $' + formatNumber(totalEgresos), startX, yPos);
+      yPos += 6;
+      doc.text('Balance: $' + formatNumber(totalDiferencia), startX, yPos);
+      yPos += 8;
     } else {
       yPos += 8;
     }
@@ -1276,12 +983,35 @@ async function generateDailyReport(reportDate) {
     doc.setDrawColor(0, 0, 0);
     doc.line(startX, yPos + 3, startX + 80, yPos + 3);
     
-    // Save PDF
-    const fileName = `cierre-${reportDate.getFullYear()}-${String(reportDate.getMonth() + 1).padStart(2, '0')}-${String(reportDate.getDate()).padStart(2, '0')}.pdf`;
-    doc.save(fileName);
+    // Abrir diálogo de impresión directamente
+    const pdfDataUri = doc.output('datauristring');
+    const printWindow = window.open();
+    
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Imprimir Reporte</title>
+          </head>
+          <body style="margin:0;padding:0;">
+            <embed src="${pdfDataUri}" type="application/pdf" width="100%" height="100%" style="position:absolute;top:0;left:0;" />
+            <script>
+              window.onload = function() {
+                setTimeout(function() {
+                  window.print();
+                  setTimeout(function() {
+                    window.close();
+                  }, 100);
+                }, 500);
+              };
+            </script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
     
     hideSpinner();
-    await showSuccess('Reporte generado exitosamente');
   } catch (error) {
     hideSpinner();
     console.error('Error generating report:', error);
@@ -1305,15 +1035,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Setup report button and modal handlers
 function setupReportHandlers() {
-  // Report button
+  // Report button - Genera reporte directamente sin modal
   const reportBtn = document.getElementById('report-btn');
   if (reportBtn) {
     // Remove existing listener if any
     reportBtn.removeEventListener('click', showReportModal);
-    reportBtn.addEventListener('click', (e) => {
+    reportBtn.addEventListener('click', async (e) => {
       e.preventDefault();
       e.stopPropagation();
-      showReportModal();
+      // Usar la fecha del filtro si existe, sino usar la fecha de hoy
+      const selectedDate = transactionsSelectedFilterDate || new Date();
+      selectedDate.setHours(0, 0, 0, 0);
+      await generateDailyReport(selectedDate);
     });
   }
   
