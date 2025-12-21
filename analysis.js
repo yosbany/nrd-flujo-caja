@@ -328,7 +328,8 @@ async function generatePeriodAnalysis(transactions, periodType, startDate, endDa
       periodKey = formatDate(transactionDate);
     } else if (periodType === 'weekly') {
       const weekStart = new Date(transactionDate);
-      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+      const weekDay = (weekStart.getDay() + 6) % 7; // lunes=0
+      weekStart.setDate(weekStart.getDate() - weekDay);
       periodKey = `Semana ${formatDate(weekStart)}`;
     } else if (periodType === 'monthly') {
       periodKey = transactionDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });

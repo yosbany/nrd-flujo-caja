@@ -1144,12 +1144,12 @@ async function generateDailyReport(reportDate) {
       // Alternating row colors
       if (idx % 2 === 0) {
         doc.setFillColor(250, 250, 250);
-        doc.rect(startX, rowTop, transTableWidth, maxHeight, 'F');
+        doc.rect(startX, rowTop, transTableWidth, rowHeight, 'F');
       }
       
       // Draw row border
       doc.setDrawColor(220, 220, 220);
-      doc.rect(startX, rowTop, transTableWidth, maxHeight);
+      doc.rect(startX, rowTop, transTableWidth, rowHeight);
       
       // Set color for amount based on type
       const amountColor = transaction.type === 'income' ? [0, 150, 0] : [200, 0, 0];

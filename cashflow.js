@@ -32,8 +32,10 @@ function getPeriodDateRange(period) {
         end: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999).getTime()
       };
     case 'week':
+      // Semana iniciando en lunes: 0 => lunes, 6 => domingo
       const weekStart = new Date(today);
-      weekStart.setDate(today.getDate() - today.getDay()); // Start of week (Sunday)
+      const weekDay = (today.getDay() + 6) % 7;
+      weekStart.setDate(today.getDate() - weekDay);
       return {
         start: weekStart.getTime(),
         end: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).getTime()
@@ -68,10 +70,12 @@ function getPreviousPeriodDateRange(period) {
         end: new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59, 999).getTime()
       };
     case 'week':
+      // Semana anterior iniciando en lunes
+      const weekDayPrev = (today.getDay() + 6) % 7;
       const lastWeekStart = new Date(today);
-      lastWeekStart.setDate(today.getDate() - today.getDay() - 7); // Start of last week
+      lastWeekStart.setDate(today.getDate() - weekDayPrev - 7);
       const lastWeekEnd = new Date(today);
-      lastWeekEnd.setDate(today.getDate() - today.getDay() - 1); // End of last week
+      lastWeekEnd.setDate(today.getDate() - weekDayPrev - 1);
       return {
         start: lastWeekStart.getTime(),
         end: new Date(lastWeekEnd.getFullYear(), lastWeekEnd.getMonth(), lastWeekEnd.getDate(), 23, 59, 59, 999).getTime()
