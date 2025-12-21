@@ -7,7 +7,7 @@
   <title>NRD Flujo de Caja</title>
   <link rel="manifest" href="manifest.json">
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="styles.css?v=1766332352928">
+  <link rel="stylesheet" href="styles.css?v=1766332768412">
   <meta name="theme-color" content="#dc2626">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/svg+xml" href="icon-192.svg">
@@ -107,8 +107,17 @@
     <main class="flex-1 p-3 sm:p-4 md:p-6 overflow-y-auto max-w-6xl mx-auto w-full">
       <!-- Cashflow View -->
       <div id="cashflow-view" class="view space-y-3 sm:space-y-4">
+        <!-- Period Display -->
+        <div id="cashflow-period-display-container" class="mb-2 sm:mb-3 text-center">
+          <div id="cashflow-period-display" class="text-sm sm:text-base font-light text-gray-700"></div>
+        </div>
+        
         <!-- Period Filter -->
         <div id="period-filter-container" class="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4 flex-wrap">
+          <button id="cashflow-period-prev-btn" 
+            class="px-3 py-2 text-gray-600 hover:text-red-600 transition-colors text-lg sm:text-xl hidden">
+            ‹
+          </button>
           <button id="filter-today-btn" 
             class="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 hover:text-red-600 hover:border-red-600 border border-gray-300 transition-colors uppercase tracking-wider">
             Hoy
@@ -128,6 +137,10 @@
           <button id="filter-all-btn" 
             class="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 hover:text-red-600 hover:border-red-600 border border-gray-300 transition-colors uppercase tracking-wider">
             Todos
+          </button>
+          <button id="cashflow-period-next-btn" 
+            class="px-3 py-2 text-gray-600 hover:text-red-600 transition-colors text-lg sm:text-xl hidden">
+            ›
           </button>
         </div>
         
@@ -218,8 +231,8 @@
         
         <!-- Summary of selected day -->
         <div id="transactions-day-summary" class="mb-2 sm:mb-3 border border-gray-200 p-2 sm:p-3 bg-white rounded hidden">
-          <div class="flex items-center justify-between text-xs sm:text-sm">
-            <div class="flex items-center gap-4 sm:gap-6">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 text-xs sm:text-sm">
+            <div class="flex flex-wrap items-center gap-3 sm:gap-4 md:gap-6">
               <div class="flex items-center gap-1.5">
                 <span class="text-gray-500 uppercase tracking-wide">Ingresos:</span>
                 <span id="day-total-income" class="font-medium text-green-600">0.00</span>
@@ -233,7 +246,7 @@
                 <span id="day-total-balance" class="font-medium text-blue-600">0.00</span>
               </div>
             </div>
-            <div class="flex items-center gap-1.5">
+            <div class="flex items-center gap-1.5 sm:ml-auto">
               <span class="text-gray-500 uppercase tracking-wide">Transacciones:</span>
               <span id="day-transaction-count" class="font-medium text-gray-700">0</span>
             </div>
@@ -505,15 +518,15 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   
   <!-- App Scripts -->
-  <script src="firebase.js?v=1766332352928"></script>
-  <script src="modal.js?v=1766332352928"></script>
-  <script src="auth.js?v=1766332352928"></script>
-  <script src="db.js?v=1766332352928"></script>
-  <script src="categories.js?v=1766332352928"></script>
-  <script src="transactions.js?v=1766332352928"></script>
-  <script src="cashflow.js?v=1766332352928"></script>
-  <script src="accounts.js?v=1766332352928"></script>
-  <script src="app.js?v=1766332352928"></script>
+  <script src="firebase.js?v=1766332768412"></script>
+  <script src="modal.js?v=1766332768412"></script>
+  <script src="auth.js?v=1766332768412"></script>
+  <script src="db.js?v=1766332768412"></script>
+  <script src="categories.js?v=1766332768412"></script>
+  <script src="transactions.js?v=1766332768412"></script>
+  <script src="cashflow.js?v=1766332768412"></script>
+  <script src="accounts.js?v=1766332768412"></script>
+  <script src="app.js?v=1766332768412"></script>
 
   <script>
     // Global error handler
@@ -564,7 +577,7 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         // Register service worker without version parameter
-        navigator.serviceWorker.register('service-worker.js?v=1766332352928')
+        navigator.serviceWorker.register('service-worker.js?v=1766332768412')
           .then(reg => {
             console.log('Service Worker registered');
             
