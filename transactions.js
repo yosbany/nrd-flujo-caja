@@ -873,44 +873,37 @@ async function generateDailyReport(reportDate) {
     doc.text(dateStrCapitalized, rightMargin, yPos, { align: 'right' });
     yPos += 15;
     
-    // Resumen del Día - Ingresos, Egresos, Balance (alineado horizontalmente)
+    // Resumen del Día - Ingresos, Egresos, Balance (alineado horizontalmente ocupando todo el ancho)
     doc.setFontSize(14);
     doc.setFont(undefined, 'bold');
     doc.text('Resumen', startX, yPos);
     yPos += 10;
     
-    // Calcular ancho disponible y distribuir en 3 columnas
-    const resumenWidth = rightMargin - startX;
-    const resumenColWidth = resumenWidth / 3;
-    const resumenColCenter = resumenColWidth / 2;
-    
     doc.setFontSize(11);
     doc.setFont(undefined, 'bold');
     
-    // Columna 1: Ingresos
-    const col1X = startX + resumenColCenter;
-    doc.text('INGRESOS:', col1X, yPos, { align: 'center' });
+    // INGRESOS al inicio (margen izquierdo)
+    doc.text('INGRESOS:', startX, yPos);
     doc.setFont(undefined, 'normal');
     doc.setFontSize(12);
-    doc.text(formatNumber(totalIngresos), col1X, yPos + 7, { align: 'center' });
+    doc.text(formatNumber(totalIngresos), startX, yPos + 7);
     
-    // Columna 2: Egresos
-    const col2X = startX + resumenColWidth + resumenColCenter;
+    // EGRESOS en el centro
+    const centerX = (startX + rightMargin) / 2;
     doc.setFont(undefined, 'bold');
     doc.setFontSize(11);
-    doc.text('EGRESOS:', col2X, yPos, { align: 'center' });
+    doc.text('EGRESOS:', centerX, yPos, { align: 'center' });
     doc.setFont(undefined, 'normal');
     doc.setFontSize(12);
-    doc.text(formatNumber(totalEgresos), col2X, yPos + 7, { align: 'center' });
+    doc.text(formatNumber(totalEgresos), centerX, yPos + 7, { align: 'center' });
     
-    // Columna 3: Balance
-    const col3X = startX + (resumenColWidth * 2) + resumenColCenter;
+    // BALANCE al final (margen derecho)
     doc.setFont(undefined, 'bold');
     doc.setFontSize(11);
-    doc.text('BALANCE:', col3X, yPos, { align: 'center' });
+    doc.text('BALANCE:', rightMargin, yPos, { align: 'right' });
     doc.setFont(undefined, 'bold');
     doc.setFontSize(12);
-    doc.text(formatNumber(totalDiferencia), col3X, yPos + 7, { align: 'center' });
+    doc.text(formatNumber(totalDiferencia), rightMargin, yPos + 7, { align: 'right' });
     doc.setFont(undefined, 'normal');
     
     yPos += 15;
