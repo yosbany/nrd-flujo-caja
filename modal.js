@@ -327,3 +327,129 @@ function showReportModal() {
   });
 }
 
+// Show transactions list modal (for preventing deletion of categories/accounts with transactions)
+function showTransactionsListModal(title, transactions, onTransactionClick) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById('custom-modal');
+    const titleEl = document.getElementById('modal-title');
+    const messageEl = document.getElementById('modal-message');
+    const confirmBtn = document.getElementById('modal-confirm');
+    const cancelBtn = document.getElementById('modal-cancel');
+
+    titleEl.textContent = title;
+    
+    // Create transactions list HTML
+    let transactionsHTML = '<div class="space-y-2 max-h-96 overflow-y-auto mb-4">';
+    if (transactions.length === 0) {
+      transactionsHTML += '<p class="text-gray-600 text-sm">No hay transacciones asociadas</p>';
+    } else {
+      transactions.forEach(([id, transaction]) => {
+        const date = transaction.date ? new Date(transaction.date) : new Date(transaction.createdAt);
+        const isIncome = transaction.type === 'income';
+        const amountColor = isIncome ? 'text-green-600' : 'text-red-600';
+        const prefix = isIncome ? '+' : '-';
+        
+        transactionsHTML += `
+          <div class="border border-gray-200 p-3 rounded cursor-pointer hover:bg-gray-50 transition-colors transaction-item" data-transaction-id="${id}">
+            <div class="flex justify-between items-center">
+              <div class="flex-1">
+                <div class="text-sm font-medium">${escapeHtml(transaction.description || 'Sin subcategoría')}</div>
+                <div class="text-xs text-gray-500 mt-1">
+                  ${formatDate24h(date)} • ${escapeHtml(transaction.categoryName || 'Sin categoría')} • ${escapeHtml(transaction.accountName || 'Sin cuenta')}
+                </div>
+              </div>
+              <div class="text-sm font-medium ${amountColor} ml-4">
+                ${prefix}$${formatNumber(parseFloat(transaction.amount || 0))}
+              </div>
+            </div>
+          </div>
+        `;
+      });
+    }
+    transactionsHTML += '</div>';
+    
+    messageEl.innerHTML = `
+      <div>
+        <p class="text-sm text-gray-700 mb-3">No se puede eliminar porque tiene ${transactions.length} transacción(es) asociada(s). Haga clic en una transacción para ver su detalle y eliminarla si es necesario.</p>
+        ${transactionsHTML}
+      </div>
+    `;
+    
+    confirmBtn.style.display = 'none';
+    cancelBtn.textContent = 'Cerrar';
+
+    modal.classList.remove('hidden');
+
+    // Handle transaction click
+    const handleTransactionClick = (e) => {
+      const item = e.target.closest('.transaction-item');
+      if (item) {
+        const transactionId = item.dataset.transactionId;
+        modal.classList.add('hidden');
+        messageEl.innerHTML = '';
+        confirmBtn.style.display = '';
+        cancelBtn.removeEventListener('click', handleCancel);
+        modal.removeEventListener('click', handleBackgroundClick);
+        // Remove all transaction click listeners
+        document.querySelectorAll('.transaction-item').forEach(el => {
+          el.removeEventListener('click', handleTransactionClick);
+        });
+        if (onTransactionClick && transactionId) {
+          onTransactionClick(transactionId);
+        }
+        resolve({ transactionId });
+      }
+    };
+
+    const handleCancel = () => {
+      modal.classList.add('hidden');
+      messageEl.innerHTML = '';
+      confirmBtn.style.display = '';
+      cancelBtn.removeEventListener('click', handleCancel);
+      modal.removeEventListener('click', handleBackgroundClick);
+      // Remove all transaction click listeners
+      document.querySelectorAll('.transaction-item').forEach(el => {
+        el.removeEventListener('click', handleTransactionClick);
+      });
+      resolve(null);
+    };
+
+    // Close on background click
+    const handleBackgroundClick = (e) => {
+      if (e.target === modal) {
+        handleCancel();
+      }
+    };
+
+    // Wait for DOM to update before attaching listeners
+    setTimeout(() => {
+      document.querySelectorAll('.transaction-item').forEach(item => {
+        item.addEventListener('click', handleTransactionClick);
+      });
+      cancelBtn.addEventListener('click', handleCancel);
+      modal.addEventListener('click', handleBackgroundClick);
+    }, 10);
+  });
+}
+
+// Helper functions for the modal
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function formatDate24h(date) {
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
+function formatNumber(number) {
+  return number.toLocaleString('es-UY', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+

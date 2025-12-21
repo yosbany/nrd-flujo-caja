@@ -58,14 +58,17 @@ function loadAccounts() {
 
     Object.entries(accounts).forEach(([id, account]) => {
       const item = document.createElement('div');
-      item.className = 'border border-gray-200 p-3 sm:p-4 md:p-6 hover:border-red-600 transition-colors cursor-pointer mb-2 sm:mb-3';
+      const isActive = account.active !== false; // Default to true if not set
+      const opacityClass = isActive ? '' : 'opacity-50';
+      item.className = `border border-gray-200 p-3 sm:p-4 md:p-6 hover:border-red-600 transition-colors cursor-pointer mb-2 sm:mb-3 ${opacityClass}`;
       item.dataset.accountId = id;
       const balance = accountBalances[id] || 0;
       const formattedBalance = new Intl.NumberFormat('es-UY', { style: 'currency', currency: 'UYU' }).format(balance);
       const balanceColor = balance >= 0 ? 'text-green-600' : 'text-red-600';
+      const statusText = isActive ? '' : ' (Desactivada)';
       item.innerHTML = `
         <div class="flex justify-between items-center">
-          <div class="text-base sm:text-lg font-light">${escapeHtml(account.name)}</div>
+          <div class="text-base sm:text-lg font-light">${escapeHtml(account.name)}${statusText}</div>
           <div class="text-sm sm:text-base font-light ${balanceColor}">${formattedBalance}</div>
         </div>
       `;
@@ -113,9 +116,10 @@ function showAccountForm(accountId = null) {
     // Set to view mode
     form.dataset.viewMode = 'view';
     
-    // Update button visibility - show edit, delete, close buttons
+    // Update button visibility - show edit, delete, toggle active, close buttons
     const deleteBtn = document.getElementById('delete-account-form-btn');
     const editBtn = document.getElementById('edit-account-form-btn');
+    const toggleActiveBtn = document.getElementById('toggle-account-active-btn');
     const closeBtn = document.getElementById('close-account-form-btn');
     const saveBtn = document.getElementById('save-account-form-btn');
     if (deleteBtn) deleteBtn.style.display = 'flex';
@@ -134,19 +138,31 @@ function showAccountForm(accountId = null) {
       const account = snapshot.val();
       if (account) {
         if (nameInput) nameInput.value = account.name || '';
+        
+        // Update toggle active button
+        const isActive = account.active !== false;
+        if (toggleActiveBtn) {
+          toggleActiveBtn.style.display = 'flex';
+          toggleActiveBtn.textContent = isActive ? 'Desactivar' : 'Activar';
+          toggleActiveBtn.className = isActive 
+            ? 'flex-1 px-4 sm:px-6 py-2 bg-yellow-600 text-white border border-yellow-600 hover:bg-yellow-700 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light'
+            : 'flex-1 px-4 sm:px-6 py-2 bg-green-600 text-white border border-green-600 hover:bg-green-700 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light';
+        }
       }
     });
   } else {
     if (title) title.textContent = 'Nueva Cuenta';
     delete form.dataset.viewMode;
     
-    // Update button visibility - hide edit/delete, show save/close
+    // Update button visibility - hide edit/delete/toggle, show save/close
     const deleteBtn = document.getElementById('delete-account-form-btn');
     const editBtn = document.getElementById('edit-account-form-btn');
+    const toggleActiveBtn = document.getElementById('toggle-account-active-btn');
     const closeBtn = document.getElementById('close-account-form-btn');
     const saveBtn = document.getElementById('save-account-form-btn');
     if (deleteBtn) deleteBtn.style.display = 'none';
     if (editBtn) editBtn.style.display = 'none';
+    if (toggleActiveBtn) toggleActiveBtn.style.display = 'none';
     if (closeBtn) closeBtn.style.display = 'flex';
     if (saveBtn) saveBtn.style.display = 'flex';
     
@@ -208,10 +224,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
       showSpinner('Guardando cuenta...');
       try {
+        // Get current account to preserve active status if editing
+        let active = true;
         if (accountId) {
-          await updateAccount(accountId, { name });
+          const accountSnapshot = await getAccount(accountId);
+          const account = accountSnapshot.val();
+          if (account) {
+            active = account.active !== false; // Preserve existing status
+          }
+        }
+        
+        if (accountId) {
+          await updateAccount(accountId, { name, active });
         } else {
-          await createAccount({ name });
+          await createAccount({ name, active: true });
         }
         hideSpinner();
         hideAccountForm();
@@ -269,10 +295,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update buttons
         const editBtn = document.getElementById('edit-account-form-btn');
         const deleteBtn = document.getElementById('delete-account-form-btn');
+        const toggleActiveBtn = document.getElementById('toggle-account-active-btn');
         const closeBtn = document.getElementById('close-account-form-btn');
         const saveBtn = document.getElementById('save-account-form-btn');
         if (editBtn) editBtn.style.display = 'none';
         if (deleteBtn) deleteBtn.style.display = 'none';
+        if (toggleActiveBtn) toggleActiveBtn.style.display = 'none';
         if (closeBtn) closeBtn.style.display = 'flex';
         if (saveBtn) saveBtn.style.display = 'flex';
       }
@@ -290,17 +318,88 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Toggle active button - activate/deactivate account
+  const toggleAccountBtn = document.getElementById('toggle-account-active-btn');
+  if (toggleAccountBtn) {
+    toggleAccountBtn.addEventListener('click', async () => {
+      const accountId = document.getElementById('account-id').value;
+      if (!accountId) return;
+      
+      showSpinner('Actualizando cuenta...');
+      try {
+        const accountSnapshot = await getAccount(accountId);
+        const account = accountSnapshot.val();
+        if (!account) {
+          await showError('Cuenta no encontrada');
+          hideSpinner();
+          return;
+        }
+        
+        const currentActive = account.active !== false;
+        const newActive = !currentActive;
+        
+        await updateAccount(accountId, { 
+          name: account.name, 
+          active: newActive 
+        });
+        
+        hideSpinner();
+        
+        // Reload account form to update button
+        showAccountForm(accountId);
+        await showSuccess(`Cuenta ${newActive ? 'activada' : 'desactivada'} exitosamente`);
+      } catch (error) {
+        hideSpinner();
+        await showError('Error al actualizar cuenta: ' + error.message);
+      }
+    });
+  }
+
   // Delete button - delete account if editing
   const deleteAccountBtn = document.getElementById('delete-account-form-btn');
   if (deleteAccountBtn) {
     deleteAccountBtn.addEventListener('click', async () => {
       const accountId = document.getElementById('account-id').value;
       if (accountId) {
-        const confirmed = await showConfirm('Eliminar Cuenta', '¿Está seguro de eliminar esta cuenta?');
-        if (!confirmed) return;
-        
-        showSpinner('Eliminando cuenta...');
+        // Check if account has associated transactions
+        showSpinner('Verificando transacciones...');
         try {
+          const transactionsSnapshot = await getTransactionsRef().once('value');
+          const transactions = transactionsSnapshot.val() || {};
+          
+          // Find transactions associated with this account
+          const associatedTransactions = Object.entries(transactions).filter(
+            ([id, transaction]) => transaction && transaction.accountId === accountId
+          );
+          
+          hideSpinner();
+          
+          if (associatedTransactions.length > 0) {
+            // Show modal with transactions list
+            const result = await showTransactionsListModal(
+              'No se puede eliminar la cuenta',
+              associatedTransactions,
+              async (transactionId) => {
+                // Switch to transactions view and show the transaction
+                if (typeof switchView === 'function') {
+                  switchView('transactions');
+                  // Wait a bit for the view to load
+                  setTimeout(async () => {
+                    if (typeof viewTransaction === 'function') {
+                      await viewTransaction(transactionId);
+                    }
+                  }, 300);
+                }
+              }
+            );
+            return;
+          }
+          
+          // No transactions associated, proceed with deletion
+          const confirmed = await showConfirm('Eliminar Cuenta', '¿Está seguro de eliminar esta cuenta?');
+          if (!confirmed) return;
+          
+          showSpinner('Eliminando cuenta...');
           await deleteAccount(accountId);
           hideSpinner();
           hideAccountForm();
@@ -321,7 +420,9 @@ document.addEventListener('DOMContentLoaded', () => {
 function loadAccountsForTransaction() {
   return getAccountsRef().once('value').then(snapshot => {
     const accounts = snapshot.val() || {};
-    return Object.entries(accounts).map(([id, account]) => ({ id, ...account }));
+    return Object.entries(accounts)
+      .filter(([id, account]) => account.active !== false) // Only active accounts
+      .map(([id, account]) => ({ id, ...account }));
   });
 }
 

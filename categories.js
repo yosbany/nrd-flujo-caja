@@ -63,12 +63,15 @@ function loadCategories() {
 
       incomeCategories.forEach(([id, category, total]) => {
         const item = document.createElement('div');
-        item.className = 'border border-gray-200 p-3 sm:p-4 md:p-6 hover:border-green-600 transition-colors cursor-pointer mb-2 sm:mb-3';
+        const isActive = category.active !== false; // Default to true if not set
+        const opacityClass = isActive ? '' : 'opacity-50';
+        item.className = `border border-gray-200 p-3 sm:p-4 md:p-6 hover:border-green-600 transition-colors cursor-pointer mb-2 sm:mb-3 ${opacityClass}`;
         item.dataset.categoryId = id;
         const formattedTotal = new Intl.NumberFormat('es-UY', { style: 'currency', currency: 'UYU' }).format(total);
+        const statusText = isActive ? '' : ' (Desactivada)';
         item.innerHTML = `
           <div class="flex justify-between items-center">
-            <div class="text-base sm:text-lg font-light text-green-600">${escapeHtml(category.name)}</div>
+            <div class="text-base sm:text-lg font-light text-green-600">${escapeHtml(category.name)}${statusText}</div>
             <div class="text-sm sm:text-base font-light text-green-600">${formattedTotal}</div>
           </div>
         `;
@@ -86,12 +89,15 @@ function loadCategories() {
 
       expenseCategories.forEach(([id, category, total]) => {
         const item = document.createElement('div');
-        item.className = 'border border-gray-200 p-3 sm:p-4 md:p-6 hover:border-red-600 transition-colors cursor-pointer mb-2 sm:mb-3';
+        const isActive = category.active !== false; // Default to true if not set
+        const opacityClass = isActive ? '' : 'opacity-50';
+        item.className = `border border-gray-200 p-3 sm:p-4 md:p-6 hover:border-red-600 transition-colors cursor-pointer mb-2 sm:mb-3 ${opacityClass}`;
         item.dataset.categoryId = id;
         const formattedTotal = new Intl.NumberFormat('es-UY', { style: 'currency', currency: 'UYU' }).format(total);
+        const statusText = isActive ? '' : ' (Desactivada)';
         item.innerHTML = `
           <div class="flex justify-between items-center">
-            <div class="text-base sm:text-lg font-light text-red-600">${escapeHtml(category.name)}</div>
+            <div class="text-base sm:text-lg font-light text-red-600">${escapeHtml(category.name)}${statusText}</div>
             <div class="text-sm sm:text-base font-light text-red-600">${formattedTotal}</div>
           </div>
         `;
@@ -314,9 +320,10 @@ function showCategoryForm(categoryId = null) {
     // Set to view mode
     form.dataset.viewMode = 'view';
     
-    // Update button visibility - show edit, delete, close buttons
+    // Update button visibility - show edit, delete, toggle active, close buttons
     const deleteBtn = document.getElementById('delete-category-form-btn');
     const editBtn = document.getElementById('edit-category-form-btn');
+    const toggleActiveBtn = document.getElementById('toggle-category-active-btn');
     const closeBtn = document.getElementById('close-category-form-btn');
     const saveBtn = document.getElementById('save-category-form-btn');
     if (deleteBtn) deleteBtn.style.display = 'flex';
@@ -341,19 +348,31 @@ function showCategoryForm(categoryId = null) {
       if (category) {
         if (nameInput) nameInput.value = category.name || '';
         if (typeInput) typeInput.value = category.type || 'expense';
+        
+        // Update toggle active button
+        const isActive = category.active !== false;
+        if (toggleActiveBtn) {
+          toggleActiveBtn.style.display = 'flex';
+          toggleActiveBtn.textContent = isActive ? 'Desactivar' : 'Activar';
+          toggleActiveBtn.className = isActive 
+            ? 'flex-1 px-4 sm:px-6 py-2 bg-yellow-600 text-white border border-yellow-600 hover:bg-yellow-700 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light'
+            : 'flex-1 px-4 sm:px-6 py-2 bg-green-600 text-white border border-green-600 hover:bg-green-700 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light';
+        }
       }
     });
   } else {
     if (title) title.textContent = 'Nueva Categoría';
     delete form.dataset.viewMode;
     
-    // Update button visibility - hide edit/delete, show save/close
+    // Update button visibility - hide edit/delete/toggle, show save/close
     const deleteBtn = document.getElementById('delete-category-form-btn');
     const editBtn = document.getElementById('edit-category-form-btn');
+    const toggleActiveBtn = document.getElementById('toggle-category-active-btn');
     const closeBtn = document.getElementById('close-category-form-btn');
     const saveBtn = document.getElementById('save-category-form-btn');
     if (deleteBtn) deleteBtn.style.display = 'none';
     if (editBtn) editBtn.style.display = 'none';
+    if (toggleActiveBtn) toggleActiveBtn.style.display = 'none';
     if (closeBtn) closeBtn.style.display = 'flex';
     if (saveBtn) saveBtn.style.display = 'flex';
     
@@ -418,10 +437,20 @@ document.getElementById('category-form-element').addEventListener('submit', asyn
 
   showSpinner('Guardando categoría...');
   try {
+    // Get current category to preserve active status if editing
+    let active = true;
     if (categoryId) {
-      await updateCategory(categoryId, { name, type });
+      const categorySnapshot = await getCategory(categoryId);
+      const category = categorySnapshot.val();
+      if (category) {
+        active = category.active !== false; // Preserve existing status
+      }
+    }
+    
+    if (categoryId) {
+      await updateCategory(categoryId, { name, type, active });
     } else {
-      await createCategory({ name, type });
+      await createCategory({ name, type, active: true });
     }
     hideSpinner();
     hideCategoryForm();
@@ -472,10 +501,12 @@ document.getElementById('edit-category-form-btn').addEventListener('click', asyn
     // Update buttons
     const editBtn = document.getElementById('edit-category-form-btn');
     const deleteBtn = document.getElementById('delete-category-form-btn');
+    const toggleActiveBtn = document.getElementById('toggle-category-active-btn');
     const closeBtn = document.getElementById('close-category-form-btn');
     const saveBtn = document.getElementById('save-category-form-btn');
     if (editBtn) editBtn.style.display = 'none';
     if (deleteBtn) deleteBtn.style.display = 'none';
+    if (toggleActiveBtn) toggleActiveBtn.style.display = 'none';
     if (closeBtn) closeBtn.style.display = 'flex';
     if (saveBtn) saveBtn.style.display = 'flex';
   }
@@ -489,15 +520,84 @@ document.getElementById('save-category-form-btn').addEventListener('click', asyn
   }
 });
 
+// Toggle active button - activate/deactivate category
+document.getElementById('toggle-category-active-btn').addEventListener('click', async () => {
+  const categoryId = document.getElementById('category-id').value;
+  if (!categoryId) return;
+  
+  showSpinner('Actualizando categoría...');
+  try {
+    const categorySnapshot = await getCategory(categoryId);
+    const category = categorySnapshot.val();
+    if (!category) {
+      await showError('Categoría no encontrada');
+      hideSpinner();
+      return;
+    }
+    
+    const currentActive = category.active !== false;
+    const newActive = !currentActive;
+    
+    await updateCategory(categoryId, { 
+      name: category.name, 
+      type: category.type, 
+      active: newActive 
+    });
+    
+    hideSpinner();
+    
+    // Reload category form to update button
+    showCategoryForm(categoryId);
+    await showSuccess(`Categoría ${newActive ? 'activada' : 'desactivada'} exitosamente`);
+  } catch (error) {
+    hideSpinner();
+    await showError('Error al actualizar categoría: ' + error.message);
+  }
+});
+
 // Delete button - delete category if editing
 document.getElementById('delete-category-form-btn').addEventListener('click', async () => {
   const categoryId = document.getElementById('category-id').value;
   if (categoryId) {
-    const confirmed = await showConfirm('Eliminar Categoría', '¿Está seguro de eliminar esta categoría?');
-    if (!confirmed) return;
-    
-    showSpinner('Eliminando categoría...');
+    // Check if category has associated transactions
+    showSpinner('Verificando transacciones...');
     try {
+      const transactionsSnapshot = await getTransactionsRef().once('value');
+      const transactions = transactionsSnapshot.val() || {};
+      
+      // Find transactions associated with this category
+      const associatedTransactions = Object.entries(transactions).filter(
+        ([id, transaction]) => transaction && transaction.categoryId === categoryId
+      );
+      
+      hideSpinner();
+      
+      if (associatedTransactions.length > 0) {
+        // Show modal with transactions list
+        const result = await showTransactionsListModal(
+          'No se puede eliminar la categoría',
+          associatedTransactions,
+          async (transactionId) => {
+            // Switch to transactions view and show the transaction
+            if (typeof switchView === 'function') {
+              switchView('transactions');
+              // Wait a bit for the view to load
+              setTimeout(async () => {
+                if (typeof viewTransaction === 'function') {
+                  await viewTransaction(transactionId);
+                }
+              }, 300);
+            }
+          }
+        );
+        return;
+      }
+      
+      // No transactions associated, proceed with deletion
+      const confirmed = await showConfirm('Eliminar Categoría', '¿Está seguro de eliminar esta categoría?');
+      if (!confirmed) return;
+      
+      showSpinner('Eliminando categoría...');
       await deleteCategory(categoryId);
       hideSpinner();
       hideCategoryForm();
@@ -517,7 +617,7 @@ function loadCategoriesForTransaction(type) {
   return getCategoriesRef().once('value').then(snapshot => {
     const categories = snapshot.val() || {};
     return Object.entries(categories)
-      .filter(([id, category]) => category.type === type)
+      .filter(([id, category]) => category.type === type && (category.active !== false)) // Only active categories
       .map(([id, category]) => ({ id, ...category }));
   });
 }
