@@ -112,16 +112,23 @@ async function loadSubcategoriesTable(container) {
     const transactionsSnapshot = await getTransactionsRef().once('value');
     const transactions = transactionsSnapshot.val() || {};
     
-    // Extraer descripciones únicas y contar cuántas transacciones tienen cada una
+    // Extraer descripciones únicas, contar transacciones y calcular suma de montos
     const subcategoriesMap = {};
     Object.entries(transactions).forEach(([id, transaction]) => {
       if (transaction && transaction.description && transaction.description.trim()) {
         const desc = transaction.description.trim();
         if (!subcategoriesMap[desc]) {
-          subcategoriesMap[desc] = { count: 0, transactionIds: [] };
+          subcategoriesMap[desc] = { count: 0, transactionIds: [], total: 0 };
         }
         subcategoriesMap[desc].count++;
         subcategoriesMap[desc].transactionIds.push(id);
+        // Sumar el monto (positivo para ingresos, negativo para egresos)
+        const amount = parseFloat(transaction.amount) || 0;
+        if (transaction.type === 'expense') {
+          subcategoriesMap[desc].total -= amount; // Egresos son negativos
+        } else {
+          subcategoriesMap[desc].total += amount; // Ingresos son positivos
+        }
       }
     });
     
@@ -147,6 +154,7 @@ async function loadSubcategoriesTable(container) {
           <tr class="bg-gray-100 border-b border-gray-300">
             <th class="text-left p-2 sm:p-3 text-xs sm:text-sm font-light text-gray-700 uppercase tracking-wider">Descripción</th>
             <th class="text-center p-2 sm:p-3 text-xs sm:text-sm font-light text-gray-700 uppercase tracking-wider">Transacciones</th>
+            <th class="text-right p-2 sm:p-3 text-xs sm:text-sm font-light text-gray-700 uppercase tracking-wider">Total</th>
             <th class="text-center p-2 sm:p-3 text-xs sm:text-sm font-light text-gray-700 uppercase tracking-wider">Acciones</th>
           </tr>
         </thead>
@@ -172,6 +180,16 @@ async function loadSubcategoriesTable(container) {
       countCell.className = 'p-2 sm:p-3 text-sm sm:text-base font-light text-center';
       countCell.textContent = data.count;
       
+      const totalCell = document.createElement('td');
+      totalCell.className = 'p-2 sm:p-3 text-sm sm:text-base font-light text-right';
+      const formattedTotal = new Intl.NumberFormat('es-UY', { 
+        style: 'currency', 
+        currency: 'UYU',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(data.total);
+      totalCell.textContent = formattedTotal;
+      
       const actionsCell = document.createElement('td');
       actionsCell.className = 'p-2 sm:p-3 text-center';
       
@@ -196,6 +214,7 @@ async function loadSubcategoriesTable(container) {
       
       row.appendChild(descCell);
       row.appendChild(countCell);
+      row.appendChild(totalCell);
       row.appendChild(actionsCell);
       
       tbody.appendChild(row);

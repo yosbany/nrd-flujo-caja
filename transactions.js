@@ -915,13 +915,13 @@ async function generateDailyReport(reportDate) {
       doc.text('Resumen de Cuentas', startX, yPos);
       yPos += 8;
       
-      const tableHeaders = ['Cuenta', 'Apertura', 'Cierre', 'Saldo'];
+      const tableHeaders = ['Cuenta', 'Apertura', 'Cierre', 'Diferencia'];
       // Usar el mismo ancho que el título (desde startX hasta rightMargin)
       const tableWidth = rightMargin - startX;
       const colWidths = [
         Math.floor(tableWidth * 0.45), // Cuenta: 45%
-        Math.floor(tableWidth * 0.18), // Saldo Inicial: 18%
-        Math.floor(tableWidth * 0.18), // Saldo Actual: 18%
+        Math.floor(tableWidth * 0.18), // Apertura: 18%
+        Math.floor(tableWidth * 0.18), // Cierre: 18%
         Math.floor(tableWidth * 0.18)  // Diferencia: 18%
       ];
       const headerHeight = 8;
@@ -972,7 +972,7 @@ async function generateDailyReport(reportDate) {
           tableHeaders.forEach((header, i) => {
             const align = i === 0 ? 'left' : 'right';
             const textX = i === 0 ? xPos + 3 : xPos + colWidths[i] - 3;
-            // Resaltar el encabezado "Saldo" (última columna, índice 3) con tamaño de fuente ligeramente mayor
+            // Resaltar el encabezado "Diferencia" (última columna, índice 3) con tamaño de fuente ligeramente mayor
             if (i === 3) {
               doc.setFontSize(10);
             } else {
@@ -1003,7 +1003,7 @@ async function generateDailyReport(reportDate) {
           const align = i === 0 ? 'left' : 'right';
           const textX = i === 0 ? xPos + 3 : xPos + colWidths[i] - 3;
           
-          // Resaltar la columna Saldo (última columna, índice 3) con negrita
+          // Resaltar la columna Diferencia (última columna, índice 3) con negrita
           if (i === 3) {
             doc.setFont(undefined, 'bold');
           } else {
@@ -1038,13 +1038,13 @@ async function generateDailyReport(reportDate) {
     });
     
     if (sortedTransactions.length > 0) {
-      const movHeaders = ['Hora', 'Concepto', 'Subcategoría', 'Cuenta', 'Monto'];
+      const movHeaders = ['Hora', 'Categoría', 'Subcategoría', 'Cuenta', 'Monto'];
       // Usar el mismo ancho que el título (desde startX hasta rightMargin)
       const movTableWidth = rightMargin - startX;
       // Ajustar anchos para aprovechar mejor el espacio - Hora más pequeña, más espacio para texto
       const movColWidths = [
         Math.floor(movTableWidth * 0.10), // Hora: 10% (más pequeña porque es formato 24h)
-        Math.floor(movTableWidth * 0.26), // Concepto: 26% (reducido para dar más espacio a Cuenta)
+        Math.floor(movTableWidth * 0.26), // Categoría: 26% (reducido para dar más espacio a Cuenta)
         Math.floor(movTableWidth * 0.36), // Subcategoría: 36% (reducido para dar más espacio a Cuenta)
         Math.floor(movTableWidth * 0.18), // Cuenta: 18% (aumentado para ver texto completo)
         Math.floor(movTableWidth * 0.10)  // Monto: 10% (más pequeña)
@@ -1133,7 +1133,7 @@ async function generateDailyReport(reportDate) {
           const maxCharsCuenta = Math.floor(movColWidths[3] * 0.6); // Más caracteres para Cuenta (60% del ancho)
           
           // Solo truncar si realmente es muy largo (aumentar límites, especialmente para Cuenta)
-          if (i === 1 && cellText.length > maxCharsConcepto + 5) { // Concepto
+          if (i === 1 && cellText.length > maxCharsConcepto + 5) { // Categoría
             cellText = cellText.substring(0, maxCharsConcepto) + '...';
           } else if (i === 2 && cellText.length > maxCharsDescripcion + 5) { // Subcategoría
             cellText = cellText.substring(0, maxCharsDescripcion) + '...';

@@ -250,6 +250,15 @@ function loadCashflow() {
       incomeVariationEl.className = 'text-xs mt-1 ' + (incomeVariation >= 0 ? 'text-green-600' : 'text-red-600');
     }
 
+    // Update expenses percentage of income
+    const expensesPercentageEl = document.getElementById('expenses-percentage');
+    if (expensesPercentageEl && totalIncome > 0) {
+      const percentage = (totalExpenses / totalIncome) * 100;
+      expensesPercentageEl.textContent = `${percentage.toFixed(1)}% de los ingresos`;
+    } else if (expensesPercentageEl) {
+      expensesPercentageEl.textContent = '';
+    }
+
     const expensesVariationEl = document.getElementById('expenses-variation');
     if (expensesVariationEl) {
       const variationText = formatVariation(expensesVariation);
