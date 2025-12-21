@@ -896,7 +896,14 @@ async function generateDailyReport(reportDate) {
       yPos += 8;
       
       const tableHeaders = ['Cuenta', '$ Saldo Inicial', '$ Saldo Actual', '$ Diferencia'];
-      const colWidths = [70, 40, 40, 40]; // Total: 190mm para que quepa en la página
+      // Calcular ancho disponible y distribuir proporcionalmente
+      const availableWidth = pageWidth - (startX * 2);
+      const colWidths = [
+        Math.floor(availableWidth * 0.45), // Cuenta: 45%
+        Math.floor(availableWidth * 0.18), // Saldo Inicial: 18%
+        Math.floor(availableWidth * 0.18), // Saldo Actual: 18%
+        Math.floor(availableWidth * 0.18)  // Diferencia: 18%
+      ];
       const headerHeight = 8;
       const tableWidth = colWidths.reduce((a, b) => a + b, 0);
       const rowHeight = 7;
@@ -991,7 +998,15 @@ async function generateDailyReport(reportDate) {
     
     if (sortedTransactions.length > 0) {
       const movHeaders = ['Hora', 'Concepto', 'Descripción', 'Cuenta', '$ Monto'];
-      const movColWidths = [22, 38, 55, 32, 35]; // Total: 182mm para que quepa en la página
+      // Calcular ancho disponible y distribuir proporcionalmente
+      const availableWidthMov = pageWidth - (startX * 2);
+      const movColWidths = [
+        Math.floor(availableWidthMov * 0.12), // Hora: 12%
+        Math.floor(availableWidthMov * 0.25), // Concepto: 25%
+        Math.floor(availableWidthMov * 0.35), // Descripción: 35%
+        Math.floor(availableWidthMov * 0.15), // Cuenta: 15%
+        Math.floor(availableWidthMov * 0.13)  // Monto: 13%
+      ];
       const movHeaderHeight = 8;
       const movTableWidth = movColWidths.reduce((a, b) => a + b, 0);
       const movRowHeight = 7;
@@ -1065,14 +1080,19 @@ async function generateDailyReport(reportDate) {
           const align = i === rowData.length - 1 ? 'right' : 'left';
           const textX = i === rowData.length - 1 ? xPos + movColWidths[i] - 2 : xPos + 2;
           
-          // Truncar texto si es muy largo según los nuevos anchos
+          // Truncar texto si es muy largo según los anchos dinámicos
           let cellText = String(cell);
-          if (i === 1 && cellText.length > 18) { // Concepto (ancho 38)
-            cellText = cellText.substring(0, 15) + '...';
-          } else if (i === 2 && cellText.length > 27) { // Descripción (ancho 55)
-            cellText = cellText.substring(0, 24) + '...';
-          } else if (i === 3 && cellText.length > 15) { // Cuenta (ancho 32)
-            cellText = cellText.substring(0, 12) + '...';
+          // Aproximadamente 1mm = 0.4 caracteres con fuente tamaño 8
+          const maxCharsConcepto = Math.floor(movColWidths[1] * 0.4);
+          const maxCharsDescripcion = Math.floor(movColWidths[2] * 0.4);
+          const maxCharsCuenta = Math.floor(movColWidths[3] * 0.4);
+          
+          if (i === 1 && cellText.length > maxCharsConcepto) { // Concepto
+            cellText = cellText.substring(0, maxCharsConcepto - 3) + '...';
+          } else if (i === 2 && cellText.length > maxCharsDescripcion) { // Descripción
+            cellText = cellText.substring(0, maxCharsDescripcion - 3) + '...';
+          } else if (i === 3 && cellText.length > maxCharsCuenta) { // Cuenta
+            cellText = cellText.substring(0, maxCharsCuenta - 3) + '...';
           }
           
           doc.text(cellText, textX, yPos + 5, { align: align });
