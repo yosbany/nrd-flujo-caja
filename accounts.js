@@ -110,6 +110,12 @@ function showAccountForm(accountId = null) {
 
   if (accountId) {
     if (title) title.textContent = 'Editar Cuenta';
+    // Update button visibility - show delete button for editing
+    const deleteBtn = document.getElementById('delete-account-form-btn');
+    const editBtn = document.getElementById('edit-account-form-btn');
+    if (deleteBtn) deleteBtn.style.display = 'flex';
+    if (editBtn) editBtn.textContent = 'Editar';
+    
     getAccount(accountId).then(snapshot => {
       const account = snapshot.val();
       if (account) {
@@ -119,6 +125,11 @@ function showAccountForm(accountId = null) {
     });
   } else {
     if (title) title.textContent = 'Nueva Cuenta';
+    // Update button visibility - hide delete button for new
+    const deleteBtn = document.getElementById('delete-account-form-btn');
+    const editBtn = document.getElementById('edit-account-form-btn');
+    if (deleteBtn) deleteBtn.style.display = 'none';
+    if (editBtn) editBtn.textContent = 'Guardar';
   }
 }
 
@@ -194,19 +205,54 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Cancel account form
-  const cancelAccountBtn = document.getElementById('cancel-account-btn');
-  if (cancelAccountBtn) {
-    cancelAccountBtn.addEventListener('click', () => {
-      hideAccountForm();
-    });
-  }
-
   // Close account form button
   const closeAccountFormBtn = document.getElementById('close-account-form');
   if (closeAccountFormBtn) {
     closeAccountFormBtn.addEventListener('click', () => {
       hideAccountForm();
+    });
+  }
+  const closeAccountFormBtn2 = document.getElementById('close-account-form-btn');
+  if (closeAccountFormBtn2) {
+    closeAccountFormBtn2.addEventListener('click', () => {
+      hideAccountForm();
+    });
+  }
+
+  // Edit button - submit form
+  const editAccountBtn = document.getElementById('edit-account-form-btn');
+  if (editAccountBtn) {
+    editAccountBtn.addEventListener('click', async () => {
+      const accountForm = document.getElementById('account-form-element');
+      if (accountForm) {
+        accountForm.dispatchEvent(new Event('submit'));
+      }
+    });
+  }
+
+  // Delete button - delete account if editing
+  const deleteAccountBtn = document.getElementById('delete-account-form-btn');
+  if (deleteAccountBtn) {
+    deleteAccountBtn.addEventListener('click', async () => {
+      const accountId = document.getElementById('account-id').value;
+      if (accountId) {
+        const confirmed = await showConfirm('Eliminar Cuenta', '¿Está seguro de eliminar esta cuenta?');
+        if (!confirmed) return;
+        
+        showSpinner('Eliminando cuenta...');
+        try {
+          await deleteAccount(accountId);
+          hideSpinner();
+          hideAccountForm();
+          await showSuccess('Cuenta eliminada exitosamente');
+        } catch (error) {
+          hideSpinner();
+          await showError('Error al eliminar cuenta: ' + error.message);
+        }
+      } else {
+        // If new account, just close
+        hideAccountForm();
+      }
     });
   }
 });

@@ -174,6 +174,12 @@ async function showNewTransactionForm(type) {
   // Clear editing state
   delete form.dataset.editingTransactionId;
   
+  // Update button visibility - hide delete button for new transactions
+  const deleteBtn = document.getElementById('delete-transaction-form-btn');
+  const editBtn = document.getElementById('edit-transaction-form-btn');
+  if (deleteBtn) deleteBtn.style.display = 'none';
+  if (editBtn) editBtn.textContent = 'Guardar';
+  
   // Set transaction type
   document.getElementById('transaction-type').value = type;
   
@@ -578,6 +584,12 @@ async function editTransaction(transactionId, transaction) {
   // Store transaction ID for update
   form.dataset.editingTransactionId = transactionId;
   
+  // Update button visibility - show delete button for editing
+  const deleteBtn = document.getElementById('delete-transaction-form-btn');
+  const editBtn = document.getElementById('edit-transaction-form-btn');
+  if (deleteBtn) deleteBtn.style.display = 'flex';
+  if (editBtn) editBtn.textContent = 'Editar';
+  
   // Load form data
   document.getElementById('transaction-type').value = transaction.type;
   document.getElementById('transaction-description').value = transaction.description || '';
@@ -642,13 +654,38 @@ async function deleteTransactionHandler(transactionId) {
 // Event listeners
 document.getElementById('new-income-btn').addEventListener('click', () => showNewTransactionForm('income'));
 document.getElementById('new-expense-btn').addEventListener('click', () => showNewTransactionForm('expense'));
-document.getElementById('cancel-transaction-btn').addEventListener('click', hideTransactionForm);
+document.getElementById('close-transaction-form-btn').addEventListener('click', hideTransactionForm);
+document.getElementById('close-transaction-form').addEventListener('click', hideTransactionForm);
 document.getElementById('transaction-form-element').addEventListener('submit', async (e) => {
   e.preventDefault();
   await saveTransaction();
 });
 document.getElementById('back-to-transactions').addEventListener('click', backToTransactions);
-document.getElementById('close-transaction-form').addEventListener('click', hideTransactionForm);
+
+// Edit button - submit form when editing
+document.getElementById('edit-transaction-form-btn').addEventListener('click', async () => {
+  const form = document.getElementById('transaction-form');
+  const isEditing = form.dataset.editingTransactionId;
+  if (isEditing) {
+    // If editing, submit the form
+    await saveTransaction();
+  } else {
+    // If new, just submit
+    await saveTransaction();
+  }
+});
+
+// Delete button - delete transaction if editing
+document.getElementById('delete-transaction-form-btn').addEventListener('click', async () => {
+  const form = document.getElementById('transaction-form');
+  const transactionId = form.dataset.editingTransactionId;
+  if (transactionId) {
+    await deleteTransactionHandler(transactionId);
+  } else {
+    // If new transaction, just close
+    hideTransactionForm();
+  }
+});
 
 // Date filter handlers
 function updateTransactionsDateFilterDisplay() {

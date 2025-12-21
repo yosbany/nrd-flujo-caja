@@ -7,7 +7,7 @@
   <title>NRD Flujo de Caja</title>
   <link rel="manifest" href="manifest.json">
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="styles.css?v=1766333824257">
+  <link rel="stylesheet" href="styles.css?v=1766334283963">
   <meta name="theme-color" content="#dc2626">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/svg+xml" href="icon-192.svg">
@@ -301,13 +301,17 @@
                 class="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-red-600 bg-white resize-y text-sm sm:text-base rounded"></textarea>
             </div>
             <div class="flex flex-col sm:flex-row gap-2 pt-3 sm:pt-4 border-t border-gray-200">
-              <button type="submit" 
-                class="flex-1 px-4 sm:px-6 py-2.5 bg-red-600 text-white border border-red-600 hover:bg-red-700 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
-                Guardar
+              <button type="button" id="edit-transaction-form-btn" 
+                class="flex-1 px-4 sm:px-6 py-2.5 bg-gray-500 text-white border border-gray-500 hover:bg-gray-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
+                Editar
               </button>
-              <button type="button" id="cancel-transaction-btn" 
-                class="flex-1 px-4 sm:px-6 py-2.5 border border-gray-300 hover:border-red-600 hover:text-red-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
-                Cancelar
+              <button type="button" id="delete-transaction-form-btn" 
+                class="flex-1 px-4 sm:px-6 py-2.5 bg-red-600 text-white border border-red-600 hover:bg-red-700 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
+                Eliminar
+              </button>
+              <button type="button" id="close-transaction-form-btn" 
+                class="flex-1 px-4 sm:px-6 py-2.5 text-gray-600 hover:text-red-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
+                Cerrar
               </button>
             </div>
           </form>
@@ -396,13 +400,17 @@
               </select>
             </div>
             <div class="flex flex-col sm:flex-row gap-2 sm:gap-4 pt-4 sm:pt-6 border-t border-gray-200">
-              <button type="submit" 
-                class="flex-1 px-4 sm:px-6 py-2 bg-red-600 text-white border border-red-600 hover:bg-red-700 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
-                Guardar
+              <button type="button" id="edit-category-form-btn" 
+                class="flex-1 px-4 sm:px-6 py-2 bg-gray-500 text-white border border-gray-500 hover:bg-gray-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
+                Editar
               </button>
-              <button type="button" id="cancel-category-btn" 
-                class="flex-1 px-4 sm:px-6 py-2 border border-gray-300 hover:border-red-600 hover:text-red-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
-                Cancelar
+              <button type="button" id="delete-category-form-btn" 
+                class="flex-1 px-4 sm:px-6 py-2 bg-red-600 text-white border border-red-600 hover:bg-red-700 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
+                Eliminar
+              </button>
+              <button type="button" id="close-category-form-btn" 
+                class="flex-1 px-4 sm:px-6 py-2 text-gray-600 hover:text-red-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
+                Cerrar
               </button>
             </div>
           </form>
@@ -433,13 +441,17 @@
                 class="w-full px-0 py-2 border-0 border-b border-gray-300 focus:outline-none focus:border-red-600 bg-transparent text-sm sm:text-base">
             </div>
             <div class="flex flex-col sm:flex-row gap-2 sm:gap-4 pt-4 sm:pt-6 border-t border-gray-200">
-              <button type="submit" 
-                class="flex-1 px-4 sm:px-6 py-2 bg-red-600 text-white border border-red-600 hover:bg-red-700 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
-                Guardar
+              <button type="button" id="edit-account-form-btn" 
+                class="flex-1 px-4 sm:px-6 py-2 bg-gray-500 text-white border border-gray-500 hover:bg-gray-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
+                Editar
               </button>
-              <button type="button" id="cancel-account-btn" 
-                class="flex-1 px-4 sm:px-6 py-2 border border-gray-300 hover:border-red-600 hover:text-red-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
-                Cancelar
+              <button type="button" id="delete-account-form-btn" 
+                class="flex-1 px-4 sm:px-6 py-2 bg-red-600 text-white border border-red-600 hover:bg-red-700 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
+                Eliminar
+              </button>
+              <button type="button" id="close-account-form-btn" 
+                class="flex-1 px-4 sm:px-6 py-2 text-gray-600 hover:text-red-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
+                Cerrar
               </button>
             </div>
           </form>
@@ -518,15 +530,15 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   
   <!-- App Scripts -->
-  <script src="firebase.js?v=1766333824257"></script>
-  <script src="modal.js?v=1766333824257"></script>
-  <script src="auth.js?v=1766333824257"></script>
-  <script src="db.js?v=1766333824257"></script>
-  <script src="categories.js?v=1766333824257"></script>
-  <script src="transactions.js?v=1766333824257"></script>
-  <script src="cashflow.js?v=1766333824257"></script>
-  <script src="accounts.js?v=1766333824257"></script>
-  <script src="app.js?v=1766333824257"></script>
+  <script src="firebase.js?v=1766334283963"></script>
+  <script src="modal.js?v=1766334283963"></script>
+  <script src="auth.js?v=1766334283963"></script>
+  <script src="db.js?v=1766334283963"></script>
+  <script src="categories.js?v=1766334283963"></script>
+  <script src="transactions.js?v=1766334283963"></script>
+  <script src="cashflow.js?v=1766334283963"></script>
+  <script src="accounts.js?v=1766334283963"></script>
+  <script src="app.js?v=1766334283963"></script>
 
   <script>
     // Global error handler
@@ -577,7 +589,7 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         // Register service worker without version parameter
-        navigator.serviceWorker.register('service-worker.js?v=1766333824257')
+        navigator.serviceWorker.register('service-worker.js?v=1766334283963')
           .then(reg => {
             console.log('Service Worker registered');
             

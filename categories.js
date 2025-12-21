@@ -311,6 +311,12 @@ function showCategoryForm(categoryId = null) {
 
   if (categoryId) {
     if (title) title.textContent = 'Editar Categoría';
+    // Update button visibility - show delete button for editing
+    const deleteBtn = document.getElementById('delete-category-form-btn');
+    const editBtn = document.getElementById('edit-category-form-btn');
+    if (deleteBtn) deleteBtn.style.display = 'flex';
+    if (editBtn) editBtn.textContent = 'Editar';
+    
     getCategory(categoryId).then(snapshot => {
       const category = snapshot.val();
       if (category) {
@@ -322,6 +328,12 @@ function showCategoryForm(categoryId = null) {
     });
   } else {
     if (title) title.textContent = 'Nueva Categoría';
+    // Update button visibility - hide delete button for new
+    const deleteBtn = document.getElementById('delete-category-form-btn');
+    const editBtn = document.getElementById('edit-category-form-btn');
+    if (deleteBtn) deleteBtn.style.display = 'none';
+    if (editBtn) editBtn.textContent = 'Guardar';
+    
     const typeInput = document.getElementById('category-type');
     if (typeInput) typeInput.value = 'expense';
   }
@@ -397,14 +409,43 @@ document.getElementById('new-category-btn').addEventListener('click', () => {
   showCategoryForm();
 });
 
-// Cancel category form
-document.getElementById('cancel-category-btn').addEventListener('click', () => {
-  hideCategoryForm();
-});
-
 // Close category form button
 document.getElementById('close-category-form').addEventListener('click', () => {
   hideCategoryForm();
+});
+document.getElementById('close-category-form-btn').addEventListener('click', () => {
+  hideCategoryForm();
+});
+
+// Edit button - submit form
+document.getElementById('edit-category-form-btn').addEventListener('click', async () => {
+  const categoryForm = document.getElementById('category-form-element');
+  if (categoryForm) {
+    categoryForm.dispatchEvent(new Event('submit'));
+  }
+});
+
+// Delete button - delete category if editing
+document.getElementById('delete-category-form-btn').addEventListener('click', async () => {
+  const categoryId = document.getElementById('category-id').value;
+  if (categoryId) {
+    const confirmed = await showConfirm('Eliminar Categoría', '¿Está seguro de eliminar esta categoría?');
+    if (!confirmed) return;
+    
+    showSpinner('Eliminando categoría...');
+    try {
+      await deleteCategory(categoryId);
+      hideSpinner();
+      hideCategoryForm();
+      await showSuccess('Categoría eliminada exitosamente');
+    } catch (error) {
+      hideSpinner();
+      await showError('Error al eliminar categoría: ' + error.message);
+    }
+  } else {
+    // If new category, just close
+    hideCategoryForm();
+  }
 });
 
 // Load categories for transaction form
