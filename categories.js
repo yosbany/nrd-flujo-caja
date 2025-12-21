@@ -310,32 +310,65 @@ function showCategoryForm(categoryId = null) {
   }
 
   if (categoryId) {
-    if (title) title.textContent = 'Editar Categoría';
-    // Update button visibility - show delete button for editing
+    if (title) title.textContent = 'Ver Categoría';
+    // Set to view mode
+    form.dataset.viewMode = 'view';
+    
+    // Update button visibility - show edit, delete, close buttons
     const deleteBtn = document.getElementById('delete-category-form-btn');
     const editBtn = document.getElementById('edit-category-form-btn');
+    const closeBtn = document.getElementById('close-category-form-btn');
+    const saveBtn = document.getElementById('save-category-form-btn');
     if (deleteBtn) deleteBtn.style.display = 'flex';
-    if (editBtn) editBtn.textContent = 'Editar';
+    if (editBtn) editBtn.style.display = 'flex';
+    if (closeBtn) closeBtn.style.display = 'flex';
+    if (saveBtn) saveBtn.style.display = 'none';
+    
+    // Make fields readonly
+    const nameInput = document.getElementById('category-name');
+    const typeInput = document.getElementById('category-type');
+    if (nameInput) {
+      nameInput.setAttribute('readonly', 'readonly');
+      nameInput.setAttribute('disabled', 'disabled');
+    }
+    if (typeInput) {
+      typeInput.setAttribute('readonly', 'readonly');
+      typeInput.setAttribute('disabled', 'disabled');
+    }
     
     getCategory(categoryId).then(snapshot => {
       const category = snapshot.val();
       if (category) {
-        const nameInput = document.getElementById('category-name');
-        const typeInput = document.getElementById('category-type');
         if (nameInput) nameInput.value = category.name || '';
         if (typeInput) typeInput.value = category.type || 'expense';
       }
     });
   } else {
     if (title) title.textContent = 'Nueva Categoría';
-    // Update button visibility - hide delete button for new
+    delete form.dataset.viewMode;
+    
+    // Update button visibility - hide edit/delete, show save/close
     const deleteBtn = document.getElementById('delete-category-form-btn');
     const editBtn = document.getElementById('edit-category-form-btn');
+    const closeBtn = document.getElementById('close-category-form-btn');
+    const saveBtn = document.getElementById('save-category-form-btn');
     if (deleteBtn) deleteBtn.style.display = 'none';
-    if (editBtn) editBtn.textContent = 'Guardar';
+    if (editBtn) editBtn.style.display = 'none';
+    if (closeBtn) closeBtn.style.display = 'flex';
+    if (saveBtn) saveBtn.style.display = 'flex';
     
+    // Enable fields
+    const nameInput = document.getElementById('category-name');
     const typeInput = document.getElementById('category-type');
-    if (typeInput) typeInput.value = 'expense';
+    if (nameInput) {
+      nameInput.removeAttribute('readonly');
+      nameInput.removeAttribute('disabled');
+    }
+    if (typeInput) {
+      typeInput.removeAttribute('readonly');
+      typeInput.removeAttribute('disabled');
+      typeInput.value = 'expense';
+    }
   }
 }
 
@@ -362,11 +395,6 @@ async function viewCategory(categoryId) {
       return;
     }
 
-    const typeColor = category.type === 'income' ? 'text-green-600' : 'text-red-600';
-    const typeText = category.type === 'income' ? 'Ingreso' : 'Egreso';
-
-    await showInfo(`Categoría: ${category.name}\nTipo: ${typeText}`);
-    
     // Show edit form instead of detail view
     showCategoryForm(categoryId);
   } catch (error) {
@@ -417,8 +445,44 @@ document.getElementById('close-category-form-btn').addEventListener('click', () 
   hideCategoryForm();
 });
 
-// Edit button - submit form
+// Edit button - switch to edit mode
 document.getElementById('edit-category-form-btn').addEventListener('click', async () => {
+  const form = document.getElementById('category-form');
+  const categoryId = document.getElementById('category-id').value;
+  if (categoryId) {
+    // Change to edit mode
+    form.dataset.viewMode = 'edit';
+    
+    // Set form title
+    const title = document.getElementById('category-form-title');
+    if (title) title.textContent = 'Editar Categoría';
+    
+    // Enable fields
+    const nameInput = document.getElementById('category-name');
+    const typeInput = document.getElementById('category-type');
+    if (nameInput) {
+      nameInput.removeAttribute('readonly');
+      nameInput.removeAttribute('disabled');
+    }
+    if (typeInput) {
+      typeInput.removeAttribute('readonly');
+      typeInput.removeAttribute('disabled');
+    }
+    
+    // Update buttons
+    const editBtn = document.getElementById('edit-category-form-btn');
+    const deleteBtn = document.getElementById('delete-category-form-btn');
+    const closeBtn = document.getElementById('close-category-form-btn');
+    const saveBtn = document.getElementById('save-category-form-btn');
+    if (editBtn) editBtn.style.display = 'none';
+    if (deleteBtn) deleteBtn.style.display = 'none';
+    if (closeBtn) closeBtn.style.display = 'flex';
+    if (saveBtn) saveBtn.style.display = 'flex';
+  }
+});
+
+// Save button - submit form
+document.getElementById('save-category-form-btn').addEventListener('click', async () => {
   const categoryForm = document.getElementById('category-form-element');
   if (categoryForm) {
     categoryForm.dispatchEvent(new Event('submit'));

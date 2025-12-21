@@ -173,12 +173,28 @@ async function showNewTransactionForm(type) {
   
   // Clear editing state
   delete form.dataset.editingTransactionId;
+  delete form.dataset.viewMode;
+  
+  // Enable all fields
+  const formInputs = form.querySelectorAll('input, select, textarea');
+  formInputs.forEach(input => {
+    input.removeAttribute('readonly');
+    input.removeAttribute('disabled');
+  });
   
   // Update button visibility - hide delete button for new transactions
   const deleteBtn = document.getElementById('delete-transaction-form-btn');
   const editBtn = document.getElementById('edit-transaction-form-btn');
+  const closeBtn = document.getElementById('close-transaction-form-btn');
+  const saveBtn = document.getElementById('save-transaction-form-btn');
+  
   if (deleteBtn) deleteBtn.style.display = 'none';
-  if (editBtn) editBtn.textContent = 'Guardar';
+  if (editBtn) editBtn.style.display = 'none';
+  if (closeBtn) closeBtn.style.display = 'flex';
+  if (saveBtn) {
+    saveBtn.style.display = 'flex';
+    saveBtn.textContent = 'Guardar';
+  }
   
   // Set transaction type
   document.getElementById('transaction-type').value = type;
@@ -347,6 +363,18 @@ function hideTransactionForm() {
   if (list) list.style.display = 'block';
   if (header) header.style.display = 'flex';
   if (dateFilter) dateFilter.style.display = 'flex';
+  
+  // Clear form state
+  delete form.dataset.editingTransactionId;
+  delete form.dataset.viewMode;
+  delete form.dataset.transactionData;
+  
+  // Enable all fields
+  const formInputs = form.querySelectorAll('input, select, textarea');
+  formInputs.forEach(input => {
+    input.removeAttribute('readonly');
+    input.removeAttribute('disabled');
+  });
 }
 
 // Save transaction
@@ -433,7 +461,9 @@ async function saveTransaction() {
       showSpinner('Actualizando transacción...');
       await updateTransaction(transactionId, transactionData);
       hideSpinner();
-      hideTransactionForm();
+      
+      // Reload transaction to show updated data in view mode
+      await viewTransaction(transactionId);
       await showSuccess('Transacción actualizada exitosamente');
     } else {
       // Create new transaction
@@ -451,8 +481,10 @@ async function saveTransaction() {
       };
 
       showSpinner('Guardando transacción...');
-      await createTransaction(transactionData);
+      const newTransactionRef = await createTransaction(transactionData);
       hideSpinner();
+      
+      // Close form for new transactions
       hideTransactionForm();
       await showSuccess('Transacción guardada exitosamente');
     }
@@ -478,69 +510,84 @@ async function viewTransaction(transactionId) {
     const header = document.querySelector('#transactions-view .flex.flex-col');
     const form = document.getElementById('transaction-form');
     const dateFilter = document.getElementById('transactions-date-filter-container');
+    const detail = document.getElementById('transaction-detail');
     
     if (list) list.style.display = 'none';
     if (header) header.style.display = 'none';
-    if (form) form.classList.add('hidden');
+    if (detail) detail.classList.add('hidden');
     if (dateFilter) dateFilter.style.display = 'none';
-    document.getElementById('transaction-detail').classList.remove('hidden');
-
-    const date = transaction.date ? new Date(transaction.date) : new Date(transaction.createdAt);
-    const isIncome = transaction.type === 'income';
-    const amountColor = isIncome ? 'text-green-600' : 'text-red-600';
-    const prefix = isIncome ? '+' : '-';
-    const typeText = isIncome ? 'Ingreso' : 'Egreso';
-
-    document.getElementById('transaction-detail-content').innerHTML = `
-      <div class="py-4 sm:py-6 mb-4 sm:mb-6">
-        <div class="flex justify-between py-2 sm:py-3 border-b border-gray-200 text-sm sm:text-base">
-          <span class="text-gray-600 font-light">Tipo:</span>
-          <span class="font-light ${amountColor}">${typeText}</span>
-        </div>
-        <div class="flex justify-between py-2 sm:py-3 border-b border-gray-200 text-sm sm:text-base">
-          <span class="text-gray-600 font-light">Subcategoría:</span>
-          <span class="font-light">${escapeHtml(transaction.description)}</span>
-        </div>
-        <div class="flex justify-between py-2 sm:py-3 border-b border-gray-200 text-sm sm:text-base">
-          <span class="text-gray-600 font-light">Monto:</span>
-          <span class="font-light ${amountColor} font-medium">${prefix}$${formatNumber(parseFloat(transaction.amount || 0))}</span>
-        </div>
-        <div class="flex justify-between py-2 sm:py-3 border-b border-gray-200 text-sm sm:text-base">
-          <span class="text-gray-600 font-light">Categoría:</span>
-          <span class="font-light">${escapeHtml(transaction.categoryName || 'Sin categoría')}</span>
-        </div>
-        <div class="flex justify-between py-2 sm:py-3 border-b border-gray-200 text-sm sm:text-base">
-          <span class="text-gray-600 font-light">Cuenta:</span>
-          <span class="font-light">${escapeHtml(transaction.accountName || 'Sin cuenta')}</span>
-        </div>
-        <div class="flex justify-between py-2 sm:py-3 border-b border-gray-200 text-sm sm:text-base">
-          <span class="text-gray-600 font-light">Fecha:</span>
-          <span class="font-light">${formatDate24h(date)}</span>
-        </div>
-        ${transaction.notes ? `
-        <div class="flex justify-between py-2 sm:py-3 border-b border-gray-200 text-sm sm:text-base">
-          <span class="text-gray-600 font-light">Notas:</span>
-          <span class="font-light text-right">${escapeHtml(transaction.notes)}</span>
-        </div>
-        ` : ''}
-      </div>
-    `;
-
-    // Store transaction data for edit/delete
-    document.getElementById('transaction-detail').dataset.transactionId = transactionId;
-    document.getElementById('transaction-detail').dataset.transactionData = JSON.stringify(transaction);
+    if (form) form.classList.remove('hidden');
     
-    // Attach button handlers
-    const editBtn = document.getElementById('edit-transaction-btn');
-    const deleteBtn = document.getElementById('delete-transaction-btn');
+    // Set form to view mode (readonly)
+    form.dataset.viewMode = 'view';
+    form.dataset.editingTransactionId = transactionId;
     
-    if (editBtn) {
-      editBtn.onclick = () => editTransaction(transactionId, transaction);
+    // Set form title
+    const formTitle = document.getElementById('transaction-form-title');
+    if (formTitle) {
+      formTitle.textContent = 'Ver Transacción';
     }
     
-    if (deleteBtn) {
-      deleteBtn.onclick = () => deleteTransactionHandler(transactionId);
+    // Load form data in readonly mode
+    document.getElementById('transaction-type').value = transaction.type;
+    document.getElementById('transaction-description').value = transaction.description || '';
+    document.getElementById('transaction-amount').value = transaction.amount || '';
+    document.getElementById('transaction-notes').value = transaction.notes || '';
+    
+    // Set date
+    const dateInput = document.getElementById('transaction-date');
+    if (transaction.date && dateInput) {
+      const date = new Date(transaction.date);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      dateInput.value = `${year}-${month}-${day}`;
     }
+    
+    // Load categories and accounts
+    const categories = await loadCategoriesForTransaction(transaction.type);
+    const categorySelect = document.getElementById('transaction-category');
+    categorySelect.innerHTML = '<option value="">Seleccionar categoría</option>';
+    categories.forEach(category => {
+      const option = document.createElement('option');
+      option.value = category.id;
+      option.textContent = category.name;
+      option.selected = category.id === transaction.categoryId;
+      categorySelect.appendChild(option);
+    });
+    
+    const accounts = await loadAccountsForTransaction();
+    const accountSelect = document.getElementById('transaction-account');
+    accountSelect.innerHTML = '<option value="">Seleccionar cuenta</option>';
+    accounts.forEach(account => {
+      const option = document.createElement('option');
+      option.value = account.id;
+      option.textContent = account.name;
+      option.selected = account.id === transaction.accountId;
+      accountSelect.appendChild(option);
+    });
+    
+    // Make all fields readonly
+    const formInputs = form.querySelectorAll('input, select, textarea');
+    formInputs.forEach(input => {
+      input.setAttribute('readonly', 'readonly');
+      input.setAttribute('disabled', 'disabled');
+    });
+    
+    // Update buttons for view mode
+    const editBtn = document.getElementById('edit-transaction-form-btn');
+    const deleteBtn = document.getElementById('delete-transaction-form-btn');
+    const closeBtn = document.getElementById('close-transaction-form-btn');
+    const saveBtn = document.getElementById('save-transaction-form-btn');
+    
+    if (editBtn) editBtn.style.display = 'flex';
+    if (deleteBtn) deleteBtn.style.display = 'flex';
+    if (closeBtn) closeBtn.style.display = 'flex';
+    if (saveBtn) saveBtn.style.display = 'none';
+    
+    // Store transaction data
+    form.dataset.transactionData = JSON.stringify(transaction);
+
   } catch (error) {
     hideSpinner();
     await showError('Error al cargar transacción: ' + error.message);
@@ -560,20 +607,13 @@ function backToTransactions() {
   if (dateFilter) dateFilter.style.display = 'flex';
 }
 
-// Edit transaction
+// Edit transaction - switch from view mode to edit mode
 async function editTransaction(transactionId, transaction) {
-  // Hide detail view and show form
-  document.getElementById('transaction-detail').classList.add('hidden');
-  
   const form = document.getElementById('transaction-form');
-  const list = document.getElementById('transactions-list');
-  const header = document.querySelector('#transactions-view .flex.flex-col');
-  const dateFilter = document.getElementById('transactions-date-filter-container');
   
-  form.classList.remove('hidden');
-  if (list) list.style.display = 'none';
-  if (header) header.style.display = 'none';
-  if (dateFilter) dateFilter.style.display = 'none';
+  // Change to edit mode
+  form.dataset.viewMode = 'edit';
+  form.dataset.editingTransactionId = transactionId;
   
   // Set form title
   const formTitle = document.getElementById('transaction-form-title');
@@ -581,14 +621,23 @@ async function editTransaction(transactionId, transaction) {
     formTitle.textContent = 'Editar Transacción';
   }
   
-  // Store transaction ID for update
-  form.dataset.editingTransactionId = transactionId;
+  // Enable all fields for editing
+  const formInputs = form.querySelectorAll('input, select, textarea');
+  formInputs.forEach(input => {
+    input.removeAttribute('readonly');
+    input.removeAttribute('disabled');
+  });
   
-  // Update button visibility - show delete button for editing
-  const deleteBtn = document.getElementById('delete-transaction-form-btn');
+  // Update buttons for edit mode
   const editBtn = document.getElementById('edit-transaction-form-btn');
-  if (deleteBtn) deleteBtn.style.display = 'flex';
-  if (editBtn) editBtn.textContent = 'Editar';
+  const deleteBtn = document.getElementById('delete-transaction-form-btn');
+  const closeBtn = document.getElementById('close-transaction-form-btn');
+  const saveBtn = document.getElementById('save-transaction-form-btn');
+  
+  if (editBtn) editBtn.style.display = 'none';
+  if (deleteBtn) deleteBtn.style.display = 'none';
+  if (closeBtn) closeBtn.style.display = 'flex';
+  if (saveBtn) saveBtn.style.display = 'flex';
   
   // Load form data
   document.getElementById('transaction-type').value = transaction.type;

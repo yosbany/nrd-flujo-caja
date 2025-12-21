@@ -109,27 +109,53 @@ function showAccountForm(accountId = null) {
   }
 
   if (accountId) {
-    if (title) title.textContent = 'Editar Cuenta';
-    // Update button visibility - show delete button for editing
+    if (title) title.textContent = 'Ver Cuenta';
+    // Set to view mode
+    form.dataset.viewMode = 'view';
+    
+    // Update button visibility - show edit, delete, close buttons
     const deleteBtn = document.getElementById('delete-account-form-btn');
     const editBtn = document.getElementById('edit-account-form-btn');
+    const closeBtn = document.getElementById('close-account-form-btn');
+    const saveBtn = document.getElementById('save-account-form-btn');
     if (deleteBtn) deleteBtn.style.display = 'flex';
-    if (editBtn) editBtn.textContent = 'Editar';
+    if (editBtn) editBtn.style.display = 'flex';
+    if (closeBtn) closeBtn.style.display = 'flex';
+    if (saveBtn) saveBtn.style.display = 'none';
+    
+    // Make field readonly
+    const nameInput = document.getElementById('account-name');
+    if (nameInput) {
+      nameInput.setAttribute('readonly', 'readonly');
+      nameInput.setAttribute('disabled', 'disabled');
+    }
     
     getAccount(accountId).then(snapshot => {
       const account = snapshot.val();
       if (account) {
-        const nameInput = document.getElementById('account-name');
         if (nameInput) nameInput.value = account.name || '';
       }
     });
   } else {
     if (title) title.textContent = 'Nueva Cuenta';
-    // Update button visibility - hide delete button for new
+    delete form.dataset.viewMode;
+    
+    // Update button visibility - hide edit/delete, show save/close
     const deleteBtn = document.getElementById('delete-account-form-btn');
     const editBtn = document.getElementById('edit-account-form-btn');
+    const closeBtn = document.getElementById('close-account-form-btn');
+    const saveBtn = document.getElementById('save-account-form-btn');
     if (deleteBtn) deleteBtn.style.display = 'none';
-    if (editBtn) editBtn.textContent = 'Guardar';
+    if (editBtn) editBtn.style.display = 'none';
+    if (closeBtn) closeBtn.style.display = 'flex';
+    if (saveBtn) saveBtn.style.display = 'flex';
+    
+    // Enable field
+    const nameInput = document.getElementById('account-name');
+    if (nameInput) {
+      nameInput.removeAttribute('readonly');
+      nameInput.removeAttribute('disabled');
+    }
   }
 }
 
@@ -219,10 +245,44 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Edit button - submit form
+  // Edit button - switch to edit mode
   const editAccountBtn = document.getElementById('edit-account-form-btn');
   if (editAccountBtn) {
     editAccountBtn.addEventListener('click', async () => {
+      const form = document.getElementById('account-form');
+      const accountId = document.getElementById('account-id').value;
+      if (accountId) {
+        // Change to edit mode
+        form.dataset.viewMode = 'edit';
+        
+        // Set form title
+        const title = document.getElementById('account-form-title');
+        if (title) title.textContent = 'Editar Cuenta';
+        
+        // Enable field
+        const nameInput = document.getElementById('account-name');
+        if (nameInput) {
+          nameInput.removeAttribute('readonly');
+          nameInput.removeAttribute('disabled');
+        }
+        
+        // Update buttons
+        const editBtn = document.getElementById('edit-account-form-btn');
+        const deleteBtn = document.getElementById('delete-account-form-btn');
+        const closeBtn = document.getElementById('close-account-form-btn');
+        const saveBtn = document.getElementById('save-account-form-btn');
+        if (editBtn) editBtn.style.display = 'none';
+        if (deleteBtn) deleteBtn.style.display = 'none';
+        if (closeBtn) closeBtn.style.display = 'flex';
+        if (saveBtn) saveBtn.style.display = 'flex';
+      }
+    });
+  }
+
+  // Save button - submit form
+  const saveAccountBtn = document.getElementById('save-account-form-btn');
+  if (saveAccountBtn) {
+    saveAccountBtn.addEventListener('click', async () => {
       const accountForm = document.getElementById('account-form-element');
       if (accountForm) {
         accountForm.dispatchEvent(new Event('submit'));
