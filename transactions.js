@@ -983,33 +983,33 @@ async function generateDailyReport(reportDate) {
     doc.setDrawColor(0, 0, 0);
     doc.line(startX, yPos + 3, startX + 80, yPos + 3);
     
-    // Abrir diálogo de impresión directamente
-    const pdfDataUri = doc.output('datauristring');
-    const printWindow = window.open();
+    // Abrir diálogo de impresión directamente usando iframe oculto
+    const pdfBlob = doc.output('blob');
+    const pdfUrl = URL.createObjectURL(pdfBlob);
     
-    if (printWindow) {
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Imprimir Reporte</title>
-          </head>
-          <body style="margin:0;padding:0;">
-            <embed src="${pdfDataUri}" type="application/pdf" width="100%" height="100%" style="position:absolute;top:0;left:0;" />
-            <script>
-              window.onload = function() {
-                setTimeout(function() {
-                  window.print();
-                  setTimeout(function() {
-                    window.close();
-                  }, 100);
-                }, 500);
-              };
-            </script>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-    }
+    // Crear un iframe oculto
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    iframe.src = pdfUrl;
+    document.body.appendChild(iframe);
+    
+    // Esperar a que el PDF se cargue y luego abrir el diálogo de impresión
+    iframe.onload = function() {
+      setTimeout(function() {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+        // Limpiar el iframe después de un tiempo razonable
+        setTimeout(function() {
+          document.body.removeChild(iframe);
+          URL.revokeObjectURL(pdfUrl);
+        }, 1000);
+      }, 500);
+    };
     
     hideSpinner();
   } catch (error) {
