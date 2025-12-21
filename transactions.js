@@ -88,11 +88,6 @@ function loadTransactions(initializeToToday = true) {
       }
     }
     
-    // Calculate totals for the selected day
-    if (transactionsSelectedFilterDate) {
-      updateDaySummary(dayTransactions);
-    }
-    
     // Filter by search text if provided
     if (transactionsSearchText && transactionsSearchText.trim()) {
       const searchLower = transactionsSearchText.toLowerCase().trim();
@@ -114,6 +109,11 @@ function loadTransactions(initializeToToday = true) {
                date.includes(searchLower) ||
                type.includes(searchLower);
       });
+    }
+    
+    // Calculate totals for the selected day (after applying search filter)
+    if (transactionsSelectedFilterDate) {
+      updateDaySummary(transactionsToShow);
     }
     
     // Show filtered transactions

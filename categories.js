@@ -181,13 +181,15 @@ async function loadSubcategoriesTable(container) {
       countCell.textContent = data.count;
       
       const totalCell = document.createElement('td');
-      totalCell.className = 'p-2 sm:p-3 text-sm sm:text-base font-light text-right';
+      totalCell.className = 'p-2 sm:p-3 text-sm sm:text-base font-medium text-right';
+      // Usar valor absoluto para quitar el signo menos
+      const absoluteTotal = Math.abs(data.total);
       const formattedTotal = new Intl.NumberFormat('es-UY', { 
         style: 'currency', 
         currency: 'UYU',
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
-      }).format(data.total);
+      }).format(absoluteTotal);
       totalCell.textContent = formattedTotal;
       
       const actionsCell = document.createElement('td');
