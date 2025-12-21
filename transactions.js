@@ -201,10 +201,20 @@ async function showNewTransactionForm(type) {
   const closeBtn = document.getElementById('close-transaction-form-btn');
   const saveBtn = document.getElementById('save-transaction-form-btn');
   
-  if (deleteBtn) deleteBtn.style.display = 'none';
-  if (editBtn) editBtn.style.display = 'none';
-  if (closeBtn) closeBtn.style.display = 'flex';
+  if (deleteBtn) {
+    deleteBtn.classList.add('hidden');
+    deleteBtn.style.display = 'none';
+  }
+  if (editBtn) {
+    editBtn.classList.add('hidden');
+    editBtn.style.display = 'none';
+  }
+  if (closeBtn) {
+    closeBtn.classList.remove('hidden');
+    closeBtn.style.display = 'flex';
+  }
   if (saveBtn) {
+    saveBtn.classList.remove('hidden');
     saveBtn.style.display = 'flex';
     saveBtn.textContent = 'Guardar';
   }
@@ -593,10 +603,22 @@ async function viewTransaction(transactionId) {
     const closeBtn = document.getElementById('close-transaction-form-btn');
     const saveBtn = document.getElementById('save-transaction-form-btn');
     
-    if (editBtn) editBtn.style.display = 'flex';
-    if (deleteBtn) deleteBtn.style.display = 'flex';
-    if (closeBtn) closeBtn.style.display = 'flex';
-    if (saveBtn) saveBtn.style.display = 'none';
+    if (editBtn) {
+      editBtn.classList.remove('hidden');
+      editBtn.style.display = 'flex';
+    }
+    if (deleteBtn) {
+      deleteBtn.classList.remove('hidden');
+      deleteBtn.style.display = 'flex';
+    }
+    if (closeBtn) {
+      closeBtn.classList.remove('hidden');
+      closeBtn.style.display = 'flex';
+    }
+    if (saveBtn) {
+      saveBtn.classList.add('hidden');
+      saveBtn.style.display = 'none';
+    }
     
     // Store transaction data
     form.dataset.transactionData = JSON.stringify(transaction);
@@ -647,10 +669,22 @@ async function editTransaction(transactionId, transaction) {
   const closeBtn = document.getElementById('close-transaction-form-btn');
   const saveBtn = document.getElementById('save-transaction-form-btn');
   
-  if (editBtn) editBtn.style.display = 'none';
-  if (deleteBtn) deleteBtn.style.display = 'none';
-  if (closeBtn) closeBtn.style.display = 'flex';
-  if (saveBtn) saveBtn.style.display = 'flex';
+  if (editBtn) {
+    editBtn.classList.add('hidden');
+    editBtn.style.display = 'none';
+  }
+  if (deleteBtn) {
+    deleteBtn.classList.add('hidden');
+    deleteBtn.style.display = 'none';
+  }
+  if (closeBtn) {
+    closeBtn.classList.remove('hidden');
+    closeBtn.style.display = 'flex';
+  }
+  if (saveBtn) {
+    saveBtn.classList.remove('hidden');
+    saveBtn.style.display = 'flex';
+  }
   
   // Load form data
   document.getElementById('transaction-type').value = transaction.type;
