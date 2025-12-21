@@ -847,6 +847,24 @@ async function generateDailyReport(reportDate) {
     });
     const totalDiferencia = totalIngresos - totalEgresos;
     
+    // Calcular totales de Efectivo, Banco y Crédito para el footer
+    let totalEfectivo = 0;
+    let totalBanco = 0;
+    let totalCredito = 0;
+    
+    accountSummary.forEach(acc => {
+      const nombreLower = acc.name.toLowerCase();
+      if (nombreLower.includes('efectivo') || nombreLower.includes('caja')) {
+        totalEfectivo += acc.saldoFinal;
+      } else if (nombreLower.includes('débito') || nombreLower.includes('debito') || nombreLower.includes('banco')) {
+        totalBanco += acc.saldoFinal;
+      } else if (nombreLower.includes('crédito') || nombreLower.includes('credito') || nombreLower.includes('visa')) {
+        totalCredito += acc.saldoFinal;
+      }
+    });
+    
+    const balanceTotal = totalEfectivo + totalBanco + totalCredito;
+    
     // Generate PDF
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -856,127 +874,262 @@ async function generateDailyReport(reportDate) {
     const pageWidth = doc.internal.pageSize.getWidth();
     const rightMargin = pageWidth - 14;
     
-    // Title
+    // Title - Alineado a la derecha como en el PDF
     doc.setFontSize(20);
     doc.setFont(undefined, 'bold');
-    doc.text('CIERRE DIARIO', pageWidth / 2, yPos, { align: 'center' });
+    doc.text('Cierre Diario', rightMargin, yPos, { align: 'right' });
     yPos += 8;
     
-    // Date
+    // Date - Formato completo de fecha
     doc.setFontSize(12);
     doc.setFont(undefined, 'normal');
-    const dateStr = formatDate24h(reportDate);
-    doc.text(dateStr, pageWidth / 2, yPos, { align: 'center' });
-    yPos += 12;
+    const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+    const dateStr = reportDate.toLocaleDateString('es-UY', dateOptions);
+    doc.text(dateStr, rightMargin, yPos, { align: 'right' });
+    yPos += 15;
     
-    // Resumen del Día - Formato simple sin cajas ni tablas
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.text('Resumen del Día', startX, yPos);
-    yPos += 8;
-    
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
-    doc.text('Ingresos: $' + formatNumber(totalIngresos), startX, yPos);
-    yPos += 6;
-    doc.text('Egresos: $' + formatNumber(totalEgresos), startX, yPos);
-    yPos += 6;
-    doc.text('Balance: $' + formatNumber(totalDiferencia), startX, yPos);
-    yPos += 10;
-    
-    // Resumen de Cuentas - Formato simple sin tablas
+    // Resumen de Cuentas - Tabla con encabezado gris oscuro
     if (accountSummary.length > 0) {
       doc.setFontSize(12);
       doc.setFont(undefined, 'bold');
       doc.text('Resumen de Cuentas', startX, yPos);
       yPos += 8;
       
-      doc.setFontSize(10);
+      const tableHeaders = ['Cuenta', '$ Saldo Inicial', '$ Saldo Actual', '$ Diferencia'];
+      const colWidths = [80, 50, 50, 50];
+      const headerHeight = 8;
+      const tableWidth = colWidths.reduce((a, b) => a + b, 0);
+      const rowHeight = 7;
+      
+      // Encabezado con fondo gris oscuro y texto blanco
+      doc.setFillColor(80, 80, 80);
+      doc.rect(startX, yPos, tableWidth, headerHeight, 'F');
+      doc.setDrawColor(80, 80, 80);
+      doc.rect(startX, yPos, tableWidth, headerHeight, 'D');
+      
+      doc.setFontSize(9);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(255, 255, 255);
+      let xPos = startX;
+      tableHeaders.forEach((header, i) => {
+        const align = i === 0 ? 'left' : 'right';
+        const textX = i === 0 ? xPos + 3 : xPos + colWidths[i] - 3;
+        doc.text(header, textX, yPos + 5.5, { align: align });
+        xPos += colWidths[i];
+      });
+      doc.setTextColor(0, 0, 0);
+      yPos += headerHeight;
+      
+      // Filas de datos
       doc.setFont(undefined, 'normal');
-      accountSummary.forEach((acc) => {
-        // Check if we need a new page
+      doc.setFontSize(9);
+      accountSummary.forEach((acc, idx) => {
         if (yPos > 270) {
           doc.addPage();
           yPos = 20;
+          // Redibujar encabezado
+          doc.setFillColor(80, 80, 80);
+          doc.rect(startX, yPos, tableWidth, headerHeight, 'F');
+          doc.setDrawColor(80, 80, 80);
+          doc.rect(startX, yPos, tableWidth, headerHeight, 'D');
+          doc.setFont(undefined, 'bold');
+          doc.setFontSize(9);
+          doc.setTextColor(255, 255, 255);
+          xPos = startX;
+          tableHeaders.forEach((header, i) => {
+            const align = i === 0 ? 'left' : 'right';
+            const textX = i === 0 ? xPos + 3 : xPos + colWidths[i] - 3;
+            doc.text(header, textX, yPos + 5.5, { align: align });
+            xPos += colWidths[i];
+          });
+          doc.setTextColor(0, 0, 0);
+          yPos += headerHeight;
         }
         
-        doc.text(acc.name + ':', startX, yPos);
-        yPos += 6;
-        doc.text('  Saldo Inicial: $' + formatNumber(acc.saldoInicial), startX + 5, yPos);
-        yPos += 6;
-        doc.text('  Saldo Final: $' + formatNumber(acc.saldoFinal), startX + 5, yPos);
-        yPos += 6;
-        doc.text('  Diferencia: $' + formatNumber(acc.diferencia), startX + 5, yPos);
-        yPos += 8;
+        // Borde de fila
+        doc.setDrawColor(200, 200, 200);
+        doc.rect(startX, yPos, tableWidth, rowHeight, 'D');
+        
+        // Datos de la fila
+        xPos = startX;
+        const rowData = [
+          acc.name,
+          '$' + formatNumber(acc.saldoInicial),
+          '$' + formatNumber(acc.saldoFinal),
+          '$' + formatNumber(acc.diferencia)
+        ];
+        
+        rowData.forEach((cell, i) => {
+          const align = i === 0 ? 'left' : 'right';
+          const textX = i === 0 ? xPos + 3 : xPos + colWidths[i] - 3;
+          doc.text(String(cell), textX, yPos + 5, { align: align });
+          // Línea vertical entre columnas
+          if (i < rowData.length - 1) {
+            doc.setDrawColor(200, 200, 200);
+            doc.line(xPos + colWidths[i], yPos, xPos + colWidths[i], yPos + rowHeight);
+          }
+          xPos += colWidths[i];
+        });
+        
+        yPos += rowHeight;
       });
+      
+      yPos += 8;
     }
     
-    // Movimientos del Día - Formato simple sin tablas
+    // Movimientos - Tabla con encabezado gris oscuro
     doc.setFontSize(12);
     doc.setFont(undefined, 'bold');
-    doc.text('Movimientos del Día', startX, yPos);
+    doc.text('Movimientos', startX, yPos);
     yPos += 8;
     
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
     const sortedTransactions = dayTransactions.sort((a, b) => {
       const dateA = a.date || a.createdAt;
       const dateB = b.date || b.createdAt;
       return dateA - dateB;
     });
     
-    sortedTransactions.forEach((transaction) => {
-      // Check if we need a new page
-      if (yPos > 270) {
-        doc.addPage();
-        yPos = 20;
-      }
-      
-      const transDate = transaction.date ? new Date(transaction.date) : new Date(transaction.createdAt);
-      const timeStr = transDate.toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit' });
-      const type = transaction.type === 'income' ? 'ING' : 'EGR';
-      const amount = parseFloat(transaction.amount) || 0;
-      const category = transaction.categoryName || 'Sin categoría';
-      const accountName = transaction.accountName || 'Sin cuenta';
-      const description = transaction.description || '';
-      
-      doc.text(type + ' - ' + timeStr + ' - $' + formatNumber(amount), startX, yPos);
-      yPos += 6;
-      doc.text('  Categoría: ' + category, startX + 5, yPos);
-      yPos += 6;
-      doc.text('  Cuenta: ' + accountName, startX + 5, yPos);
-      yPos += 6;
-      if (description) {
-        doc.text('  Descripción: ' + description, startX + 5, yPos);
-        yPos += 6;
-      }
-      yPos += 4;
-    });
-    
-    // Totales - Formato simple
     if (sortedTransactions.length > 0) {
-      yPos += 6;
+      const movHeaders = ['Fecha', 'Concepto', 'Descripción', 'Cuenta', 'Estado', '$ Monto'];
+      const movColWidths = [35, 40, 50, 35, 25, 35];
+      const movHeaderHeight = 8;
+      const movTableWidth = movColWidths.reduce((a, b) => a + b, 0);
+      const movRowHeight = 7;
+      
+      // Encabezado con fondo gris oscuro y texto blanco
+      doc.setFillColor(80, 80, 80);
+      doc.rect(startX, yPos, movTableWidth, movHeaderHeight, 'F');
+      doc.setDrawColor(80, 80, 80);
+      doc.rect(startX, yPos, movTableWidth, movHeaderHeight, 'D');
+      
+      doc.setFontSize(8);
       doc.setFont(undefined, 'bold');
-      doc.setFontSize(10);
-      doc.text('TOTALES', startX, yPos);
-      yPos += 8;
+      doc.setTextColor(255, 255, 255);
+      let xPos = startX;
+      movHeaders.forEach((header, i) => {
+        const align = i === movHeaders.length - 1 ? 'right' : 'left';
+        const textX = i === movHeaders.length - 1 ? xPos + movColWidths[i] - 2 : xPos + 2;
+        doc.text(header, textX, yPos + 5.5, { align: align });
+        xPos += movColWidths[i];
+      });
+      doc.setTextColor(0, 0, 0);
+      yPos += movHeaderHeight;
+      
+      // Filas de transacciones
       doc.setFont(undefined, 'normal');
-      doc.text('Ingresos: $' + formatNumber(totalIngresos), startX, yPos);
-      yPos += 6;
-      doc.text('Egresos: $' + formatNumber(totalEgresos), startX, yPos);
-      yPos += 6;
-      doc.text('Balance: $' + formatNumber(totalDiferencia), startX, yPos);
-      yPos += 8;
-    } else {
+      doc.setFontSize(8);
+      sortedTransactions.forEach((transaction, idx) => {
+        if (yPos > 270) {
+          doc.addPage();
+          yPos = 20;
+          // Redibujar encabezado
+          doc.setFillColor(80, 80, 80);
+          doc.rect(startX, yPos, movTableWidth, movHeaderHeight, 'F');
+          doc.setDrawColor(80, 80, 80);
+          doc.rect(startX, yPos, movTableWidth, movHeaderHeight, 'D');
+          doc.setFont(undefined, 'bold');
+          doc.setFontSize(8);
+          doc.setTextColor(255, 255, 255);
+          xPos = startX;
+          movHeaders.forEach((header, i) => {
+            const align = i === movHeaders.length - 1 ? 'right' : 'left';
+            const textX = i === movHeaders.length - 1 ? xPos + movColWidths[i] - 2 : xPos + 2;
+            doc.text(header, textX, yPos + 5.5, { align: align });
+            xPos += movColWidths[i];
+          });
+          doc.setTextColor(0, 0, 0);
+          yPos += movHeaderHeight;
+        }
+        
+        const transDate = transaction.date ? new Date(transaction.date) : new Date(transaction.createdAt);
+        const dateStr = transDate.toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        const timeStr = transDate.toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit' });
+        const fechaCompleta = dateStr + ' ' + timeStr;
+        
+        const concepto = (transaction.type === 'income' ? '(+) ' : '(-) ') + (transaction.categoryName || 'Sin categoría');
+        const descripcion = transaction.description || '';
+        const cuenta = transaction.accountName || 'Sin cuenta';
+        const estado = 'Finalizado';
+        const monto = '$' + formatNumber(parseFloat(transaction.amount) || 0);
+        
+        // Borde de fila
+        doc.setDrawColor(200, 200, 200);
+        doc.rect(startX, yPos, movTableWidth, movRowHeight, 'D');
+        
+        // Datos de la fila
+        xPos = startX;
+        const rowData = [fechaCompleta, concepto, descripcion, cuenta, estado, monto];
+        
+        rowData.forEach((cell, i) => {
+          const align = i === rowData.length - 1 ? 'right' : 'left';
+          const textX = i === rowData.length - 1 ? xPos + movColWidths[i] - 2 : xPos + 2;
+          
+          // Truncar texto si es muy largo
+          let cellText = String(cell);
+          if (i === 1 && cellText.length > 20) { // Concepto
+            cellText = cellText.substring(0, 17) + '...';
+          } else if (i === 2 && cellText.length > 25) { // Descripción
+            cellText = cellText.substring(0, 22) + '...';
+          } else if (i === 3 && cellText.length > 15) { // Cuenta
+            cellText = cellText.substring(0, 12) + '...';
+          }
+          
+          doc.text(cellText, textX, yPos + 5, { align: align });
+          // Línea vertical entre columnas
+          if (i < rowData.length - 1) {
+            doc.setDrawColor(200, 200, 200);
+            doc.line(xPos + movColWidths[i], yPos, xPos + movColWidths[i], yPos + movRowHeight);
+          }
+          xPos += movColWidths[i];
+        });
+        
+        yPos += movRowHeight;
+      });
+      
       yPos += 8;
     }
     
-    // Footer
-    if (yPos > 260) {
+    // Footer con resumen - Fondo gris oscuro y texto blanco
+    if (yPos > 250) {
       doc.addPage();
       yPos = 20;
     }
     
+    const footerHeight = 10;
+    const footerWidth = pageWidth - (startX * 2);
+    const footerColWidth = footerWidth / 4;
+    
+    // Fondo gris oscuro del footer
+    doc.setFillColor(80, 80, 80);
+    doc.rect(startX, yPos, footerWidth, footerHeight, 'F');
+    doc.setDrawColor(80, 80, 80);
+    doc.rect(startX, yPos, footerWidth, footerHeight, 'D');
+    
+    // Texto blanco en el footer
+    doc.setFontSize(9);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(255, 255, 255);
+    
+    // Efectivo
+    doc.text('Efectivo', startX + footerColWidth * 0 + footerColWidth / 2, yPos + 4, { align: 'center' });
+    doc.text('$ Monto: ' + formatNumber(totalEfectivo), startX + footerColWidth * 0 + footerColWidth / 2, yPos + 7.5, { align: 'center' });
+    
+    // Banco
+    doc.text('Banco', startX + footerColWidth * 1 + footerColWidth / 2, yPos + 4, { align: 'center' });
+    doc.text('$ Monto: ' + formatNumber(totalBanco), startX + footerColWidth * 1 + footerColWidth / 2, yPos + 7.5, { align: 'center' });
+    
+    // Crédito
+    doc.text('Crédito', startX + footerColWidth * 2 + footerColWidth / 2, yPos + 4, { align: 'center' });
+    doc.text('$ Monto: ' + formatNumber(totalCredito), startX + footerColWidth * 2 + footerColWidth / 2, yPos + 7.5, { align: 'center' });
+    
+    // Balance
+    doc.text('Balance', startX + footerColWidth * 3 + footerColWidth / 2, yPos + 4, { align: 'center' });
+    doc.text('$ Monto: ' + formatNumber(balanceTotal), startX + footerColWidth * 3 + footerColWidth / 2, yPos + 7.5, { align: 'center' });
+    
+    doc.setTextColor(0, 0, 0);
+    yPos += footerHeight + 10;
+    
+    // Firma del Responsable
     doc.setFont(undefined, 'normal');
     doc.setFontSize(10);
     doc.text('Firma del Responsable', startX, yPos);
