@@ -873,6 +873,23 @@ async function generateDailyReport(reportDate) {
     doc.text(dateStrCapitalized, rightMargin, yPos, { align: 'right' });
     yPos += 15;
     
+    // Resumen del Día - Ingresos, Egresos, Balance
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text('Resumen', startX, yPos);
+    yPos += 8;
+    
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    doc.text('Ingresos: ' + formatNumber(totalIngresos), startX, yPos);
+    yPos += 6;
+    doc.text('Egresos: ' + formatNumber(totalEgresos), startX, yPos);
+    yPos += 6;
+    doc.setFont(undefined, 'bold');
+    doc.text('Balance: ' + formatNumber(totalDiferencia), startX, yPos);
+    doc.setFont(undefined, 'normal');
+    yPos += 12;
+    
     // Resumen de Cuentas - Tabla con encabezado gris oscuro
     if (accountSummary.length > 0) {
       doc.setFontSize(12);
