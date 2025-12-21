@@ -7,7 +7,7 @@
   <title>NRD Flujo de Caja</title>
   <link rel="manifest" href="manifest.json">
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="styles.css?v=1766335425433">
+  <link rel="stylesheet" href="styles.css?v=1766336837885">
   <meta name="theme-color" content="#dc2626">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/svg+xml" href="icon-192.svg">
@@ -114,7 +114,7 @@
         <!-- Period Filter -->
         <div id="period-filter-container" class="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4 flex-wrap">
           <button id="cashflow-period-prev-btn" 
-            class="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 hover:text-red-600 hover:border-red-600 border border-gray-300 transition-colors uppercase tracking-wider hidden">
+            class="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 hover:text-red-600 hover:border-red-600 border border-gray-300 bg-gray-100 hover:bg-gray-200 transition-colors uppercase tracking-wider hidden">
             ‹ Anterior
           </button>
           <button id="filter-today-btn" 
@@ -138,7 +138,7 @@
             Todos
           </button>
           <button id="cashflow-period-next-btn" 
-            class="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 hover:text-red-600 hover:border-red-600 border border-gray-300 transition-colors uppercase tracking-wider hidden">
+            class="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 hover:text-red-600 hover:border-red-600 border border-gray-300 bg-gray-100 hover:bg-gray-200 transition-colors uppercase tracking-wider hidden">
             Siguiente ›
           </button>
         </div>
@@ -549,15 +549,15 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   
   <!-- App Scripts -->
-  <script src="firebase.js?v=1766335425433"></script>
-  <script src="modal.js?v=1766335425433"></script>
-  <script src="auth.js?v=1766335425433"></script>
-  <script src="db.js?v=1766335425433"></script>
-  <script src="categories.js?v=1766335425433"></script>
-  <script src="transactions.js?v=1766335425433"></script>
-  <script src="cashflow.js?v=1766335425433"></script>
-  <script src="accounts.js?v=1766335425433"></script>
-  <script src="app.js?v=1766335425433"></script>
+  <script src="firebase.js?v=1766336837885"></script>
+  <script src="modal.js?v=1766336837885"></script>
+  <script src="auth.js?v=1766336837885"></script>
+  <script src="db.js?v=1766336837885"></script>
+  <script src="categories.js?v=1766336837885"></script>
+  <script src="transactions.js?v=1766336837885"></script>
+  <script src="cashflow.js?v=1766336837885"></script>
+  <script src="accounts.js?v=1766336837885"></script>
+  <script src="app.js?v=1766336837885"></script>
 
   <script>
     // Global error handler
@@ -608,7 +608,7 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         // Register service worker without version parameter
-        navigator.serviceWorker.register('service-worker.js?v=1766335425433')
+        navigator.serviceWorker.register('service-worker.js?v=1766336837885')
           .then(reg => {
             console.log('Service Worker registered');
             
