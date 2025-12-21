@@ -9,12 +9,25 @@ let transactionsSelectedFilterDate = (() => {
 })();
 let transactionsSearchText = '';
 
+// Get abbreviated day of week (first 3 letters in Spanish)
+function getAbbreviatedDayOfWeek(date) {
+  const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  return days[date.getDay()];
+}
+
 // Format date in 24-hour format
 function formatDate24h(date) {
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const year = date.getFullYear();
   return `${day}/${month}/${year}`;
+}
+
+// Format date with day of week
+function formatDateWithDay(date) {
+  const dayOfWeek = getAbbreviatedDayOfWeek(date);
+  const dateStr = formatDate24h(date);
+  return `${dayOfWeek}, ${dateStr}`;
 }
 
 // Format number with comma for decimals and point for thousands
@@ -750,7 +763,7 @@ function updateTransactionsDateFilterDisplay() {
     if (filterDate.getTime() === today.getTime()) {
       display.textContent = 'Hoy';
     } else {
-      display.textContent = formatDate24h(transactionsSelectedFilterDate);
+      display.textContent = formatDateWithDay(transactionsSelectedFilterDate);
     }
   } else {
     display.textContent = 'Todas';
