@@ -127,7 +127,7 @@ function loadTransactions(initializeToToday = true) {
       
       item.innerHTML = `
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 mb-2 sm:mb-3">
-          <div class="text-base sm:text-lg font-light">${escapeHtml(transaction.description || 'Sin descripción')}</div>
+          <div class="text-base sm:text-lg font-light">${escapeHtml(transaction.description || 'Sin subcategoría')}</div>
           <div class="text-base sm:text-lg font-light ${amountColor} font-medium">${prefix}$${formatNumber(parseFloat(transaction.amount || 0))}</div>
         </div>
         <div class="text-xs sm:text-sm text-gray-600 space-y-0.5 sm:space-y-1">
@@ -477,7 +477,7 @@ async function viewTransaction(transactionId) {
           <span class="font-light ${amountColor}">${typeText}</span>
         </div>
         <div class="flex justify-between py-2 sm:py-3 border-b border-gray-200 text-sm sm:text-base">
-          <span class="text-gray-600 font-light">Descripción:</span>
+          <span class="text-gray-600 font-light">Subcategoría:</span>
           <span class="font-light">${escapeHtml(transaction.description)}</span>
         </div>
         <div class="flex justify-between py-2 sm:py-3 border-b border-gray-200 text-sm sm:text-base">
@@ -1003,14 +1003,14 @@ async function generateDailyReport(reportDate) {
     });
     
     if (sortedTransactions.length > 0) {
-      const movHeaders = ['Hora', 'Concepto', 'Descripción', 'Cuenta', 'Monto'];
+      const movHeaders = ['Hora', 'Concepto', 'Subcategoría', 'Cuenta', 'Monto'];
       // Usar el mismo ancho que el título (desde startX hasta rightMargin)
       const movTableWidth = rightMargin - startX;
       // Ajustar anchos para aprovechar mejor el espacio - Hora más pequeña, más espacio para texto
       const movColWidths = [
         Math.floor(movTableWidth * 0.10), // Hora: 10% (más pequeña porque es formato 24h)
         Math.floor(movTableWidth * 0.26), // Concepto: 26% (reducido para dar más espacio a Cuenta)
-        Math.floor(movTableWidth * 0.36), // Descripción: 36% (reducido para dar más espacio a Cuenta)
+        Math.floor(movTableWidth * 0.36), // Subcategoría: 36% (reducido para dar más espacio a Cuenta)
         Math.floor(movTableWidth * 0.18), // Cuenta: 18% (aumentado para ver texto completo)
         Math.floor(movTableWidth * 0.10)  // Monto: 10% (más pequeña)
       ];
@@ -1100,7 +1100,7 @@ async function generateDailyReport(reportDate) {
           // Solo truncar si realmente es muy largo (aumentar límites, especialmente para Cuenta)
           if (i === 1 && cellText.length > maxCharsConcepto + 5) { // Concepto
             cellText = cellText.substring(0, maxCharsConcepto) + '...';
-          } else if (i === 2 && cellText.length > maxCharsDescripcion + 5) { // Descripción
+          } else if (i === 2 && cellText.length > maxCharsDescripcion + 5) { // Subcategoría
             cellText = cellText.substring(0, maxCharsDescripcion) + '...';
           } else if (i === 3 && cellText.length > maxCharsCuenta + 10) { // Cuenta - límite más alto
             cellText = cellText.substring(0, maxCharsCuenta) + '...';
