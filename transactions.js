@@ -863,12 +863,14 @@ async function generateDailyReport(reportDate) {
     doc.text('Cierre Diario', rightMargin, yPos, { align: 'right' });
     yPos += 8;
     
-    // Date - Formato completo de fecha
+    // Date - Formato completo de fecha con día de la semana
     doc.setFontSize(12);
     doc.setFont(undefined, 'normal');
-    const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+    const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     const dateStr = reportDate.toLocaleDateString('es-UY', dateOptions);
-    doc.text(dateStr, rightMargin, yPos, { align: 'right' });
+    // Capitalizar primera letra del día de la semana
+    const dateStrCapitalized = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
+    doc.text(dateStrCapitalized, rightMargin, yPos, { align: 'right' });
     yPos += 15;
     
     // Resumen de Cuentas - Tabla con encabezado gris oscuro
@@ -1007,9 +1009,9 @@ async function generateDailyReport(reportDate) {
       // Ajustar anchos para aprovechar mejor el espacio - Hora más pequeña, más espacio para texto
       const movColWidths = [
         Math.floor(movTableWidth * 0.10), // Hora: 10% (más pequeña porque es formato 24h)
-        Math.floor(movTableWidth * 0.28), // Concepto: 28% (más espacio)
-        Math.floor(movTableWidth * 0.38), // Descripción: 38% (más espacio)
-        Math.floor(movTableWidth * 0.14), // Cuenta: 14% (más espacio)
+        Math.floor(movTableWidth * 0.26), // Concepto: 26% (reducido para dar más espacio a Cuenta)
+        Math.floor(movTableWidth * 0.36), // Descripción: 36% (reducido para dar más espacio a Cuenta)
+        Math.floor(movTableWidth * 0.18), // Cuenta: 18% (aumentado para ver texto completo)
         Math.floor(movTableWidth * 0.10)  // Monto: 10% (más pequeña)
       ];
       const movHeaderHeight = 8;
@@ -1093,14 +1095,14 @@ async function generateDailyReport(reportDate) {
           // Aproximadamente 1mm = 0.5 caracteres con fuente tamaño 7 (más pequeña = más caracteres)
           const maxCharsConcepto = Math.floor(movColWidths[1] * 0.5);
           const maxCharsDescripcion = Math.floor(movColWidths[2] * 0.5);
-          const maxCharsCuenta = Math.floor(movColWidths[3] * 0.5);
+          const maxCharsCuenta = Math.floor(movColWidths[3] * 0.6); // Más caracteres para Cuenta (60% del ancho)
           
-          // Solo truncar si realmente es muy largo (aumentar límites)
+          // Solo truncar si realmente es muy largo (aumentar límites, especialmente para Cuenta)
           if (i === 1 && cellText.length > maxCharsConcepto + 5) { // Concepto
             cellText = cellText.substring(0, maxCharsConcepto) + '...';
           } else if (i === 2 && cellText.length > maxCharsDescripcion + 5) { // Descripción
             cellText = cellText.substring(0, maxCharsDescripcion) + '...';
-          } else if (i === 3 && cellText.length > maxCharsCuenta + 5) { // Cuenta
+          } else if (i === 3 && cellText.length > maxCharsCuenta + 10) { // Cuenta - límite más alto
             cellText = cellText.substring(0, maxCharsCuenta) + '...';
           }
           
@@ -1119,7 +1121,9 @@ async function generateDailyReport(reportDate) {
       yPos += 8;
     }
     
-    // Firma del Responsable
+    // Firma del Responsable - Más espacio antes de la firma
+    yPos += 15; // Espacio adicional antes de la firma
+    
     doc.setFont(undefined, 'normal');
     doc.setFontSize(10);
     doc.text('Firma del Responsable', startX, yPos);
