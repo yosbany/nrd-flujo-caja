@@ -957,9 +957,9 @@ async function generateDailyReport(reportDate) {
         xPos = startX;
         const rowData = [
           acc.name,
-          '$' + formatNumber(acc.saldoInicial),
-          '$' + formatNumber(acc.saldoFinal),
-          '$' + formatNumber(acc.diferencia)
+          formatNumber(acc.saldoInicial),
+          formatNumber(acc.saldoFinal),
+          formatNumber(acc.diferencia)
         ];
         
         rowData.forEach((cell, i) => {
@@ -1001,7 +1001,7 @@ async function generateDailyReport(reportDate) {
     });
     
     if (sortedTransactions.length > 0) {
-      const movHeaders = ['Hora', 'Concepto', 'Descripción', 'Cuenta', '$ Monto'];
+      const movHeaders = ['Hora', 'Concepto', 'Descripción', 'Cuenta', 'Monto'];
       // Usar el mismo ancho que el título (desde startX hasta rightMargin)
       const movTableWidth = rightMargin - startX;
       const movColWidths = [
@@ -1069,7 +1069,7 @@ async function generateDailyReport(reportDate) {
         if (!concepto) concepto = 'Sin categoría';
         const descripcion = transaction.description || '';
         const cuenta = transaction.accountName || 'Sin cuenta';
-        const monto = '$' + formatNumber(parseFloat(transaction.amount) || 0);
+        const monto = formatNumber(parseFloat(transaction.amount) || 0);
         
         // Borde de fila
         doc.setDrawColor(200, 200, 200);
