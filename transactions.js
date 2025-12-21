@@ -1321,8 +1321,9 @@ function updateDaySummary(dayTransactions) {
   const totalIncomeEl = document.getElementById('day-total-income');
   const totalExpensesEl = document.getElementById('day-total-expenses');
   const totalBalanceEl = document.getElementById('day-total-balance');
+  const transactionCountEl = document.getElementById('day-transaction-count');
   
-  if (!summaryContainer || !totalIncomeEl || !totalExpensesEl || !totalBalanceEl) return;
+  if (!summaryContainer || !totalIncomeEl || !totalExpensesEl || !totalBalanceEl || !transactionCountEl) return;
   
   // Only show summary if a date is selected
   if (!transactionsSelectedFilterDate || !dayTransactions || dayTransactions.length === 0) {
@@ -1344,11 +1345,13 @@ function updateDaySummary(dayTransactions) {
   });
   
   const balance = totalIncome - totalExpenses;
+  const transactionCount = dayTransactions.length;
   
   // Update display
   totalIncomeEl.textContent = formatNumber(totalIncome);
   totalExpensesEl.textContent = formatNumber(totalExpenses);
   totalBalanceEl.textContent = formatNumber(balance);
+  transactionCountEl.textContent = transactionCount;
   
   // Show summary
   summaryContainer.classList.remove('hidden');
