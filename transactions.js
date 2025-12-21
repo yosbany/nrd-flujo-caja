@@ -893,15 +893,15 @@ async function generateDailyReport(reportDate) {
     const summaryColWidth = summaryBoxWidth / 3;
     const summaryColCenter = summaryColWidth / 2;
     
-    // Columna 1: Ingresos
+    // Columna 1: Ingresos - Solo blanco y negro
     const col1X = startX + summaryColCenter;
     doc.text('Ingresos', col1X, summaryY, { align: 'center' });
     doc.setFont(undefined, 'bold');
     doc.setFontSize(10);
-    doc.setTextColor(0, 120, 0);
+    doc.setTextColor(0, 0, 0);
     doc.text('$' + formatNumber(totalIngresos), col1X, summaryY + 6, { align: 'center' });
     
-    // Columna 2: Egresos
+    // Columna 2: Egresos - Solo blanco y negro
     const col2X = startX + summaryColWidth + summaryColCenter;
     doc.setFont(undefined, 'normal');
     doc.setFontSize(9);
@@ -909,10 +909,10 @@ async function generateDailyReport(reportDate) {
     doc.text('Egresos', col2X, summaryY, { align: 'center' });
     doc.setFont(undefined, 'bold');
     doc.setFontSize(10);
-    doc.setTextColor(200, 0, 0);
+    doc.setTextColor(0, 0, 0);
     doc.text('$' + formatNumber(totalEgresos), col2X, summaryY + 6, { align: 'center' });
     
-    // Columna 3: Balance
+    // Columna 3: Balance - Solo blanco y negro
     const col3X = startX + (summaryColWidth * 2) + summaryColCenter;
     doc.setFont(undefined, 'normal');
     doc.setFontSize(9);
@@ -920,9 +920,8 @@ async function generateDailyReport(reportDate) {
     doc.text('Balance', col3X, summaryY, { align: 'center' });
     doc.setFont(undefined, 'bold');
     doc.setFontSize(10);
-    doc.setTextColor(totalDiferencia >= 0 ? 0 : 200, totalDiferencia >= 0 ? 150 : 0, 0);
-    doc.text('$' + formatNumber(totalDiferencia), col3X, summaryY + 6, { align: 'center' });
     doc.setTextColor(0, 0, 0);
+    doc.text('$' + formatNumber(totalDiferencia), col3X, summaryY + 6, { align: 'center' });
     
     // Líneas verticales separadoras
     doc.setDrawColor(220, 220, 220);
@@ -1193,24 +1192,15 @@ async function generateDailyReport(reportDate) {
       doc.setDrawColor(200, 200, 200);
       doc.rect(startX, rowTop, transTableWidth, rowHeight, 'D');
       
-      // Set color for amount based on type
-      const amountColor = transaction.type === 'income' ? [0, 150, 0] : [200, 0, 0];
-      
-      // Draw row cells with borders and text wrapping - mejor padding
+      // Draw row cells with borders and text wrapping - Solo blanco y negro
       xPos = startX;
       transData.forEach((cell, i) => {
         const align = i === transData.length - 1 ? 'right' : 'left';
         const textX = i === transData.length - 1 ? xPos + transColWidths[i] - 3 : xPos + 3;
         const textY = rowTop + 5;
         
-        // Set text color for amount and type
-        if (i === transData.length - 1) {
-          doc.setTextColor(...amountColor);
-        } else if (i === 0) {
-          doc.setTextColor(transaction.type === 'income' ? 0 : 200, transaction.type === 'income' ? 150 : 0, 0);
-        } else {
-          doc.setTextColor(0, 0, 0);
-        }
+        // Todo en blanco y negro - sin colores
+        doc.setTextColor(0, 0, 0);
         
         // Allow wrapping only for description column
         if (i === 4) { // Description column
@@ -1225,9 +1215,6 @@ async function generateDailyReport(reportDate) {
         } else {
           doc.text(String(cell), textX, textY, { align: align });
         }
-        
-        // Reset text color
-        doc.setTextColor(0, 0, 0);
         
         // Vertical line between columns - más visible
         if (i < transData.length - 1) {
@@ -1263,15 +1250,14 @@ async function generateDailyReport(reportDate) {
       doc.text('TOTALES:', startX + 5, totalRowTop + 6);
       const totalX = startX + transTableWidth - 5;
       
+      // Todo en blanco y negro - sin colores
       doc.setFontSize(8);
+      doc.setTextColor(0, 0, 0);
       doc.text('Ingresos: $' + formatNumber(totalIngresos), totalX, totalRowTop + 4, { align: 'right' });
-      doc.setTextColor(0, 150, 0);
       doc.text('Egresos: $' + formatNumber(totalEgresos), totalX, totalRowTop + 6.5, { align: 'right' });
-      doc.setTextColor(0, 0, 0);
       doc.setFontSize(9);
-      doc.setTextColor(totalDiferencia >= 0 ? 0 : 200, totalDiferencia >= 0 ? 150 : 0, 0);
-      doc.text('Balance: $' + formatNumber(totalDiferencia), totalX, totalRowTop + 9, { align: 'right' });
       doc.setTextColor(0, 0, 0);
+      doc.text('Balance: $' + formatNumber(totalDiferencia), totalX, totalRowTop + 9, { align: 'right' });
       
       yPos = totalRowTop + totalRowHeight + 8;
     } else {
