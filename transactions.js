@@ -873,22 +873,47 @@ async function generateDailyReport(reportDate) {
     doc.text(dateStrCapitalized, rightMargin, yPos, { align: 'right' });
     yPos += 15;
     
-    // Resumen del Día - Ingresos, Egresos, Balance
-    doc.setFontSize(12);
+    // Resumen del Día - Ingresos, Egresos, Balance (alineado horizontalmente)
+    doc.setFontSize(14);
     doc.setFont(undefined, 'bold');
     doc.text('Resumen', startX, yPos);
-    yPos += 8;
+    yPos += 10;
     
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
-    doc.text('Ingresos: ' + formatNumber(totalIngresos), startX, yPos);
-    yPos += 6;
-    doc.text('Egresos: ' + formatNumber(totalEgresos), startX, yPos);
-    yPos += 6;
+    // Calcular ancho disponible y distribuir en 3 columnas
+    const resumenWidth = rightMargin - startX;
+    const resumenColWidth = resumenWidth / 3;
+    const resumenColCenter = resumenColWidth / 2;
+    
+    doc.setFontSize(11);
     doc.setFont(undefined, 'bold');
-    doc.text('Balance: ' + formatNumber(totalDiferencia), startX, yPos);
+    
+    // Columna 1: Ingresos
+    const col1X = startX + resumenColCenter;
+    doc.text('INGRESOS:', col1X, yPos, { align: 'center' });
     doc.setFont(undefined, 'normal');
-    yPos += 12;
+    doc.setFontSize(12);
+    doc.text(formatNumber(totalIngresos), col1X, yPos + 7, { align: 'center' });
+    
+    // Columna 2: Egresos
+    const col2X = startX + resumenColWidth + resumenColCenter;
+    doc.setFont(undefined, 'bold');
+    doc.setFontSize(11);
+    doc.text('EGRESOS:', col2X, yPos, { align: 'center' });
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(12);
+    doc.text(formatNumber(totalEgresos), col2X, yPos + 7, { align: 'center' });
+    
+    // Columna 3: Balance
+    const col3X = startX + (resumenColWidth * 2) + resumenColCenter;
+    doc.setFont(undefined, 'bold');
+    doc.setFontSize(11);
+    doc.text('BALANCE:', col3X, yPos, { align: 'center' });
+    doc.setFont(undefined, 'bold');
+    doc.setFontSize(12);
+    doc.text(formatNumber(totalDiferencia), col3X, yPos + 7, { align: 'center' });
+    doc.setFont(undefined, 'normal');
+    
+    yPos += 15;
     
     // Resumen de Cuentas - Tabla con encabezado gris oscuro
     if (accountSummary.length > 0) {
