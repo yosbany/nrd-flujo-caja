@@ -865,14 +865,14 @@ async function generateDailyReport(reportDate) {
     
     const balanceTotal = totalEfectivo + totalBanco + totalCredito;
     
-    // Generate PDF
+    // Generate PDF - Formato A4 con márgenes reducidos
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+    const doc = new jsPDF('p', 'mm', 'a4');
     
-    let yPos = 20;
-    const startX = 14;
+    let yPos = 10;
+    const startX = 8; // Margen izquierdo reducido (antes 14)
     const pageWidth = doc.internal.pageSize.getWidth();
-    const rightMargin = pageWidth - 14;
+    const rightMargin = pageWidth - 8; // Margen derecho reducido (antes 14)
     
     // Title - Alineado a la derecha como en el PDF
     doc.setFontSize(20);
@@ -924,9 +924,9 @@ async function generateDailyReport(reportDate) {
       doc.setFont(undefined, 'normal');
       doc.setFontSize(9);
       accountSummary.forEach((acc, idx) => {
-        if (yPos > 270) {
+        if (yPos > 285) {
           doc.addPage();
-          yPos = 20;
+          yPos = 10;
           // Redibujar encabezado
           doc.setFillColor(80, 80, 80);
           doc.rect(startX, yPos, tableWidth, headerHeight, 'F');
@@ -990,8 +990,8 @@ async function generateDailyReport(reportDate) {
     });
     
     if (sortedTransactions.length > 0) {
-      const movHeaders = ['Fecha', 'Concepto', 'Descripción', 'Cuenta', 'Estado', '$ Monto'];
-      const movColWidths = [35, 40, 50, 35, 25, 35];
+      const movHeaders = ['Hora', 'Concepto', 'Descripción', 'Cuenta', '$ Monto'];
+      const movColWidths = [25, 50, 65, 40, 40];
       const movHeaderHeight = 8;
       const movTableWidth = movColWidths.reduce((a, b) => a + b, 0);
       const movRowHeight = 7;
@@ -1019,9 +1019,9 @@ async function generateDailyReport(reportDate) {
       doc.setFont(undefined, 'normal');
       doc.setFontSize(8);
       sortedTransactions.forEach((transaction, idx) => {
-        if (yPos > 270) {
+        if (yPos > 285) {
           doc.addPage();
-          yPos = 20;
+          yPos = 10;
           // Redibujar encabezado
           doc.setFillColor(80, 80, 80);
           doc.rect(startX, yPos, movTableWidth, movHeaderHeight, 'F');
@@ -1042,14 +1042,12 @@ async function generateDailyReport(reportDate) {
         }
         
         const transDate = transaction.date ? new Date(transaction.date) : new Date(transaction.createdAt);
-        const dateStr = transDate.toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        const timeStr = transDate.toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit' });
-        const fechaCompleta = dateStr + ' ' + timeStr;
+        const timeStr = transDate.toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const fechaCompleta = timeStr;
         
-        const concepto = (transaction.type === 'income' ? '(+) ' : '(-) ') + (transaction.categoryName || 'Sin categoría');
+        const concepto = transaction.categoryName || 'Sin categoría';
         const descripcion = transaction.description || '';
         const cuenta = transaction.accountName || 'Sin cuenta';
-        const estado = 'Finalizado';
         const monto = '$' + formatNumber(parseFloat(transaction.amount) || 0);
         
         // Borde de fila
@@ -1058,7 +1056,7 @@ async function generateDailyReport(reportDate) {
         
         // Datos de la fila
         xPos = startX;
-        const rowData = [fechaCompleta, concepto, descripcion, cuenta, estado, monto];
+        const rowData = [fechaCompleta, concepto, descripcion, cuenta, monto];
         
         rowData.forEach((cell, i) => {
           const align = i === rowData.length - 1 ? 'right' : 'left';
@@ -1066,12 +1064,12 @@ async function generateDailyReport(reportDate) {
           
           // Truncar texto si es muy largo
           let cellText = String(cell);
-          if (i === 1 && cellText.length > 20) { // Concepto
-            cellText = cellText.substring(0, 17) + '...';
-          } else if (i === 2 && cellText.length > 25) { // Descripción
-            cellText = cellText.substring(0, 22) + '...';
-          } else if (i === 3 && cellText.length > 15) { // Cuenta
-            cellText = cellText.substring(0, 12) + '...';
+          if (i === 1 && cellText.length > 22) { // Concepto (ancho 45)
+            cellText = cellText.substring(0, 19) + '...';
+          } else if (i === 2 && cellText.length > 30) { // Descripción (ancho 60)
+            cellText = cellText.substring(0, 27) + '...';
+          } else if (i === 3 && cellText.length > 18) { // Cuenta (ancho 40)
+            cellText = cellText.substring(0, 15) + '...';
           }
           
           doc.text(cellText, textX, yPos + 5, { align: align });
@@ -1090,9 +1088,9 @@ async function generateDailyReport(reportDate) {
     }
     
     // Footer con resumen - Fondo gris oscuro y texto blanco
-    if (yPos > 250) {
+    if (yPos > 280) {
       doc.addPage();
-      yPos = 20;
+      yPos = 10;
     }
     
     const footerHeight = 10;

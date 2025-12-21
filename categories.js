@@ -99,7 +99,175 @@ function loadCategories() {
         categoriesList.appendChild(item);
       });
     }
+    
+    // Cargar tabla de subcategorías al final
+    loadSubcategoriesTable(categoriesList);
   });
+}
+
+// Cargar tabla de subcategorías (descripciones únicas)
+async function loadSubcategoriesTable(container) {
+  try {
+    // Obtener todas las transacciones
+    const transactionsSnapshot = await getTransactionsRef().once('value');
+    const transactions = transactionsSnapshot.val() || {};
+    
+    // Extraer descripciones únicas y contar cuántas transacciones tienen cada una
+    const subcategoriesMap = {};
+    Object.entries(transactions).forEach(([id, transaction]) => {
+      if (transaction && transaction.description && transaction.description.trim()) {
+        const desc = transaction.description.trim();
+        if (!subcategoriesMap[desc]) {
+          subcategoriesMap[desc] = { count: 0, transactionIds: [] };
+        }
+        subcategoriesMap[desc].count++;
+        subcategoriesMap[desc].transactionIds.push(id);
+      }
+    });
+    
+    // Crear sección de subcategorías
+    const subcategoriesSection = document.createElement('div');
+    subcategoriesSection.className = 'mt-8 sm:mt-10 pt-6 sm:pt-8 border-t border-gray-300';
+    subcategoriesSection.innerHTML = '<h3 class="text-sm sm:text-base font-light text-gray-600 mb-4 sm:mb-6 uppercase tracking-wider">Subcategorías (Descripciones)</h3>';
+    
+    const subcategoriesList = Object.keys(subcategoriesMap).sort();
+    
+    if (subcategoriesList.length === 0) {
+      subcategoriesSection.innerHTML += '<p class="text-center text-gray-600 py-4 text-sm">No hay subcategorías registradas</p>';
+      container.appendChild(subcategoriesSection);
+      return;
+    }
+    
+    // Crear tabla
+    const table = document.createElement('div');
+    table.className = 'overflow-x-auto';
+    table.innerHTML = `
+      <table class="w-full border-collapse">
+        <thead>
+          <tr class="bg-gray-100 border-b border-gray-300">
+            <th class="text-left p-2 sm:p-3 text-xs sm:text-sm font-light text-gray-700 uppercase tracking-wider">Descripción</th>
+            <th class="text-center p-2 sm:p-3 text-xs sm:text-sm font-light text-gray-700 uppercase tracking-wider">Transacciones</th>
+            <th class="text-center p-2 sm:p-3 text-xs sm:text-sm font-light text-gray-700 uppercase tracking-wider">Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="subcategories-tbody">
+        </tbody>
+      </table>
+    `;
+    
+    const tbody = table.querySelector('#subcategories-tbody');
+    
+    subcategoriesList.forEach((description) => {
+      const row = document.createElement('tr');
+      row.className = 'border-b border-gray-200 hover:bg-gray-50';
+      row.dataset.description = description;
+      
+      const data = subcategoriesMap[description];
+      
+      const descCell = document.createElement('td');
+      descCell.className = 'p-2 sm:p-3 text-sm sm:text-base font-light';
+      descCell.textContent = description;
+      
+      const countCell = document.createElement('td');
+      countCell.className = 'p-2 sm:p-3 text-sm sm:text-base font-light text-center';
+      countCell.textContent = data.count;
+      
+      const actionsCell = document.createElement('td');
+      actionsCell.className = 'p-2 sm:p-3 text-center';
+      
+      const editBtn = document.createElement('button');
+      editBtn.className = 'edit-subcategory-btn text-blue-600 hover:text-blue-800 text-xs sm:text-sm font-light mr-2 sm:mr-4';
+      editBtn.textContent = 'Editar';
+      editBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        editSubcategory(description, data.transactionIds);
+      });
+      
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'delete-subcategory-btn text-red-600 hover:text-red-800 text-xs sm:text-sm font-light';
+      deleteBtn.textContent = 'Eliminar';
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteSubcategory(description, data.transactionIds);
+      });
+      
+      actionsCell.appendChild(editBtn);
+      actionsCell.appendChild(deleteBtn);
+      
+      row.appendChild(descCell);
+      row.appendChild(countCell);
+      row.appendChild(actionsCell);
+      
+      tbody.appendChild(row);
+    });
+    
+    subcategoriesSection.appendChild(table);
+    container.appendChild(subcategoriesSection);
+  } catch (error) {
+    console.error('Error loading subcategories:', error);
+  }
+}
+
+// Editar subcategoría
+async function editSubcategory(oldDescription, transactionIds) {
+  const newDescription = prompt(`Editar descripción:\n\nDescripción actual: ${oldDescription}\n\nNueva descripción:`, oldDescription);
+  
+  if (!newDescription || newDescription.trim() === '' || newDescription.trim() === oldDescription) {
+    return;
+  }
+  
+  const trimmedNewDescription = newDescription.trim();
+  
+  if (trimmedNewDescription === oldDescription) {
+    return;
+  }
+  
+  showSpinner(`Actualizando ${transactionIds.length} transacción(es)...`);
+  
+  try {
+    const updates = {};
+    transactionIds.forEach(transactionId => {
+      updates[`transactions/${transactionId}/description`] = trimmedNewDescription;
+    });
+    
+    await database.ref().update(updates);
+    hideSpinner();
+    await showSuccess(`${transactionIds.length} transacción(es) actualizada(s) exitosamente`);
+    
+    // Recargar categorías para actualizar la tabla
+    loadCategories();
+  } catch (error) {
+    hideSpinner();
+    await showError('Error al actualizar descripción: ' + error.message);
+  }
+}
+
+// Eliminar subcategoría
+async function deleteSubcategory(description, transactionIds) {
+  const confirmMessage = `¿Está seguro de eliminar la descripción "${description}"?\n\nEsto afectará ${transactionIds.length} transacción(es). Las transacciones quedarán sin descripción específica.`;
+  
+  if (!confirm(confirmMessage)) {
+    return;
+  }
+  
+  showSpinner(`Eliminando descripción de ${transactionIds.length} transacción(es)...`);
+  
+  try {
+    const updates = {};
+    transactionIds.forEach(transactionId => {
+      updates[`transactions/${transactionId}/description`] = '';
+    });
+    
+    await database.ref().update(updates);
+    hideSpinner();
+    await showSuccess(`Descripción eliminada de ${transactionIds.length} transacción(es)`);
+    
+    // Recargar categorías para actualizar la tabla
+    loadCategories();
+  } catch (error) {
+    hideSpinner();
+    await showError('Error al eliminar descripción: ' + error.message);
+  }
 }
 
 // Show category form
