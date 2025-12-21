@@ -896,16 +896,15 @@ async function generateDailyReport(reportDate) {
       yPos += 8;
       
       const tableHeaders = ['Cuenta', '$ Saldo Inicial', '$ Saldo Actual', '$ Diferencia'];
-      // Calcular ancho disponible y distribuir proporcionalmente
-      const availableWidth = pageWidth - (startX * 2);
+      // Usar el mismo ancho que el título (desde startX hasta rightMargin)
+      const tableWidth = rightMargin - startX;
       const colWidths = [
-        Math.floor(availableWidth * 0.45), // Cuenta: 45%
-        Math.floor(availableWidth * 0.18), // Saldo Inicial: 18%
-        Math.floor(availableWidth * 0.18), // Saldo Actual: 18%
-        Math.floor(availableWidth * 0.18)  // Diferencia: 18%
+        Math.floor(tableWidth * 0.45), // Cuenta: 45%
+        Math.floor(tableWidth * 0.18), // Saldo Inicial: 18%
+        Math.floor(tableWidth * 0.18), // Saldo Actual: 18%
+        Math.floor(tableWidth * 0.18)  // Diferencia: 18%
       ];
       const headerHeight = 8;
-      const tableWidth = colWidths.reduce((a, b) => a + b, 0);
       const rowHeight = 7;
       
       // Encabezado con fondo gris oscuro y texto blanco
@@ -998,17 +997,16 @@ async function generateDailyReport(reportDate) {
     
     if (sortedTransactions.length > 0) {
       const movHeaders = ['Hora', 'Concepto', 'Descripción', 'Cuenta', '$ Monto'];
-      // Calcular ancho disponible y distribuir proporcionalmente
-      const availableWidthMov = pageWidth - (startX * 2);
+      // Usar el mismo ancho que el título (desde startX hasta rightMargin)
+      const movTableWidth = rightMargin - startX;
       const movColWidths = [
-        Math.floor(availableWidthMov * 0.12), // Hora: 12%
-        Math.floor(availableWidthMov * 0.25), // Concepto: 25%
-        Math.floor(availableWidthMov * 0.35), // Descripción: 35%
-        Math.floor(availableWidthMov * 0.15), // Cuenta: 15%
-        Math.floor(availableWidthMov * 0.13)  // Monto: 13%
+        Math.floor(movTableWidth * 0.12), // Hora: 12%
+        Math.floor(movTableWidth * 0.25), // Concepto: 25%
+        Math.floor(movTableWidth * 0.35), // Descripción: 35%
+        Math.floor(movTableWidth * 0.15), // Cuenta: 15%
+        Math.floor(movTableWidth * 0.13)  // Monto: 13%
       ];
       const movHeaderHeight = 8;
-      const movTableWidth = movColWidths.reduce((a, b) => a + b, 0);
       const movRowHeight = 7;
       
       // Encabezado con fondo gris oscuro y texto blanco
