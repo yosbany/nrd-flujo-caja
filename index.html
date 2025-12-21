@@ -7,7 +7,7 @@
   <title>NRD Flujo de Caja</title>
   <link rel="manifest" href="manifest.json">
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="styles.css?v=1766330793894">
+  <link rel="stylesheet" href="styles.css?v=1766330889596">
   <meta name="theme-color" content="#dc2626">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/svg+xml" href="icon-192.svg">
@@ -102,7 +102,6 @@
       <button class="nav-btn flex-1 px-3 sm:px-4 py-3 sm:py-3.5 border-b-2 border-transparent text-gray-600 hover:text-red-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light" data-view="transactions">Transacciones</button>
       <button class="nav-btn flex-1 px-3 sm:px-4 py-3 sm:py-3.5 border-b-2 border-transparent text-gray-600 hover:text-red-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light" data-view="categories">Categorías</button>
       <button class="nav-btn flex-1 px-3 sm:px-4 py-3 sm:py-3.5 border-b-2 border-transparent text-gray-600 hover:text-red-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light" data-view="accounts">Cuentas</button>
-      <button class="nav-btn flex-1 px-3 sm:px-4 py-3 sm:py-3.5 border-b-2 border-transparent text-gray-600 hover:text-red-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light" data-view="analysis">Análisis</button>
     </nav>
 
     <main class="flex-1 p-3 sm:p-4 md:p-6 overflow-y-auto max-w-6xl mx-auto w-full">
@@ -411,57 +410,6 @@
         </div>
       </div>
 
-      <!-- Analysis View -->
-      <div id="analysis-view" class="view space-y-3 sm:space-y-4 hidden">
-        <div class="mb-4 sm:mb-6">
-          <h2 class="text-xl sm:text-2xl font-light tracking-tight mb-4 sm:mb-6">Análisis de Flujo de Caja</h2>
-          
-          <!-- Analysis Type Selection -->
-          <div class="mb-4 sm:mb-6">
-            <label class="block mb-2 text-xs uppercase tracking-wider text-gray-600">Tipo de Análisis</label>
-            <select id="analysis-type" 
-              class="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-red-600 bg-white text-sm sm:text-base rounded">
-              <option value="category">Por Categoría</option>
-              <option value="account">Por Cuenta</option>
-              <option value="period">Por Período</option>
-            </select>
-          </div>
-
-          <!-- Period Selection (only for period analysis) -->
-          <div id="period-selection" class="mb-4 sm:mb-6 hidden">
-            <label class="block mb-2 text-xs uppercase tracking-wider text-gray-600">Período</label>
-            <select id="period-type" 
-              class="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-red-600 bg-white text-sm sm:text-base rounded">
-              <option value="daily">Diario</option>
-              <option value="weekly">Semanal</option>
-              <option value="monthly">Mensual</option>
-              <option value="yearly">Anual</option>
-            </select>
-          </div>
-
-          <!-- Date Range Selection -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
-            <div>
-              <label class="block mb-2 text-xs uppercase tracking-wider text-gray-600">Fecha Inicio</label>
-              <input type="date" id="analysis-date-start" 
-                class="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-red-600 bg-white text-sm sm:text-base rounded">
-            </div>
-            <div>
-              <label class="block mb-2 text-xs uppercase tracking-wider text-gray-600">Fecha Fin</label>
-              <input type="date" id="analysis-date-end" 
-                class="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-red-600 bg-white text-sm sm:text-base rounded">
-            </div>
-          </div>
-
-          <button id="generate-analysis-btn" 
-            class="w-full sm:w-auto px-4 sm:px-6 py-2 bg-red-600 text-white border border-red-600 hover:bg-red-700 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
-            Generar Análisis
-          </button>
-        </div>
-
-        <!-- Analysis Results -->
-        <div id="analysis-results" class="space-y-3 sm:space-y-4"></div>
-      </div>
     </main>
 
     <!-- Report Date Modal (overlay) -->
@@ -534,16 +482,15 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   
   <!-- App Scripts -->
-  <script src="firebase.js?v=1766330793894"></script>
-  <script src="modal.js?v=1766330793894"></script>
-  <script src="auth.js?v=1766330793894"></script>
-  <script src="db.js?v=1766330793894"></script>
-  <script src="categories.js?v=1766330793894"></script>
-  <script src="transactions.js?v=1766330793894"></script>
-  <script src="cashflow.js?v=1766330793894"></script>
-  <script src="accounts.js?v=1766330793894"></script>
-  <script src="analysis.js?v=1766330793894"></script>
-  <script src="app.js?v=1766330793894"></script>
+  <script src="firebase.js?v=1766330889596"></script>
+  <script src="modal.js?v=1766330889596"></script>
+  <script src="auth.js?v=1766330889596"></script>
+  <script src="db.js?v=1766330889596"></script>
+  <script src="categories.js?v=1766330889596"></script>
+  <script src="transactions.js?v=1766330889596"></script>
+  <script src="cashflow.js?v=1766330889596"></script>
+  <script src="accounts.js?v=1766330889596"></script>
+  <script src="app.js?v=1766330889596"></script>
 
   <script>
     // Global error handler
@@ -594,7 +541,7 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         // Register service worker without version parameter
-        navigator.serviceWorker.register('service-worker.js?v=1766330793894')
+        navigator.serviceWorker.register('service-worker.js?v=1766330889596')
           .then(reg => {
             console.log('Service Worker registered');
             
