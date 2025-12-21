@@ -152,6 +152,139 @@ async function getTopExpenseCategories(transactionsToProcess) {
   return sorted;
 }
 
+// Calculate and render account subtotals
+async function updateAccountSubtotals(transactionsToProcess) {
+  // Get accounts
+  const accountsSnapshot = await getAccountsRef().once('value');
+  const accounts = accountsSnapshot.val() || {};
+  
+  // Calculate totals per account
+  const accountIncome = {};
+  const accountExpenses = {};
+  
+  transactionsToProcess.forEach(({ id, ...transaction }) => {
+    if (!transaction.accountId) return;
+    
+    const accountId = transaction.accountId;
+    const amount = parseFloat(transaction.amount || 0);
+    
+    if (transaction.type === 'income') {
+      if (!accountIncome[accountId]) {
+        accountIncome[accountId] = 0;
+      }
+      accountIncome[accountId] += amount;
+    } else {
+      if (!accountExpenses[accountId]) {
+        accountExpenses[accountId] = 0;
+      }
+      accountExpenses[accountId] += amount;
+    }
+  });
+  
+  // Get all account IDs that have transactions
+  const accountIds = new Set([
+    ...Object.keys(accountIncome),
+    ...Object.keys(accountExpenses)
+  ]);
+  
+  // Show/hide section based on whether there are accounts with transactions
+  const section = document.getElementById('account-subtotals-section');
+  if (section) {
+    if (accountIds.size === 0) {
+      section.classList.add('hidden');
+      return;
+    }
+    section.classList.remove('hidden');
+  }
+  
+  // Render income subtotals
+  const incomeContainer = document.getElementById('account-income-subtotals');
+  if (incomeContainer) {
+    incomeContainer.innerHTML = '';
+    if (Object.keys(accountIncome).length === 0) {
+      incomeContainer.innerHTML = '<p class="text-xs text-gray-500">No hay ingresos</p>';
+    } else {
+      const sortedIncome = Object.entries(accountIncome)
+        .sort((a, b) => b[1] - a[1])
+        .filter(([accountId]) => accounts[accountId]?.active !== false);
+      
+      sortedIncome.forEach(([accountId, amount]) => {
+        const account = accounts[accountId];
+        if (!account) return;
+        
+        const item = document.createElement('div');
+        item.className = 'flex justify-between items-center py-1 border-b border-green-200 last:border-0';
+        item.innerHTML = `
+          <span class="text-xs text-gray-700 truncate flex-1 mr-2">${escapeHtml(account.name)}</span>
+          <span class="text-xs sm:text-sm font-medium text-green-600 whitespace-nowrap">$${formatNumber(amount)}</span>
+        `;
+        incomeContainer.appendChild(item);
+      });
+    }
+  }
+  
+  // Render expense subtotals
+  const expenseContainer = document.getElementById('account-expense-subtotals');
+  if (expenseContainer) {
+    expenseContainer.innerHTML = '';
+    if (Object.keys(accountExpenses).length === 0) {
+      expenseContainer.innerHTML = '<p class="text-xs text-gray-500">No hay egresos</p>';
+    } else {
+      const sortedExpenses = Object.entries(accountExpenses)
+        .sort((a, b) => b[1] - a[1])
+        .filter(([accountId]) => accounts[accountId]?.active !== false);
+      
+      sortedExpenses.forEach(([accountId, amount]) => {
+        const account = accounts[accountId];
+        if (!account) return;
+        
+        const item = document.createElement('div');
+        item.className = 'flex justify-between items-center py-1 border-b border-red-200 last:border-0';
+        item.innerHTML = `
+          <span class="text-xs text-gray-700 truncate flex-1 mr-2">${escapeHtml(account.name)}</span>
+          <span class="text-xs sm:text-sm font-medium text-red-600 whitespace-nowrap">$${formatNumber(amount)}</span>
+        `;
+        expenseContainer.appendChild(item);
+      });
+    }
+  }
+  
+  // Render balance subtotals (income - expenses)
+  const balanceContainer = document.getElementById('account-balance-subtotals');
+  if (balanceContainer) {
+    balanceContainer.innerHTML = '';
+    
+    const accountBalances = {};
+    accountIds.forEach(accountId => {
+      if (accounts[accountId]?.active === false) return;
+      const income = accountIncome[accountId] || 0;
+      const expenses = accountExpenses[accountId] || 0;
+      accountBalances[accountId] = income - expenses;
+    });
+    
+    if (Object.keys(accountBalances).length === 0) {
+      balanceContainer.innerHTML = '<p class="text-xs text-gray-500">No hay datos</p>';
+    } else {
+      const sortedBalances = Object.entries(accountBalances)
+        .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
+      
+      sortedBalances.forEach(([accountId, balance]) => {
+        const account = accounts[accountId];
+        if (!account) return;
+        
+        const item = document.createElement('div');
+        const balanceColor = balance >= 0 ? 'text-blue-600' : 'text-red-600';
+        item.className = 'flex justify-between items-center py-1 border-b border-blue-200 last:border-0';
+        item.innerHTML = `
+          <span class="text-xs text-gray-700 truncate flex-1 mr-2">${escapeHtml(account.name)}</span>
+          <span class="text-xs sm:text-sm font-medium ${balanceColor} whitespace-nowrap">$${formatNumber(Math.abs(balance))}</span>
+        `;
+        balanceContainer.appendChild(item);
+      });
+    }
+  }
+}
+
 // Update Top 10 sections
 async function updateTop10Sections(transactionsToProcess) {
   // Get categories for names
@@ -537,6 +670,9 @@ function loadCashflow() {
     // Get TOP 3 expense categories
     const topCategories = await getTopExpenseCategories(transactionsToProcess);
     // Eliminado: desglose de porcentajes de categorías de egresos
+
+    // Update account subtotals
+    await updateAccountSubtotals(transactionsToProcess);
 
     // Update Top 10 sections
     await updateTop10Sections(transactionsToProcess);
