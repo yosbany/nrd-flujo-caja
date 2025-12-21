@@ -896,7 +896,7 @@ async function generateDailyReport(reportDate) {
       yPos += 8;
       
       const tableHeaders = ['Cuenta', '$ Saldo Inicial', '$ Saldo Actual', '$ Diferencia'];
-      const colWidths = [80, 50, 50, 50];
+      const colWidths = [70, 40, 40, 40]; // Total: 190mm para que quepa en la página
       const headerHeight = 8;
       const tableWidth = colWidths.reduce((a, b) => a + b, 0);
       const rowHeight = 7;
@@ -991,7 +991,7 @@ async function generateDailyReport(reportDate) {
     
     if (sortedTransactions.length > 0) {
       const movHeaders = ['Hora', 'Concepto', 'Descripción', 'Cuenta', '$ Monto'];
-      const movColWidths = [25, 50, 65, 40, 40];
+      const movColWidths = [22, 38, 55, 32, 35]; // Total: 182mm para que quepa en la página
       const movHeaderHeight = 8;
       const movTableWidth = movColWidths.reduce((a, b) => a + b, 0);
       const movRowHeight = 7;
@@ -1045,7 +1045,10 @@ async function generateDailyReport(reportDate) {
         const timeStr = transDate.toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         const fechaCompleta = timeStr;
         
-        const concepto = transaction.categoryName || 'Sin categoría';
+        // Eliminar "INGRESO" y "EGRESO" con guion para ocupar menos espacio
+        let concepto = transaction.categoryName || 'Sin categoría';
+        concepto = concepto.replace(/^INGRESO\s*[–-]\s*/i, '').replace(/^EGRESO\s*[–-]\s*/i, '').trim();
+        if (!concepto) concepto = 'Sin categoría';
         const descripcion = transaction.description || '';
         const cuenta = transaction.accountName || 'Sin cuenta';
         const monto = '$' + formatNumber(parseFloat(transaction.amount) || 0);
@@ -1062,14 +1065,14 @@ async function generateDailyReport(reportDate) {
           const align = i === rowData.length - 1 ? 'right' : 'left';
           const textX = i === rowData.length - 1 ? xPos + movColWidths[i] - 2 : xPos + 2;
           
-          // Truncar texto si es muy largo
+          // Truncar texto si es muy largo según los nuevos anchos
           let cellText = String(cell);
-          if (i === 1 && cellText.length > 22) { // Concepto (ancho 45)
-            cellText = cellText.substring(0, 19) + '...';
-          } else if (i === 2 && cellText.length > 30) { // Descripción (ancho 60)
-            cellText = cellText.substring(0, 27) + '...';
-          } else if (i === 3 && cellText.length > 18) { // Cuenta (ancho 40)
+          if (i === 1 && cellText.length > 18) { // Concepto (ancho 38)
             cellText = cellText.substring(0, 15) + '...';
+          } else if (i === 2 && cellText.length > 27) { // Descripción (ancho 55)
+            cellText = cellText.substring(0, 24) + '...';
+          } else if (i === 3 && cellText.length > 15) { // Cuenta (ancho 32)
+            cellText = cellText.substring(0, 12) + '...';
           }
           
           doc.text(cellText, textX, yPos + 5, { align: align });
