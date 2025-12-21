@@ -130,7 +130,7 @@ async function getTopExpenseCategories(transactionsToProcess) {
   
   // Calculate totals per category
   const categoryTotals = {};
-  transactionsToProcess.forEach(transaction => {
+  transactionsToProcess.forEach(({ id, ...transaction }) => {
     if (transaction.type === 'expense' && transaction.categoryId) {
       const categoryId = transaction.categoryId;
       if (!categoryTotals[categoryId]) {
@@ -152,13 +152,194 @@ async function getTopExpenseCategories(transactionsToProcess) {
   return sorted;
 }
 
+// Update Top 10 sections
+async function updateTop10Sections(transactionsToProcess) {
+  // Get categories for names
+  const categoriesSnapshot = await getCategoriesRef().once('value');
+  const categories = categoriesSnapshot.val() || {};
+  
+  // Top 10 Categorías (by total amount, income + expense)
+  const categoryTotals = {};
+  transactionsToProcess.forEach(({ id, ...transaction }) => {
+    if (transaction.categoryId) {
+      const categoryId = transaction.categoryId;
+      if (!categoryTotals[categoryId]) {
+        categoryTotals[categoryId] = {
+          amount: 0,
+          name: categories[categoryId]?.name || 'Sin categoría',
+          type: categories[categoryId]?.type || 'expense'
+        };
+      }
+      const amount = parseFloat(transaction.amount || 0);
+      categoryTotals[categoryId].amount += amount;
+    }
+  });
+  
+  const topCategories = Object.entries(categoryTotals)
+    .map(([id, data]) => ({ id, ...data }))
+    .sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount))
+    .slice(0, 10);
+  
+  // Top 10 Subcategorías (by total amount)
+  const subcategoryTotals = {};
+  transactionsToProcess.forEach(({ id, ...transaction }) => {
+    if (transaction.description && transaction.description.trim()) {
+      const desc = transaction.description.trim();
+      if (!subcategoryTotals[desc]) {
+        subcategoryTotals[desc] = {
+          amount: 0,
+          name: desc
+        };
+      }
+      const amount = parseFloat(transaction.amount || 0);
+      if (transaction.type === 'income') {
+        subcategoryTotals[desc].amount += amount;
+      } else {
+        subcategoryTotals[desc].amount -= amount;
+      }
+    }
+  });
+  
+  const topSubcategories = Object.entries(subcategoryTotals)
+    .map(([name, data]) => ({ name, ...data }))
+    .sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount))
+    .slice(0, 10);
+  
+  // Top 10 Transacciones (by amount) - transactionsToProcess already has IDs
+  const topTransactions = transactionsToProcess
+    .map(({ id, ...transaction }) => ({
+      id: id,
+      description: transaction.description || 'Sin subcategoría',
+      categoryName: transaction.categoryName || 'Sin categoría',
+      accountName: transaction.accountName || 'Sin cuenta',
+      amount: parseFloat(transaction.amount || 0),
+      type: transaction.type,
+      date: transaction.date || transaction.createdAt
+    }))
+    .sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount))
+    .slice(0, 10);
+  
+  // Render Top 10 Categorías
+  renderTopCategories(topCategories);
+  
+  // Render Top 10 Subcategorías
+  renderTopSubcategories(topSubcategories);
+  
+  // Render Top 10 Transacciones
+  renderTopTransactions(topTransactions);
+}
+
+// Render Top 10 Categorías
+function renderTopCategories(categories) {
+  const container = document.getElementById('top-categories-list');
+  if (!container) return;
+  
+  if (categories.length === 0) {
+    container.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">No hay categorías</p>';
+    return;
+  }
+  
+  container.innerHTML = '';
+  categories.forEach((category, index) => {
+    const item = document.createElement('div');
+    item.className = 'flex justify-between items-center py-2 border-b border-gray-100';
+    const isIncome = category.type === 'income';
+    const amountColor = isIncome ? 'text-green-600' : 'text-red-600';
+    const prefix = isIncome ? '+' : '-';
+    
+    item.innerHTML = `
+      <div class="flex items-center gap-2 flex-1 min-w-0">
+        <span class="text-xs text-gray-500 font-medium">${index + 1}.</span>
+        <span class="text-xs sm:text-sm font-light truncate">${escapeHtml(category.name)}</span>
+      </div>
+      <span class="text-xs sm:text-sm font-medium ${amountColor} ml-2">${prefix}$${formatNumber(Math.abs(category.amount))}</span>
+    `;
+    container.appendChild(item);
+  });
+}
+
+// Render Top 10 Subcategorías
+function renderTopSubcategories(subcategories) {
+  const container = document.getElementById('top-subcategories-list');
+  if (!container) return;
+  
+  if (subcategories.length === 0) {
+    container.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">No hay subcategorías</p>';
+    return;
+  }
+  
+  container.innerHTML = '';
+  subcategories.forEach((subcategory, index) => {
+    const item = document.createElement('div');
+    item.className = 'flex justify-between items-center py-2 border-b border-gray-100';
+    const amountColor = subcategory.amount >= 0 ? 'text-green-600' : 'text-red-600';
+    const prefix = subcategory.amount >= 0 ? '+' : '-';
+    
+    item.innerHTML = `
+      <div class="flex items-center gap-2 flex-1 min-w-0">
+        <span class="text-xs text-gray-500 font-medium">${index + 1}.</span>
+        <span class="text-xs sm:text-sm font-light truncate">${escapeHtml(subcategory.name)}</span>
+      </div>
+      <span class="text-xs sm:text-sm font-medium ${amountColor} ml-2">${prefix}$${formatNumber(Math.abs(subcategory.amount))}</span>
+    `;
+    container.appendChild(item);
+  });
+}
+
+// Render Top 10 Transacciones
+function renderTopTransactions(transactions) {
+  const container = document.getElementById('top-transactions-list');
+  if (!container) return;
+  
+  if (transactions.length === 0) {
+    container.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">No hay transacciones</p>';
+    return;
+  }
+  
+  container.innerHTML = '';
+  transactions.forEach((transaction, index) => {
+    const item = document.createElement('div');
+    item.className = 'flex justify-between items-start py-2 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors';
+    if (transaction.id) {
+      item.dataset.transactionId = transaction.id;
+      item.addEventListener('click', () => {
+        if (typeof switchView === 'function') {
+          switchView('transactions');
+          setTimeout(() => {
+            if (typeof viewTransaction === 'function') {
+              viewTransaction(transaction.id);
+            }
+          }, 300);
+        }
+      });
+    }
+    
+    const isIncome = transaction.type === 'income';
+    const amountColor = isIncome ? 'text-green-600' : 'text-red-600';
+    const prefix = isIncome ? '+' : '-';
+    const date = transaction.date ? new Date(transaction.date) : new Date(transaction.createdAt);
+    
+    item.innerHTML = `
+      <div class="flex items-start gap-2 flex-1 min-w-0">
+        <span class="text-xs text-gray-500 font-medium">${index + 1}.</span>
+        <div class="flex-1 min-w-0">
+          <div class="text-xs sm:text-sm font-light truncate">${escapeHtml(transaction.description)}</div>
+          <div class="text-xs text-gray-500 mt-0.5">${formatDate24h(date)}</div>
+        </div>
+      </div>
+      <span class="text-xs sm:text-sm font-medium ${amountColor} ml-2">${prefix}$${formatNumber(Math.abs(transaction.amount))}</span>
+    `;
+    container.appendChild(item);
+  });
+}
+
 // Calculate expenses by category for drill-down
 async function getExpensesByCategory(transactionsToProcess) {
   const categoriesSnapshot = await getCategoriesRef().once('value');
   const categories = categoriesSnapshot.val() || {};
   
   const categoryTotals = {};
-  transactionsToProcess.forEach(transaction => {
+  transactionsToProcess.forEach(({ id, ...transaction }) => {
     if (transaction.type === 'expense' && transaction.categoryId) {
       const categoryId = transaction.categoryId;
       if (!categoryTotals[categoryId]) {
@@ -195,10 +376,13 @@ function loadCashflow() {
     
     // Get current period range
     const periodRange = getPeriodDateRange(cashflowSelectedFilterPeriod, cashflowPeriodReferenceDate);
-    let transactionsToProcess = Object.values(transactions);
+    let transactionsToProcess = Object.entries(transactions).map(([id, transaction]) => ({
+      id,
+      ...transaction
+    }));
     
     if (periodRange) {
-      transactionsToProcess = transactionsToProcess.filter(transaction => {
+      transactionsToProcess = transactionsToProcess.filter(({ id, ...transaction }) => {
         const transactionDate = transaction.date || transaction.createdAt;
         if (!transactionDate) return false;
         return transactionDate >= periodRange.start && transactionDate <= periodRange.end;
@@ -208,7 +392,7 @@ function loadCashflow() {
     // Calculate current totals
     let totalIncome = 0;
     let totalExpenses = 0;
-    transactionsToProcess.forEach(transaction => {
+    transactionsToProcess.forEach(({ id, ...transaction }) => {
       if (transaction.type === 'income') {
         totalIncome += parseFloat(transaction.amount || 0);
       } else {
@@ -243,7 +427,7 @@ function loadCashflow() {
           return transactionDate >= previousRange.start && transactionDate <= previousRange.end;
         });
         
-        previousTransactions.forEach(transaction => {
+        previousTransactions.forEach(({ id, ...transaction }) => {
           if (transaction.type === 'income') {
             previousIncome += parseFloat(transaction.amount || 0);
           } else {
@@ -354,6 +538,9 @@ function loadCashflow() {
     const topCategories = await getTopExpenseCategories(transactionsToProcess);
     // Eliminado: desglose de porcentajes de categorías de egresos
 
+    // Update Top 10 sections
+    await updateTop10Sections(transactionsToProcess);
+
     // Apply visual emphasis based on filter
     const balanceCard = document.querySelector('#cashflow-view .bg-blue-50');
     const expensesCard = document.getElementById('expenses-card');
@@ -398,10 +585,13 @@ async function showExpensesDrilldown() {
   const transactions = transactionsSnapshot.val() || {};
   
   const periodRange = getPeriodDateRange(cashflowSelectedFilterPeriod);
-  let transactionsToProcess = Object.values(transactions);
+  let transactionsToProcess = Object.entries(transactions).map(([id, transaction]) => ({
+    id,
+    ...transaction
+  }));
   
   if (periodRange) {
-    transactionsToProcess = transactionsToProcess.filter(transaction => {
+    transactionsToProcess = transactionsToProcess.filter(({ id, ...transaction }) => {
       const transactionDate = transaction.date || transaction.createdAt;
       if (!transactionDate) return false;
       return transactionDate >= periodRange.start && transactionDate <= periodRange.end;
