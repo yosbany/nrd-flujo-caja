@@ -321,19 +321,7 @@ function loadCashflow() {
 
     // Get TOP 3 expense categories
     const topCategories = await getTopExpenseCategories(transactionsToProcess);
-    const expensesBreakdown = document.getElementById('expenses-breakdown');
-    if (expensesBreakdown) {
-      expensesBreakdown.innerHTML = '';
-      if (topCategories.length > 0 && totalExpenses > 0) {
-        topCategories.forEach(category => {
-          const percentage = (category.amount / totalExpenses) * 100;
-          const item = document.createElement('div');
-          item.className = 'text-xs text-gray-600';
-          item.innerHTML = `<span class="font-medium">${escapeHtml(category.name)}</span>: ${percentage.toFixed(1)}%`;
-          expensesBreakdown.appendChild(item);
-        });
-      }
-    }
+    // Eliminado: desglose de porcentajes de categorías de egresos
 
     // Apply visual emphasis based on filter
     const balanceCard = document.querySelector('#cashflow-view .bg-blue-50');
