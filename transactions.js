@@ -1004,12 +1004,13 @@ async function generateDailyReport(reportDate) {
       const movHeaders = ['Hora', 'Concepto', 'Descripción', 'Cuenta', 'Monto'];
       // Usar el mismo ancho que el título (desde startX hasta rightMargin)
       const movTableWidth = rightMargin - startX;
+      // Ajustar anchos para aprovechar mejor el espacio - Hora más pequeña, más espacio para texto
       const movColWidths = [
-        Math.floor(movTableWidth * 0.12), // Hora: 12%
-        Math.floor(movTableWidth * 0.25), // Concepto: 25%
-        Math.floor(movTableWidth * 0.35), // Descripción: 35%
-        Math.floor(movTableWidth * 0.15), // Cuenta: 15%
-        Math.floor(movTableWidth * 0.13)  // Monto: 13%
+        Math.floor(movTableWidth * 0.10), // Hora: 10% (más pequeña porque es formato 24h)
+        Math.floor(movTableWidth * 0.28), // Concepto: 28% (más espacio)
+        Math.floor(movTableWidth * 0.38), // Descripción: 38% (más espacio)
+        Math.floor(movTableWidth * 0.14), // Cuenta: 14% (más espacio)
+        Math.floor(movTableWidth * 0.10)  // Monto: 10% (más pequeña)
       ];
       const movHeaderHeight = 8;
       const movRowHeight = 7;
@@ -1020,7 +1021,7 @@ async function generateDailyReport(reportDate) {
       doc.setDrawColor(80, 80, 80);
       doc.rect(startX, yPos, movTableWidth, movHeaderHeight, 'D');
       
-      doc.setFontSize(8);
+      doc.setFontSize(7); // Fuente más pequeña para aprovechar mejor el espacio
       doc.setFont(undefined, 'bold');
       doc.setTextColor(255, 255, 255);
       let xPos = startX;
@@ -1033,9 +1034,9 @@ async function generateDailyReport(reportDate) {
       doc.setTextColor(0, 0, 0);
       yPos += movHeaderHeight;
       
-      // Filas de transacciones
+      // Filas de transacciones - Fuente más pequeña para aprovechar mejor el espacio
       doc.setFont(undefined, 'normal');
-      doc.setFontSize(8);
+      doc.setFontSize(7);
       sortedTransactions.forEach((transaction, idx) => {
         if (yPos > 285) {
           doc.addPage();
@@ -1046,7 +1047,7 @@ async function generateDailyReport(reportDate) {
           doc.setDrawColor(80, 80, 80);
           doc.rect(startX, yPos, movTableWidth, movHeaderHeight, 'D');
           doc.setFont(undefined, 'bold');
-          doc.setFontSize(8);
+          doc.setFontSize(7); // Fuente más pequeña para aprovechar mejor el espacio
           doc.setTextColor(255, 255, 255);
           xPos = startX;
           movHeaders.forEach((header, i) => {
@@ -1060,7 +1061,11 @@ async function generateDailyReport(reportDate) {
         }
         
         const transDate = transaction.date ? new Date(transaction.date) : new Date(transaction.createdAt);
-        const timeStr = transDate.toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        // Formato 24 horas sin am/pm
+        const hours = String(transDate.getHours()).padStart(2, '0');
+        const minutes = String(transDate.getMinutes()).padStart(2, '0');
+        const seconds = String(transDate.getSeconds()).padStart(2, '0');
+        const timeStr = `${hours}:${minutes}:${seconds}`;
         const fechaCompleta = timeStr;
         
         // Eliminar "INGRESO", "INGRESOS", "EGRESO" y "EGRESOS" con guion para ocupar menos espacio
@@ -1083,19 +1088,20 @@ async function generateDailyReport(reportDate) {
           const align = i === rowData.length - 1 ? 'right' : 'left';
           const textX = i === rowData.length - 1 ? xPos + movColWidths[i] - 2 : xPos + 2;
           
-          // Truncar texto si es muy largo según los anchos dinámicos
+          // Truncar texto solo si es extremadamente largo - con fuente 7 caben más caracteres
           let cellText = String(cell);
-          // Aproximadamente 1mm = 0.4 caracteres con fuente tamaño 8
-          const maxCharsConcepto = Math.floor(movColWidths[1] * 0.4);
-          const maxCharsDescripcion = Math.floor(movColWidths[2] * 0.4);
-          const maxCharsCuenta = Math.floor(movColWidths[3] * 0.4);
+          // Aproximadamente 1mm = 0.5 caracteres con fuente tamaño 7 (más pequeña = más caracteres)
+          const maxCharsConcepto = Math.floor(movColWidths[1] * 0.5);
+          const maxCharsDescripcion = Math.floor(movColWidths[2] * 0.5);
+          const maxCharsCuenta = Math.floor(movColWidths[3] * 0.5);
           
-          if (i === 1 && cellText.length > maxCharsConcepto) { // Concepto
-            cellText = cellText.substring(0, maxCharsConcepto - 3) + '...';
-          } else if (i === 2 && cellText.length > maxCharsDescripcion) { // Descripción
-            cellText = cellText.substring(0, maxCharsDescripcion - 3) + '...';
-          } else if (i === 3 && cellText.length > maxCharsCuenta) { // Cuenta
-            cellText = cellText.substring(0, maxCharsCuenta - 3) + '...';
+          // Solo truncar si realmente es muy largo (aumentar límites)
+          if (i === 1 && cellText.length > maxCharsConcepto + 5) { // Concepto
+            cellText = cellText.substring(0, maxCharsConcepto) + '...';
+          } else if (i === 2 && cellText.length > maxCharsDescripcion + 5) { // Descripción
+            cellText = cellText.substring(0, maxCharsDescripcion) + '...';
+          } else if (i === 3 && cellText.length > maxCharsCuenta + 5) { // Cuenta
+            cellText = cellText.substring(0, maxCharsCuenta) + '...';
           }
           
           doc.text(cellText, textX, yPos + 5, { align: align });
