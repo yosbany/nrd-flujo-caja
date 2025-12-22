@@ -62,7 +62,10 @@ function loadAccounts() {
       const opacityClass = isActive ? '' : 'opacity-50';
       item.className = `border border-gray-200 p-3 sm:p-4 md:p-6 hover:border-red-600 transition-colors cursor-pointer mb-2 sm:mb-3 ${opacityClass}`;
       item.dataset.accountId = id;
-      const balance = accountBalances[id] || 0;
+      // Calculate balance: initial balance + transactions balance
+      const initialBalance = parseFloat(account.initialBalance) || 0;
+      const transactionsBalance = accountBalances[id] || 0;
+      const balance = initialBalance + transactionsBalance;
       const formattedBalance = new Intl.NumberFormat('es-UY', { style: 'currency', currency: 'UYU' }).format(balance);
       const balanceColor = balance >= 0 ? 'text-green-600' : 'text-red-600';
       const statusText = isActive ? '' : ' (Desactivada)';
@@ -127,17 +130,29 @@ function showAccountForm(accountId = null) {
     if (closeBtn) closeBtn.style.display = 'flex';
     if (saveBtn) saveBtn.style.display = 'none';
     
-    // Make field readonly
+    // Make fields readonly
     const nameInput = document.getElementById('account-name');
+    const initialBalanceInput = document.getElementById('account-initial-balance');
     if (nameInput) {
       nameInput.setAttribute('readonly', 'readonly');
       nameInput.setAttribute('disabled', 'disabled');
+    }
+    if (initialBalanceInput) {
+      initialBalanceInput.setAttribute('readonly', 'readonly');
+      initialBalanceInput.setAttribute('disabled', 'disabled');
     }
     
     getAccount(accountId).then(snapshot => {
       const account = snapshot.val();
       if (account) {
         if (nameInput) nameInput.value = account.name || '';
+        
+        // Load initial balance
+        if (initialBalanceInput) {
+          const initialBalance = account.initialBalance || 0;
+          // Format with comma as decimal separator
+          initialBalanceInput.value = initialBalance.toString().replace('.', ',');
+        }
         
         // Update toggle active button
         const isActive = account.active !== false;
@@ -166,11 +181,16 @@ function showAccountForm(accountId = null) {
     if (closeBtn) closeBtn.style.display = 'flex';
     if (saveBtn) saveBtn.style.display = 'flex';
     
-    // Enable field
+    // Enable fields
     const nameInput = document.getElementById('account-name');
+    const initialBalanceInput = document.getElementById('account-initial-balance');
     if (nameInput) {
       nameInput.removeAttribute('readonly');
       nameInput.removeAttribute('disabled');
+    }
+    if (initialBalanceInput) {
+      initialBalanceInput.removeAttribute('readonly');
+      initialBalanceInput.removeAttribute('disabled');
     }
   }
 }
@@ -216,10 +236,21 @@ document.addEventListener('DOMContentLoaded', () => {
       
       const accountId = document.getElementById('account-id').value;
       const name = document.getElementById('account-name').value.trim();
+      const initialBalanceInput = document.getElementById('account-initial-balance');
+      const initialBalanceValue = initialBalanceInput ? initialBalanceInput.value.trim() : '';
 
       if (!name) {
         await showError('Por favor complete el nombre de la cuenta');
         return;
+      }
+
+      // Parse initial balance (replace comma with dot for decimal separator)
+      let initialBalance = 0;
+      if (initialBalanceValue) {
+        const parsed = parseFloat(initialBalanceValue.replace(',', '.'));
+        if (!isNaN(parsed)) {
+          initialBalance = parsed;
+        }
       }
 
       showSpinner('Guardando cuenta...');
@@ -231,13 +262,17 @@ document.addEventListener('DOMContentLoaded', () => {
           const account = accountSnapshot.val();
           if (account) {
             active = account.active !== false; // Preserve existing status
+            // Preserve initial balance if not provided (only update if explicitly changed)
+            if (!initialBalanceValue && account.initialBalance !== undefined) {
+              initialBalance = account.initialBalance;
+            }
           }
         }
         
         if (accountId) {
-          await updateAccount(accountId, { name, active });
+          await updateAccount(accountId, { name, active, initialBalance });
         } else {
-          await createAccount({ name, active: true });
+          await createAccount({ name, active: true, initialBalance });
         }
         hideSpinner();
         hideAccountForm();
@@ -285,11 +320,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const title = document.getElementById('account-form-title');
         if (title) title.textContent = 'Editar Cuenta';
         
-        // Enable field
+        // Enable fields
         const nameInput = document.getElementById('account-name');
+        const initialBalanceInput = document.getElementById('account-initial-balance');
         if (nameInput) {
           nameInput.removeAttribute('readonly');
           nameInput.removeAttribute('disabled');
+        }
+        if (initialBalanceInput) {
+          initialBalanceInput.removeAttribute('readonly');
+          initialBalanceInput.removeAttribute('disabled');
         }
         
         // Update buttons

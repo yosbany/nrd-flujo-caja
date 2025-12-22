@@ -351,8 +351,26 @@ async function getTopExpenseCategories(transactionsToProcess) {
 }
 
 // Calculate account balance from transactions up to a given date
-function calculateAccountBalance(accountId, allTransactions, upToDate = null) {
-  let balance = 0;
+// If accounts object is provided, includes initial balance
+async function calculateAccountBalance(accountId, allTransactions, upToDate = null, accounts = null) {
+  // Get initial balance if accounts are provided
+  let initialBalance = 0;
+  if (accounts) {
+    const account = accounts[accountId];
+    if (account && account.initialBalance !== undefined) {
+      initialBalance = parseFloat(account.initialBalance) || 0;
+    }
+  } else {
+    // Load accounts if not provided
+    const accountsSnapshot = await getAccountsRef().once('value');
+    const accountsData = accountsSnapshot.val() || {};
+    const account = accountsData[accountId];
+    if (account && account.initialBalance !== undefined) {
+      initialBalance = parseFloat(account.initialBalance) || 0;
+    }
+  }
+  
+  let balance = initialBalance;
   Object.values(allTransactions).forEach(transaction => {
     if (transaction && transaction.accountId === accountId) {
       // Si hay fecha límite, solo incluir transacciones hasta esa fecha
@@ -434,7 +452,7 @@ async function calculateEstimatedMoneyNeeded(period, referenceDate, allTransacti
   const upToDate = currentPeriodRange ? new Date(currentPeriodRange.end) : refDate;
   
   // 1. Obtener el balance de la cuenta hasta la fecha del período seleccionado (Caja Real Final)
-  const cajaRealFinal = calculateAccountBalance(efectivoAccountId, allTransactions, upToDate);
+  const cajaRealFinal = await calculateAccountBalance(efectivoAccountId, allTransactions, upToDate, accounts);
   
   const historicalPeriods = getHistoricalPeriods(period, refDate);
   
@@ -906,15 +924,22 @@ async function updateAccountSubtotals(transactionsToProcess) {
   };
   
   // Render income subtotals
+  // Show all active accounts, even if they have no income in the period (show 0)
   const incomeContainer = document.getElementById('account-income-subtotals');
   if (incomeContainer) {
     incomeContainer.innerHTML = '';
-    if (Object.keys(accountIncome).length === 0) {
-      incomeContainer.innerHTML = '<p class="text-xs text-gray-500">No hay ingresos</p>';
+    
+    const allAccountIncome = {};
+    // Use all active accounts, not just those with transactions
+    Object.entries(accounts).forEach(([accountId, account]) => {
+      if (account?.active === false) return;
+      allAccountIncome[accountId] = accountIncome[accountId] || 0;
+    });
+    
+    if (Object.keys(allAccountIncome).length === 0) {
+      incomeContainer.innerHTML = '<p class="text-xs text-gray-500">No hay cuentas activas</p>';
     } else {
-      const filteredIncome = Object.entries(accountIncome)
-        .filter(([accountId]) => accounts[accountId]?.active !== false);
-      const sortedIncome = sortAccountsByName(filteredIncome);
+      const sortedIncome = sortAccountsByName(Object.entries(allAccountIncome));
       
       sortedIncome.forEach(([accountId, amount]) => {
         const account = accounts[accountId];
@@ -932,15 +957,22 @@ async function updateAccountSubtotals(transactionsToProcess) {
   }
   
   // Render expense subtotals
+  // Show all active accounts, even if they have no expenses in the period (show 0)
   const expenseContainer = document.getElementById('account-expense-subtotals');
   if (expenseContainer) {
     expenseContainer.innerHTML = '';
-    if (Object.keys(accountExpenses).length === 0) {
-      expenseContainer.innerHTML = '<p class="text-xs text-gray-500">No hay egresos</p>';
+    
+    const allAccountExpenses = {};
+    // Use all active accounts, not just those with transactions
+    Object.entries(accounts).forEach(([accountId, account]) => {
+      if (account?.active === false) return;
+      allAccountExpenses[accountId] = accountExpenses[accountId] || 0;
+    });
+    
+    if (Object.keys(allAccountExpenses).length === 0) {
+      expenseContainer.innerHTML = '<p class="text-xs text-gray-500">No hay cuentas activas</p>';
     } else {
-      const filteredExpenses = Object.entries(accountExpenses)
-        .filter(([accountId]) => accounts[accountId]?.active !== false);
-      const sortedExpenses = sortAccountsByName(filteredExpenses);
+      const sortedExpenses = sortAccountsByName(Object.entries(allAccountExpenses));
       
       sortedExpenses.forEach(([accountId, amount]) => {
         const account = accounts[accountId];
