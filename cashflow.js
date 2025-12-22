@@ -1362,14 +1362,16 @@ function setPeriodFilter(period) {
 
 // Navigate to previous period
 function navigateToPreviousPeriod() {
-  if (cashflowSelectedFilterPeriod === 'all' || cashflowSelectedFilterPeriod === 'today') return;
+  if (cashflowSelectedFilterPeriod === 'all') return;
   
   if (!cashflowPeriodReferenceDate) {
     cashflowPeriodReferenceDate = new Date();
   }
   
   const refDate = new Date(cashflowPeriodReferenceDate);
-  if (cashflowSelectedFilterPeriod === 'week') {
+  if (cashflowSelectedFilterPeriod === 'today') {
+    refDate.setDate(refDate.getDate() - 1);
+  } else if (cashflowSelectedFilterPeriod === 'week') {
     refDate.setDate(refDate.getDate() - 7);
   } else if (cashflowSelectedFilterPeriod === 'month') {
     refDate.setMonth(refDate.getMonth() - 1);
@@ -1384,14 +1386,16 @@ function navigateToPreviousPeriod() {
 
 // Navigate to next period
 function navigateToNextPeriod() {
-  if (cashflowSelectedFilterPeriod === 'all' || cashflowSelectedFilterPeriod === 'today') return;
+  if (cashflowSelectedFilterPeriod === 'all') return;
   
   if (!cashflowPeriodReferenceDate) {
     cashflowPeriodReferenceDate = new Date();
   }
   
   const refDate = new Date(cashflowPeriodReferenceDate);
-  if (cashflowSelectedFilterPeriod === 'week') {
+  if (cashflowSelectedFilterPeriod === 'today') {
+    refDate.setDate(refDate.getDate() + 1);
+  } else if (cashflowSelectedFilterPeriod === 'week') {
     refDate.setDate(refDate.getDate() + 7);
   } else if (cashflowSelectedFilterPeriod === 'month') {
     refDate.setMonth(refDate.getMonth() + 1);
@@ -1407,9 +1411,21 @@ function navigateToNextPeriod() {
 // Format period display text
 function formatPeriodDisplay(period, referenceDate = null) {
   if (period === 'all') return 'Todos los períodos';
-  if (period === 'today') return 'Hoy';
   
   const refDate = referenceDate || new Date();
+  
+  if (period === 'today') {
+    const today = new Date();
+    const isToday = refDate.getDate() === today.getDate() &&
+                    refDate.getMonth() === today.getMonth() &&
+                    refDate.getFullYear() === today.getFullYear();
+    if (isToday) {
+      return 'Hoy';
+    } else {
+      return `Día: ${formatDate24h(refDate)}`;
+    }
+  }
+  
   const periodRange = getPeriodDateRange(period, refDate);
   
   if (!periodRange) return '';
@@ -1443,7 +1459,7 @@ function updatePeriodDisplay() {
     const prevBtn = document.getElementById('cashflow-period-prev-btn');
     const nextBtn = document.getElementById('cashflow-period-next-btn');
     
-    const showArrows = cashflowSelectedFilterPeriod !== 'all' && cashflowSelectedFilterPeriod !== 'today';
+    const showArrows = cashflowSelectedFilterPeriod !== 'all';
     if (prevBtn) {
       if (showArrows) {
         prevBtn.classList.remove('hidden');
