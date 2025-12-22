@@ -529,7 +529,7 @@ async function renderEstimatedMoneyNeeded(period, referenceDate, allTransactions
   // Mostrar indicador de carga
   container.classList.remove('hidden');
   header.innerHTML = `
-    <h3 class="text-xs sm:text-sm font-medium text-gray-700 mb-0.5">Disponibilidad en Efectivo Estimado</h3>
+    <h3 class="text-xs font-light text-gray-700 mb-2 uppercase tracking-wider">Disponibilidad en Efectivo Estimado</h3>
     <p class="text-[10px] sm:text-xs text-gray-500">Calculando...</p>
   `;
   accountsContainer.innerHTML = '<div class="text-center py-4 text-sm text-gray-500">Calculando...</div>';
@@ -544,7 +544,7 @@ async function renderEstimatedMoneyNeeded(period, referenceDate, allTransactions
   const periodText = estimatedData.periodDescription;
   
   header.innerHTML = `
-    <h3 class="text-xs sm:text-sm font-medium text-gray-700 mb-0.5">Disponibilidad en Efectivo Estimado</h3>
+    <h3 class="text-xs font-light text-gray-700 mb-2 uppercase tracking-wider">Disponibilidad en Efectivo Estimado</h3>
     <p class="text-[10px] sm:text-xs text-gray-500">Basado en: ${periodText}</p>
   `;
   
