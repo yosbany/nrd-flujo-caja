@@ -38,6 +38,24 @@ function formatNumber(number) {
   });
 }
 
+// Convert amount string (with comma or point as decimal separator) to number
+function parseAmount(amountStr) {
+  if (!amountStr || typeof amountStr !== 'string') return NaN;
+  // Replace comma with point for parsing
+  const normalized = amountStr.trim().replace(',', '.');
+  return parseFloat(normalized);
+}
+
+// Format amount for display (with comma as decimal separator)
+function formatAmountForInput(amount) {
+  if (isNaN(amount) || amount === 0) return '';
+  // Round to 2 decimal places and convert to string
+  const rounded = Math.round(amount * 100) / 100;
+  const str = rounded.toString();
+  // Replace point with comma
+  return str.replace('.', ',');
+}
+
 // Load transactions
 function loadTransactions(initializeToToday = true) {
   const transactionsList = document.getElementById('transactions-list');
@@ -471,7 +489,8 @@ async function saveTransaction() {
   
   const type = document.getElementById('transaction-type').value;
   const description = document.getElementById('transaction-description').value.trim();
-  const amount = parseFloat(document.getElementById('transaction-amount').value);
+  const amountStr = document.getElementById('transaction-amount').value.trim();
+  const amount = parseAmount(amountStr);
   const categoryId = document.getElementById('transaction-category').value;
   const accountId = document.getElementById('transaction-account').value;
   const dateInput = document.getElementById('transaction-date').value;
@@ -519,8 +538,14 @@ async function saveTransaction() {
   }
 
   // 2. Validación de monto
-  if (!amount || isNaN(amount)) {
-    await showError('Por favor ingrese un monto válido. Use números y punto para decimales (ej: 1500.50)');
+  if (!amountStr || amountStr.length === 0) {
+    await showError('Por favor ingrese un monto');
+    document.getElementById('transaction-amount').focus();
+    return;
+  }
+  
+  if (isNaN(amount) || amount === 0) {
+    await showError('Por favor ingrese un monto válido. Use números y coma para decimales (ej: 1500,50)');
     document.getElementById('transaction-amount').focus();
     return;
   }
@@ -539,8 +564,11 @@ async function saveTransaction() {
   }
   
   // Validar que el monto tenga máximo 2 decimales
-  const amountStr = document.getElementById('transaction-amount').value;
-  if (amountStr.includes('.') && amountStr.split('.')[1] && amountStr.split('.')[1].length > 2) {
+  // Puede tener coma o punto como separador decimal
+  const decimalPart = amountStr.includes(',') 
+    ? amountStr.split(',')[1] 
+    : (amountStr.includes('.') ? amountStr.split('.')[1] : null);
+  if (decimalPart && decimalPart.length > 2) {
     await showError('El monto solo puede tener máximo 2 decimales');
     document.getElementById('transaction-amount').focus();
     return;
@@ -972,7 +1000,8 @@ async function viewTransaction(transactionId) {
     // Load form data in readonly mode
     document.getElementById('transaction-type').value = transaction.type;
     document.getElementById('transaction-description').value = transaction.description || '';
-    document.getElementById('transaction-amount').value = transaction.amount || '';
+    const amountValue = transaction.amount ? parseFloat(transaction.amount) : 0;
+    document.getElementById('transaction-amount').value = amountValue ? formatAmountForInput(amountValue) : '';
     document.getElementById('transaction-notes').value = transaction.notes || '';
     
     // Set date
@@ -1133,7 +1162,8 @@ async function editTransaction(transactionId, transaction) {
   // Load form data
   document.getElementById('transaction-type').value = transaction.type;
   document.getElementById('transaction-description').value = transaction.description || '';
-  document.getElementById('transaction-amount').value = transaction.amount || '';
+  const amountValue = transaction.amount ? parseFloat(transaction.amount) : 0;
+  document.getElementById('transaction-amount').value = amountValue ? formatAmountForInput(amountValue) : '';
   document.getElementById('transaction-notes').value = transaction.notes || '';
   
   // Set date - use local date to avoid timezone issues
@@ -1809,35 +1839,44 @@ function setupAmountValidation() {
   const amountInput = document.getElementById('transaction-amount');
   if (!amountInput) return;
   
+  // Permitir solo números, coma y punto
   amountInput.addEventListener('input', (e) => {
-    const value = e.target.value;
-    const amount = parseFloat(value);
+    let value = e.target.value;
+    // Reemplazar punto con coma automáticamente
+    value = value.replace('.', ',');
+    // Permitir solo números, coma y espacios (que se eliminarán)
+    value = value.replace(/[^\d,]/g, '');
+    // Asegurar que solo haya una coma
+    const parts = value.split(',');
+    if (parts.length > 2) {
+      value = parts[0] + ',' + parts.slice(1).join('');
+    }
+    e.target.value = value;
+    
+    const amount = parseAmount(value);
     
     // Remover clases de error previas
-    e.target.classList.remove('border-red-500', 'bg-red-50');
+    e.target.classList.remove('border-red-500', 'bg-red-50', 'border-yellow-500', 'bg-yellow-50');
     
     if (value && !isNaN(amount)) {
       if (amount <= 0) {
         e.target.classList.add('border-red-500', 'bg-red-50');
       } else if (amount > 999999999) {
         e.target.classList.add('border-yellow-500', 'bg-yellow-50');
-      } else {
-        e.target.classList.remove('border-yellow-500', 'bg-yellow-50');
       }
     }
   });
   
   // Validar al perder el foco
   amountInput.addEventListener('blur', (e) => {
-    const value = e.target.value;
-    const amount = parseFloat(value);
+    const value = e.target.value.trim();
+    const amount = parseAmount(value);
     
     if (value && !isNaN(amount) && amount > 0 && amount <= 999999999) {
-      // Formatear con máximo 2 decimales
+      // Formatear con máximo 2 decimales y usar coma
       const rounded = Math.round(amount * 100) / 100;
-      if (rounded !== amount) {
-        e.target.value = rounded.toFixed(2);
-      }
+      const formatted = formatAmountForInput(rounded);
+      e.target.value = formatted;
     }
   });
 }

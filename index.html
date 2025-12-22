@@ -7,7 +7,7 @@
   <title>NRD Flujo de Caja</title>
   <link rel="manifest" href="manifest.json">
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="styles.css?v=1766427723356">
+  <link rel="stylesheet" href="styles.css?v=1766429549237">
   <meta name="theme-color" content="#dc2626">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/svg+xml" href="icon-192.svg">
@@ -330,10 +330,10 @@
               <label class="block mb-2 text-sm font-medium text-gray-700">
                 Monto <span class="text-red-600">*</span>
               </label>
-              <input type="number" id="transaction-amount" step="0.01" min="0.01" max="999999999" required 
+              <input type="text" id="transaction-amount" required 
                 class="w-full px-4 py-3 border-2 border-gray-300 focus:outline-none focus:border-red-600 bg-white text-base sm:text-lg"
-                placeholder="Ejemplo: 1500.50">
-              <p class="text-xs text-gray-500 mt-1.5">Ingrese el monto sin puntos ni comas. Use punto para decimales (ej: 1500.50)</p>
+                placeholder="Ejemplo: 1500,50">
+              <p class="text-xs text-gray-500 mt-1.5">Ingrese el monto sin puntos. Use coma para decimales (ej: 1500,50)</p>
             </div>
 
             <!-- Subcategoría -->
@@ -649,15 +649,15 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   
   <!-- App Scripts -->
-  <script src="firebase.js?v=1766427723356"></script>
-  <script src="modal.js?v=1766427723356"></script>
-  <script src="auth.js?v=1766427723356"></script>
-  <script src="db.js?v=1766427723356"></script>
-  <script src="categories.js?v=1766427723356"></script>
-  <script src="transactions.js?v=1766427723356"></script>
-  <script src="cashflow.js?v=1766427723356"></script>
-  <script src="accounts.js?v=1766427723356"></script>
-  <script src="app.js?v=1766427723356"></script>
+  <script src="firebase.js?v=1766429549237"></script>
+  <script src="modal.js?v=1766429549237"></script>
+  <script src="auth.js?v=1766429549237"></script>
+  <script src="db.js?v=1766429549237"></script>
+  <script src="categories.js?v=1766429549237"></script>
+  <script src="transactions.js?v=1766429549237"></script>
+  <script src="cashflow.js?v=1766429549237"></script>
+  <script src="accounts.js?v=1766429549237"></script>
+  <script src="app.js?v=1766429549237"></script>
 
   <script>
     // Global error handler
@@ -708,7 +708,7 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         // Register service worker without version parameter
-        navigator.serviceWorker.register('service-worker.js?v=1766427723356')
+        navigator.serviceWorker.register('service-worker.js?v=1766429549237')
           .then(reg => {
             console.log('Service Worker registered');
             
