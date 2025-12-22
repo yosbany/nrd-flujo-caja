@@ -554,25 +554,23 @@ async function renderEstimatedMoneyNeeded(period, referenceDate, allTransactions
   container.innerHTML = `
     <h3 class="text-xs font-light text-gray-700 mb-2 uppercase tracking-wider">Disponibilidad en Efectivo Estimado</h3>
     <p class="text-[10px] sm:text-xs text-gray-500 mb-3">Basado en: ${periodText}</p>
-    <div class="border border-gray-200 p-2 sm:p-3 bg-white">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <div class="flex-1">
-          <div class="text-xs sm:text-sm font-medium text-gray-700 mb-1.5">${escapeHtml(estimatedData.accountName)}</div>
-          <div class="text-[10px] sm:text-xs text-gray-500 space-y-0.5">
-            <div>Egresos estimados: <span class="font-medium text-red-600">$${formatNumber(estimatedData.estimatedExpenses)}</span></div>
-            <div>Ingresos estimados: <span class="font-medium text-green-600">$${formatNumber(estimatedData.income)}</span></div>
-          </div>
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+      <div class="flex-1">
+        <div class="text-xs sm:text-sm font-medium text-gray-700 mb-1.5">${escapeHtml(estimatedData.accountName)}</div>
+        <div class="text-[10px] sm:text-xs text-gray-500 space-y-0.5">
+          <div>Egresos estimados: <span class="font-medium text-red-600">$${formatNumber(estimatedData.estimatedExpenses)}</span></div>
+          <div>Ingresos estimados: <span class="font-medium text-green-600">$${formatNumber(estimatedData.income)}</span></div>
         </div>
-        <div class="text-center sm:text-right ${actionBg} px-3 py-2 rounded">
-          ${estimatedData.actionType !== 'neutral' ? `
-          <div class="text-[10px] sm:text-xs text-gray-600 mb-1 uppercase tracking-wide">${estimatedData.actionText}</div>
-          <div class="text-lg sm:text-xl font-bold ${actionColor}">
-            ${actionIcon} $${formatNumber(estimatedData.actionAmount)}
-          </div>
-          ` : `
-          <div class="text-xs sm:text-sm text-gray-500">Balance equilibrado</div>
-          `}
+      </div>
+      <div class="text-center sm:text-right ${actionBg} px-3 py-2 rounded">
+        ${estimatedData.actionType !== 'neutral' ? `
+        <div class="text-[10px] sm:text-xs text-gray-600 mb-1 uppercase tracking-wide">${estimatedData.actionText}</div>
+        <div class="text-lg sm:text-xl font-bold ${actionColor}">
+          ${actionIcon} $${formatNumber(estimatedData.actionAmount)}
         </div>
+        ` : `
+        <div class="text-xs sm:text-sm text-gray-500">Balance equilibrado</div>
+        `}
       </div>
     </div>
   `;
