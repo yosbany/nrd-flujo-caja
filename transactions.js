@@ -701,7 +701,7 @@ async function saveTransaction() {
       await updateTransaction(transactionId, transactionData);
       hideSpinner();
       
-      // Reload transaction to show updated data in detail view
+      // Reload transaction to show updated data in view mode
       await viewTransaction(transactionId);
       await showSuccess('✓ Transacción actualizada correctamente');
     } else {
@@ -953,93 +953,120 @@ async function viewTransaction(transactionId) {
     const dateFilter = document.getElementById('transactions-date-filter-container');
     const searchFilter = document.getElementById('transactions-search-filter-container');
     const detail = document.getElementById('transaction-detail');
-    const detailContent = document.getElementById('transaction-detail-content');
     
-    // Hide everything except the detail view
     if (list) list.style.display = 'none';
     if (header) header.style.display = 'none';
-    if (form) form.classList.add('hidden');
+    if (detail) detail.classList.add('hidden');
     if (dateFilter) dateFilter.style.display = 'none';
     if (searchFilter) searchFilter.style.display = 'none';
+    if (form) form.classList.remove('hidden');
     
-    // Show detail view
-    if (detail) {
-      detail.classList.remove('hidden');
+    // Restore fields first in case we're switching from edit mode
+    restoreFieldsFromReadOnlyText();
+    
+    // Aplicar fondo de color según el tipo de transacción
+    const formHeader = document.getElementById('transaction-form-header');
+    form.classList.remove('bg-white', 'bg-green-50', 'bg-red-50');
+    if (transaction.type === 'income') {
+      form.classList.add('bg-green-50');
+      if (formHeader) {
+        formHeader.classList.remove('bg-red-600', 'bg-gray-600');
+        formHeader.classList.add('bg-green-600');
+      }
+    } else {
+      form.classList.add('bg-red-50');
+      if (formHeader) {
+        formHeader.classList.remove('bg-green-600', 'bg-gray-600');
+        formHeader.classList.add('bg-red-600');
+      }
     }
     
-    // Render transaction detail content
-    if (detailContent) {
-      const isIncome = transaction.type === 'income';
-      const amountColor = isIncome ? 'text-green-600' : 'text-red-600';
-      const prefix = isIncome ? '+' : '-';
-      const date = transaction.date ? new Date(transaction.date) : new Date(transaction.createdAt);
-      
-      detailContent.innerHTML = `
-        <div class="space-y-4 sm:space-y-6">
-          <div>
-            <label class="block text-xs sm:text-sm uppercase tracking-wider text-gray-500 mb-1 sm:mb-2">Subcategoría</label>
-            <p class="text-base sm:text-lg font-medium text-gray-800">${escapeHtml(transaction.description || 'Sin subcategoría')}</p>
-          </div>
-          
-          <div>
-            <label class="block text-xs sm:text-sm uppercase tracking-wider text-gray-500 mb-1 sm:mb-2">Monto</label>
-            <p class="text-2xl sm:text-3xl font-semibold ${amountColor}">${prefix}$${formatNumber(Math.abs(parseFloat(transaction.amount || 0)))}</p>
-          </div>
-          
-          <div>
-            <label class="block text-xs sm:text-sm uppercase tracking-wider text-gray-500 mb-1 sm:mb-2">Fecha</label>
-            <p class="text-base sm:text-lg text-gray-800">${formatDate24h(date)}</p>
-          </div>
-          
-          <div>
-            <label class="block text-xs sm:text-sm uppercase tracking-wider text-gray-500 mb-1 sm:mb-2">Categoría</label>
-            <p class="text-base sm:text-lg text-gray-800">${escapeHtml(transaction.categoryName || 'Sin categoría')}</p>
-          </div>
-          
-          <div>
-            <label class="block text-xs sm:text-sm uppercase tracking-wider text-gray-500 mb-1 sm:mb-2">Cuenta</label>
-            <p class="text-base sm:text-lg text-gray-800">${escapeHtml(transaction.accountName || 'Sin cuenta')}</p>
-          </div>
-          
-          ${transaction.notes ? `
-          <div>
-            <label class="block text-xs sm:text-sm uppercase tracking-wider text-gray-500 mb-1 sm:mb-2">Notas</label>
-            <p class="text-base sm:text-lg text-gray-800 whitespace-pre-wrap">${escapeHtml(transaction.notes)}</p>
-          </div>
-          ` : ''}
-        </div>
-      `;
+    // Set form to view mode (readonly)
+    form.dataset.viewMode = 'view';
+    form.dataset.editingTransactionId = transactionId;
+    
+    // Set form title
+    const formTitle = document.getElementById('transaction-form-title');
+    if (formTitle) {
+      formTitle.textContent = 'Ver Transacción';
     }
     
-    // Setup edit and delete button handlers
-    const editBtn = document.getElementById('edit-transaction-btn');
-    const deleteBtn = document.getElementById('delete-transaction-btn');
+    // Actualizar subtítulo según el tipo
+    const formSubtitle = document.getElementById('transaction-form-subtitle');
+    if (formSubtitle) {
+      formSubtitle.textContent = transaction.type === 'income' 
+        ? 'Detalle del ingreso registrado'
+        : 'Detalle del egreso registrado';
+    }
+    
+    // Load form data in readonly mode
+    document.getElementById('transaction-type').value = transaction.type;
+    document.getElementById('transaction-description').value = transaction.description || '';
+    const amountValue = transaction.amount ? parseFloat(transaction.amount) : 0;
+    document.getElementById('transaction-amount').value = amountValue ? formatAmountForInput(amountValue) : '';
+    document.getElementById('transaction-notes').value = transaction.notes || '';
+    
+    // Set date
+    const dateInput = document.getElementById('transaction-date');
+    if (transaction.date && dateInput) {
+      const date = new Date(transaction.date);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      dateInput.value = `${year}-${month}-${day}`;
+    }
+    
+    // Load categories and accounts
+    const categories = await loadCategoriesForTransaction(transaction.type);
+    const categorySelect = document.getElementById('transaction-category');
+    categorySelect.innerHTML = '<option value="">Seleccionar categoría</option>';
+    categories.forEach(category => {
+      const option = document.createElement('option');
+      option.value = category.id;
+      option.textContent = category.name;
+      option.selected = category.id === transaction.categoryId;
+      categorySelect.appendChild(option);
+    });
+    
+    const accounts = await loadAccountsForTransaction();
+    const accountSelect = document.getElementById('transaction-account');
+    accountSelect.innerHTML = '<option value="">Seleccionar cuenta</option>';
+    accounts.forEach(account => {
+      const option = document.createElement('option');
+      option.value = account.id;
+      option.textContent = account.name;
+      option.selected = account.id === transaction.accountId;
+      accountSelect.appendChild(option);
+    });
+    
+    // Convert fields to read-only text display
+    convertFieldsToReadOnlyText(transaction);
+    
+    // Update buttons for view mode - only show close button, hide edit and delete
+    const editBtn = document.getElementById('edit-transaction-form-btn');
+    const deleteBtn = document.getElementById('delete-transaction-form-btn');
+    const closeBtn = document.getElementById('close-transaction-form-btn');
+    const saveBtn = document.getElementById('save-transaction-form-btn');
     
     if (editBtn) {
-      // Remove existing listeners by cloning
-      const newEditBtn = editBtn.cloneNode(true);
-      editBtn.parentNode.replaceChild(newEditBtn, editBtn);
-      newEditBtn.addEventListener('click', async () => {
-        // Switch to form view in edit mode
-        await editTransaction(transactionId, transaction);
-      });
+      editBtn.classList.add('hidden');
+      editBtn.style.display = 'none';
     }
-    
     if (deleteBtn) {
-      // Remove existing listeners by cloning
-      const newDeleteBtn = deleteBtn.cloneNode(true);
-      deleteBtn.parentNode.replaceChild(newDeleteBtn, deleteBtn);
-      newDeleteBtn.addEventListener('click', async () => {
-        await deleteTransactionHandler(transactionId);
-      });
+      deleteBtn.classList.add('hidden');
+      deleteBtn.style.display = 'none';
+    }
+    if (closeBtn) {
+      closeBtn.classList.remove('hidden');
+      closeBtn.style.display = 'flex';
+    }
+    if (saveBtn) {
+      saveBtn.classList.add('hidden');
+      saveBtn.style.display = 'none';
     }
     
-    // Store transaction data for edit mode
-    if (form) {
-      form.dataset.viewMode = 'view';
-      form.dataset.editingTransactionId = transactionId;
-      form.dataset.transactionData = JSON.stringify(transaction);
-    }
+    // Store transaction data
+    form.dataset.transactionData = JSON.stringify(transaction);
 
   } catch (error) {
     hideSpinner();
@@ -1052,14 +1079,12 @@ function backToTransactions() {
   const list = document.getElementById('transactions-list');
   const header = document.querySelector('#transactions-view .flex.flex-col');
   const detail = document.getElementById('transaction-detail');
-  const form = document.getElementById('transaction-form');
   const dateFilter = document.getElementById('transactions-date-filter-container');
   const searchFilter = document.getElementById('transactions-search-filter-container');
   
   if (list) list.style.display = 'block';
   if (header) header.style.display = 'flex';
   if (detail) detail.classList.add('hidden');
-  if (form) form.classList.add('hidden');
   if (dateFilter) dateFilter.style.display = 'flex';
   if (searchFilter) searchFilter.style.display = 'block';
 }
@@ -1067,19 +1092,6 @@ function backToTransactions() {
 // Edit transaction - switch from view mode to edit mode
 async function editTransaction(transactionId, transaction) {
   const form = document.getElementById('transaction-form');
-  const list = document.getElementById('transactions-list');
-  const header = document.querySelector('#transactions-view .flex.flex-col');
-  const dateFilter = document.getElementById('transactions-date-filter-container');
-  const searchFilter = document.getElementById('transactions-search-filter-container');
-  const detail = document.getElementById('transaction-detail');
-  
-  // Hide detail view and show form
-  if (detail) detail.classList.add('hidden');
-  if (list) list.style.display = 'none';
-  if (header) header.style.display = 'none';
-  if (dateFilter) dateFilter.style.display = 'none';
-  if (searchFilter) searchFilter.style.display = 'none';
-  if (form) form.classList.remove('hidden');
   
   // Restore fields from read-only text display first
   restoreFieldsFromReadOnlyText();
