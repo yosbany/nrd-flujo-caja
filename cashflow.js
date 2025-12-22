@@ -152,8 +152,56 @@ async function getTopExpenseCategories(transactionsToProcess) {
   return sorted;
 }
 
-// Calculate estimated money needed per account based on historical expenses
+// Calculate current account balance from all transactions
+function calculateAccountBalance(accountId, allTransactions) {
+  let balance = 0;
+  Object.values(allTransactions).forEach(transaction => {
+    if (transaction && transaction.accountId === accountId) {
+      const amount = parseFloat(transaction.amount || 0);
+      if (transaction.type === 'income') {
+        balance += amount;
+      } else {
+        balance -= amount;
+      }
+    }
+  });
+  return balance;
+}
+
+// Get all historical periods of the same type
+function getHistoricalPeriods(period, referenceDate, maxPeriods = 12) {
+  const periods = [];
+  const refDate = referenceDate || new Date();
+  
+  for (let i = 1; i <= maxPeriods; i++) {
+    let periodDate = new Date(refDate);
+    
+    if (period === 'today') {
+      periodDate.setDate(periodDate.getDate() - i);
+    } else if (period === 'week') {
+      periodDate.setDate(periodDate.getDate() - (i * 7));
+    } else if (period === 'month') {
+      periodDate.setMonth(periodDate.getMonth() - i);
+    } else if (period === 'year') {
+      periodDate.setFullYear(periodDate.getFullYear() - i);
+    }
+    
+    const periodRange = getPeriodDateRange(period, periodDate);
+    if (periodRange) {
+      periods.push(periodRange);
+    }
+  }
+  
+  return periods;
+}
+
+// Calculate estimated money needed per account based on historical data
 async function calculateEstimatedMoneyNeeded(period, referenceDate, allTransactions) {
+  // Para "Todos": no mostrar estimación (período muy amplio)
+  if (period === 'all') {
+    return null;
+  }
+  
   const accountsSnapshot = await getAccountsRef().once('value');
   const accounts = accountsSnapshot.val() || {};
   
@@ -166,283 +214,119 @@ async function calculateEstimatedMoneyNeeded(period, referenceDate, allTransacti
   
   const [efectivoAccountId, efectivoAccountData] = efectivoAccount;
   
-  let historicalPeriod = null;
-  let historicalExpenses = {};
-  let historicalIncome = {};
-  let periodDescription = '';
+  // 1. Obtener el balance actual de la cuenta (Caja Real Final)
+  const cajaRealFinal = calculateAccountBalance(efectivoAccountId, allTransactions);
   
-  // Lógica de fallback: buscar datos históricos según el período
-  if (period === 'today') {
-    // Para "Hoy": buscar semana pasada, mes pasado, año pasado
-    const today = referenceDate || new Date();
-    
-    // Intentar semana pasada (promedio diario)
-    const lastWeekRange = getPreviousPeriodDateRange('week');
-    if (lastWeekRange) {
-      const weekExpenses = calculateExpensesByAccount(allTransactions, lastWeekRange, efectivoAccountId);
-      const weekIncome = calculateIncomeByAccount(allTransactions, lastWeekRange, efectivoAccountId);
-      if (hasData(weekExpenses) || hasData(weekIncome)) {
-        // Calcular promedio diario (dividir por 7 días)
-        const expenses = weekExpenses[efectivoAccountId] || 0;
-        const income = weekIncome[efectivoAccountId] || 0;
-        historicalExpenses[efectivoAccountId] = expenses / 7;
-        historicalIncome[efectivoAccountId] = income / 7;
-        historicalPeriod = lastWeekRange;
-        periodDescription = 'semana pasada (promedio diario)';
-      }
-    }
-    
-    // Si no hay datos, intentar mes pasado (mismo día)
-    if (!hasData(historicalExpenses) && !hasData(historicalIncome)) {
-      const lastMonth = new Date(today);
-      lastMonth.setMonth(lastMonth.getMonth() - 1);
-      const monthRange = getPeriodDateRange('today', lastMonth);
-      if (monthRange) {
-        const monthExpenses = calculateExpensesByAccount(allTransactions, monthRange, efectivoAccountId);
-        const monthIncome = calculateIncomeByAccount(allTransactions, monthRange, efectivoAccountId);
-        if (hasData(monthExpenses) || hasData(monthIncome)) {
-          historicalExpenses[efectivoAccountId] = monthExpenses[efectivoAccountId] || 0;
-          historicalIncome[efectivoAccountId] = monthIncome[efectivoAccountId] || 0;
-          historicalPeriod = monthRange;
-          periodDescription = 'mes pasado (mismo día)';
-        }
-      }
-    }
-    
-    // Si no hay datos, intentar año pasado (mismo día)
-    if (!hasData(historicalExpenses) && !hasData(historicalIncome)) {
-      const lastYear = new Date(today);
-      lastYear.setFullYear(lastYear.getFullYear() - 1);
-      const yearRange = getPeriodDateRange('today', lastYear);
-      if (yearRange) {
-        const yearExpenses = calculateExpensesByAccount(allTransactions, yearRange, efectivoAccountId);
-        const yearIncome = calculateIncomeByAccount(allTransactions, yearRange, efectivoAccountId);
-        if (hasData(yearExpenses) || hasData(yearIncome)) {
-          historicalExpenses[efectivoAccountId] = yearExpenses[efectivoAccountId] || 0;
-          historicalIncome[efectivoAccountId] = yearIncome[efectivoAccountId] || 0;
-          historicalPeriod = yearRange;
-          periodDescription = 'año pasado (mismo día)';
-        }
-      }
-    }
-    
-    // Si no hay datos, usar promedio de todos los días anteriores
-    if (!hasData(historicalExpenses) && !hasData(historicalIncome)) {
-      const todayStart = new Date(today);
-      todayStart.setHours(0, 0, 0, 0);
-      const allPreviousExpenses = calculateExpensesByAccount(allTransactions, {
-        start: 0,
-        end: todayStart.getTime() - 1
-      }, efectivoAccountId);
-      const allPreviousIncome = calculateIncomeByAccount(allTransactions, {
-        start: 0,
-        end: todayStart.getTime() - 1
-      }, efectivoAccountId);
-      if (hasData(allPreviousExpenses) || hasData(allPreviousIncome)) {
-        // Calcular promedio diario
-        const daysCount = Math.max(1, Math.floor((todayStart.getTime()) / (24 * 60 * 60 * 1000)));
-        historicalExpenses[efectivoAccountId] = (allPreviousExpenses[efectivoAccountId] || 0) / daysCount;
-        historicalIncome[efectivoAccountId] = (allPreviousIncome[efectivoAccountId] || 0) / daysCount;
-        periodDescription = 'promedio histórico diario';
-      }
-    }
-  } else if (period === 'week') {
-    // Para "Semana": buscar mes pasado, año pasado
-    const refDate = referenceDate || new Date();
-    
-    // Intentar mes pasado (promedio semanal del mes pasado)
-    const lastMonth = new Date(refDate);
-    lastMonth.setMonth(lastMonth.getMonth() - 1);
-    const monthRange = getPeriodDateRange('month', lastMonth);
-    if (monthRange) {
-      const monthExpenses = calculateExpensesByAccount(allTransactions, monthRange, efectivoAccountId);
-      const monthIncome = calculateIncomeByAccount(allTransactions, monthRange, efectivoAccountId);
-      if (hasData(monthExpenses) || hasData(monthIncome)) {
-        // Calcular promedio semanal (dividir por ~4.33 semanas)
-        const weeksInMonth = 4.33;
-        historicalExpenses[efectivoAccountId] = (monthExpenses[efectivoAccountId] || 0) / weeksInMonth;
-        historicalIncome[efectivoAccountId] = (monthIncome[efectivoAccountId] || 0) / weeksInMonth;
-        historicalPeriod = monthRange;
-        periodDescription = 'mes pasado (promedio semanal)';
-      }
-    }
-    
-    // Si no hay datos, intentar año pasado (misma semana)
-    if (!hasData(historicalExpenses) && !hasData(historicalIncome)) {
-      const lastYear = new Date(refDate);
-      lastYear.setFullYear(lastYear.getFullYear() - 1);
-      const weekRange = getPeriodDateRange('week', lastYear);
-      if (weekRange) {
-        const weekExpenses = calculateExpensesByAccount(allTransactions, weekRange, efectivoAccountId);
-        const weekIncome = calculateIncomeByAccount(allTransactions, weekRange, efectivoAccountId);
-        if (hasData(weekExpenses) || hasData(weekIncome)) {
-          historicalExpenses[efectivoAccountId] = weekExpenses[efectivoAccountId] || 0;
-          historicalIncome[efectivoAccountId] = weekIncome[efectivoAccountId] || 0;
-          historicalPeriod = weekRange;
-          periodDescription = 'año pasado (misma semana)';
-        }
-      }
-    }
-    
-    // Si no hay datos, usar promedio de todas las semanas anteriores
-    if (!hasData(historicalExpenses) && !hasData(historicalIncome)) {
-      // Calcular todas las semanas anteriores y promediar
-      const currentWeekStart = getPeriodDateRange('week', refDate);
-      if (currentWeekStart) {
-        const allPreviousExpenses = calculateExpensesByAccount(allTransactions, {
-          start: 0,
-          end: currentWeekStart.start - 1
-        }, efectivoAccountId);
-        const allPreviousIncome = calculateIncomeByAccount(allTransactions, {
-          start: 0,
-          end: currentWeekStart.start - 1
-        }, efectivoAccountId);
-        if (hasData(allPreviousExpenses) || hasData(allPreviousIncome)) {
-          // Contar cuántas semanas hay de datos y promediar
-          const weeksCount = Math.max(1, Math.floor((currentWeekStart.start) / (7 * 24 * 60 * 60 * 1000)));
-          historicalExpenses[efectivoAccountId] = (allPreviousExpenses[efectivoAccountId] || 0) / weeksCount;
-          historicalIncome[efectivoAccountId] = (allPreviousIncome[efectivoAccountId] || 0) / weeksCount;
-          periodDescription = 'promedio histórico semanal';
-        }
-      }
-    }
-  } else if (period === 'month') {
-    // Para "Mes": buscar año pasado (mismo mes)
-    const refDate = referenceDate || new Date();
-    
-    // Intentar año pasado (mismo mes)
-    const lastYear = new Date(refDate);
-    lastYear.setFullYear(lastYear.getFullYear() - 1);
-    const yearMonthRange = getPeriodDateRange('month', lastYear);
-    if (yearMonthRange) {
-      const yearExpenses = calculateExpensesByAccount(allTransactions, yearMonthRange, efectivoAccountId);
-      const yearIncome = calculateIncomeByAccount(allTransactions, yearMonthRange, efectivoAccountId);
-      if (hasData(yearExpenses) || hasData(yearIncome)) {
-        historicalExpenses[efectivoAccountId] = yearExpenses[efectivoAccountId] || 0;
-        historicalIncome[efectivoAccountId] = yearIncome[efectivoAccountId] || 0;
-        historicalPeriod = yearMonthRange;
-        periodDescription = 'año pasado (mismo mes)';
-      }
-    }
-    
-    // Si no hay datos, usar promedio de todos los meses anteriores del mismo año
-    if (!hasData(historicalExpenses) && !hasData(historicalIncome)) {
-      const currentYearStart = new Date(refDate.getFullYear(), 0, 1);
-      const allPreviousExpenses = calculateExpensesByAccount(allTransactions, {
-        start: currentYearStart.getTime(),
-        end: refDate.getTime() - 1
-      }, efectivoAccountId);
-      const allPreviousIncome = calculateIncomeByAccount(allTransactions, {
-        start: currentYearStart.getTime(),
-        end: refDate.getTime() - 1
-      }, efectivoAccountId);
-      if (hasData(allPreviousExpenses) || hasData(allPreviousIncome)) {
-        historicalExpenses[efectivoAccountId] = allPreviousExpenses[efectivoAccountId] || 0;
-        historicalIncome[efectivoAccountId] = allPreviousIncome[efectivoAccountId] || 0;
-        periodDescription = 'promedio del año';
-      }
-    }
-    
-    // Si no hay datos, usar promedio de todos los meses anteriores
-    if (!hasData(historicalExpenses) && !hasData(historicalIncome)) {
-      const allPreviousExpenses = calculateExpensesByAccount(allTransactions, {
-        start: 0,
-        end: refDate.getTime() - 1
-      }, efectivoAccountId);
-      const allPreviousIncome = calculateIncomeByAccount(allTransactions, {
-        start: 0,
-        end: refDate.getTime() - 1
-      }, efectivoAccountId);
-      if (hasData(allPreviousExpenses) || hasData(allPreviousIncome)) {
-        historicalExpenses[efectivoAccountId] = allPreviousExpenses[efectivoAccountId] || 0;
-        historicalIncome[efectivoAccountId] = allPreviousIncome[efectivoAccountId] || 0;
-        periodDescription = 'promedio histórico';
-      }
-    }
-  } else if (period === 'year') {
-    // Para "Año": buscar año anterior
-    const refDate = referenceDate || new Date();
-    
-    // Intentar año anterior
-    const lastYear = new Date(refDate);
-    lastYear.setFullYear(lastYear.getFullYear() - 1);
-    const yearRange = getPeriodDateRange('year', lastYear);
-    if (yearRange) {
-      const yearExpenses = calculateExpensesByAccount(allTransactions, yearRange, efectivoAccountId);
-      const yearIncome = calculateIncomeByAccount(allTransactions, yearRange, efectivoAccountId);
-      if (hasData(yearExpenses) || hasData(yearIncome)) {
-        historicalExpenses[efectivoAccountId] = yearExpenses[efectivoAccountId] || 0;
-        historicalIncome[efectivoAccountId] = yearIncome[efectivoAccountId] || 0;
-        historicalPeriod = yearRange;
-        periodDescription = 'año pasado';
-      }
-    }
-    
-    // Si no hay datos, usar promedio de todos los años anteriores
-    if (!hasData(historicalExpenses) && !hasData(historicalIncome)) {
-      const allPreviousExpenses = calculateExpensesByAccount(allTransactions, {
-        start: 0,
-        end: refDate.getTime() - 1
-      }, efectivoAccountId);
-      const allPreviousIncome = calculateIncomeByAccount(allTransactions, {
-        start: 0,
-        end: refDate.getTime() - 1
-      }, efectivoAccountId);
-      if (hasData(allPreviousExpenses) || hasData(allPreviousIncome)) {
-        historicalExpenses[efectivoAccountId] = allPreviousExpenses[efectivoAccountId] || 0;
-        historicalIncome[efectivoAccountId] = allPreviousIncome[efectivoAccountId] || 0;
-        periodDescription = 'promedio histórico';
-      }
-    }
-  } else if (period === 'all') {
-    // Para "Todos": no mostrar estimación (período muy amplio)
+  // 2. Obtener todos los períodos históricos del mismo tipo
+  const historicalPeriods = getHistoricalPeriods(period, referenceDate);
+  
+  if (historicalPeriods.length === 0) {
     return null;
   }
   
-  // Si no hay datos históricos, retornar null
-  if (!hasData(historicalExpenses) && !hasData(historicalIncome)) {
+  // 3. Calcular descalces históricos (Egresos - Ingresos) para cada período
+  const descalces = [];
+  historicalPeriods.forEach(periodRange => {
+    const expenses = calculateExpensesByAccount(allTransactions, periodRange, efectivoAccountId);
+    const income = calculateIncomeByAccount(allTransactions, periodRange, efectivoAccountId);
+    
+    const totalExpenses = expenses[efectivoAccountId] || 0;
+    const totalIncome = income[efectivoAccountId] || 0;
+    const descalce = totalExpenses - totalIncome; // Egresos - Ingresos
+    
+    if (totalExpenses > 0 || totalIncome > 0) {
+      descalces.push(descalce);
+    }
+  });
+  
+  if (descalces.length === 0) {
     return null;
   }
   
-  // Calcular ingresos y egresos en efectivo
-  const expenses = historicalExpenses[efectivoAccountId] || 0;
-  const income = historicalIncome[efectivoAccountId] || 0;
+  // 4. Determinar el peor descalce histórico (máximo, ya que descalce = egresos - ingresos)
+  // El peor descalce es el más positivo (mayor déficit)
+  // Si todos los descalces son negativos (siempre hubo superávit), usar 0
+  const maxDescalce = Math.max(...descalces);
+  const peorDescalce = maxDescalce < 0 ? 0 : maxDescalce;
   
-  // Aplicar 10% adicional a los egresos para gastos extraordinarios
-  const estimatedExpenses = expenses * 1.10;
+  // 5. Calcular Caja Objetivo Histórica (COH) con margen de seguridad del 10%
+  const margenSeguridad = 0.10;
+  const coh = peorDescalce * (1 + margenSeguridad);
   
-  // Calcular balance (ingresos - egresos estimados)
-  const balance = income - estimatedExpenses;
+  // 6. Calcular Desvío de Caja contra Histórico (DCH)
+  const dch = cajaRealFinal - coh;
   
-  // Determinar si hay que transferir o depositar
+  // 7. Aplicar regla de decisión
   let actionType = 'neutral';
   let actionAmount = 0;
   let actionText = '';
   
-  if (balance < 0) {
-    // Balance negativo: necesita transferir dinero a efectivo
-    actionType = 'transfer';
-    actionAmount = Math.abs(balance);
-    actionText = 'Transferir';
-  } else if (balance > 0) {
-    // Balance positivo: puede depositar el excedente
+  if (dch > 0) {
+    // REEMBOLSAR (depositar efectivo)
     actionType = 'deposit';
-    actionAmount = balance;
-    actionText = 'Depositar';
+    actionAmount = dch;
+    actionText = 'Reembolsar';
+  } else if (dch < 0) {
+    // INYECTAR (transferir efectivo)
+    actionType = 'transfer';
+    actionAmount = Math.abs(dch);
+    actionText = 'Inyectar';
+  } else {
+    // MANTENER
+    actionType = 'neutral';
+    actionAmount = 0;
+    actionText = 'Mantener';
   }
+  
+  // Calcular promedio de ingresos y egresos históricos para mostrar
+  const historicalExpenses = {};
+  const historicalIncome = {};
+  let totalHistoricalExpenses = 0;
+  let totalHistoricalIncome = 0;
+  let periodsWithData = 0;
+  
+  historicalPeriods.forEach(periodRange => {
+    const expenses = calculateExpensesByAccount(allTransactions, periodRange, efectivoAccountId);
+    const income = calculateIncomeByAccount(allTransactions, periodRange, efectivoAccountId);
+    
+    const exp = expenses[efectivoAccountId] || 0;
+    const inc = income[efectivoAccountId] || 0;
+    
+    if (exp > 0 || inc > 0) {
+      totalHistoricalExpenses += exp;
+      totalHistoricalIncome += inc;
+      periodsWithData++;
+    }
+  });
+  
+  const avgExpenses = periodsWithData > 0 ? totalHistoricalExpenses / periodsWithData : 0;
+  const avgIncome = periodsWithData > 0 ? totalHistoricalIncome / periodsWithData : 0;
+  
+  const periodNames = {
+    'today': 'día',
+    'week': 'semana',
+    'month': 'mes',
+    'year': 'año'
+  };
+  
+  const periodDescription = `${periodsWithData} ${periodNames[period] || 'período'}${periodsWithData !== 1 ? 's' : ''} anterior${periodsWithData !== 1 ? 'es' : ''}`;
   
   return {
     accountId: efectivoAccountId,
     accountName: efectivoAccountData.name,
-    expenses: expenses,
-    estimatedExpenses: estimatedExpenses,
-    income: income,
-    balance: balance,
+    expenses: avgExpenses,
+    income: avgIncome,
+    cajaRealFinal: cajaRealFinal,
+    peorDescalce: peorDescalce,
+    coh: coh,
+    dch: dch,
     actionType: actionType,
     actionAmount: actionAmount,
     actionText: actionText,
     periodDescription: periodDescription
   };
+}
+
 }
 
 // Helper: Calculate expenses by account for a given date range
@@ -557,8 +441,8 @@ async function renderEstimatedMoneyNeeded(period, referenceDate, allTransactions
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
       <div class="flex-1">
         <div class="text-[10px] sm:text-xs text-gray-500 space-y-0.5">
-          <div>Egresos estimados: <span class="font-medium text-red-600">$${formatNumber(estimatedData.estimatedExpenses)}</span></div>
-          <div>Ingresos estimados: <span class="font-medium text-green-600">$${formatNumber(estimatedData.income)}</span></div>
+          <div>Egresos promedio: <span class="font-medium text-red-600">$${formatNumber(estimatedData.expenses)}</span></div>
+          <div>Ingresos promedio: <span class="font-medium text-green-600">$${formatNumber(estimatedData.income)}</span></div>
         </div>
       </div>
       <div class="text-center sm:text-right ${actionBg} px-3 py-2 rounded">
@@ -568,7 +452,7 @@ async function renderEstimatedMoneyNeeded(period, referenceDate, allTransactions
           ${actionIcon} $${formatNumber(estimatedData.actionAmount)}
         </div>
         ` : `
-        <div class="text-xs sm:text-sm text-gray-500">Balance equilibrado</div>
+        <div class="text-xs sm:text-sm text-gray-500">Mantener</div>
         `}
       </div>
     </div>
