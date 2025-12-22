@@ -326,10 +326,22 @@ function showCategoryForm(categoryId = null) {
     const toggleActiveBtn = document.getElementById('toggle-category-active-btn');
     const closeBtn = document.getElementById('close-category-form-btn');
     const saveBtn = document.getElementById('save-category-form-btn');
-    if (deleteBtn) deleteBtn.style.display = 'flex';
-    if (editBtn) editBtn.style.display = 'flex';
-    if (closeBtn) closeBtn.style.display = 'flex';
-    if (saveBtn) saveBtn.style.display = 'none';
+    if (deleteBtn) {
+      deleteBtn.style.display = 'flex';
+      deleteBtn.classList.remove('hidden');
+    }
+    if (editBtn) {
+      editBtn.style.display = 'flex';
+      editBtn.classList.remove('hidden');
+    }
+    if (closeBtn) {
+      closeBtn.style.display = 'flex';
+      closeBtn.classList.remove('hidden');
+    }
+    if (saveBtn) {
+      saveBtn.style.display = 'none';
+      saveBtn.classList.add('hidden');
+    }
     
     // Make fields readonly
     const nameInput = document.getElementById('category-name');
@@ -370,11 +382,26 @@ function showCategoryForm(categoryId = null) {
     const toggleActiveBtn = document.getElementById('toggle-category-active-btn');
     const closeBtn = document.getElementById('close-category-form-btn');
     const saveBtn = document.getElementById('save-category-form-btn');
-    if (deleteBtn) deleteBtn.style.display = 'none';
-    if (editBtn) editBtn.style.display = 'none';
-    if (toggleActiveBtn) toggleActiveBtn.style.display = 'none';
-    if (closeBtn) closeBtn.style.display = 'flex';
-    if (saveBtn) saveBtn.style.display = 'flex';
+    if (deleteBtn) {
+      deleteBtn.style.display = 'none';
+      deleteBtn.classList.add('hidden');
+    }
+    if (editBtn) {
+      editBtn.style.display = 'none';
+      editBtn.classList.add('hidden');
+    }
+    if (toggleActiveBtn) {
+      toggleActiveBtn.style.display = 'none';
+      toggleActiveBtn.classList.add('hidden');
+    }
+    if (closeBtn) {
+      closeBtn.style.display = 'flex';
+      closeBtn.classList.remove('hidden');
+    }
+    if (saveBtn) {
+      saveBtn.style.display = 'flex';
+      saveBtn.classList.remove('hidden');
+    }
     
     // Enable fields
     const nameInput = document.getElementById('category-name');
@@ -504,11 +531,26 @@ document.getElementById('edit-category-form-btn').addEventListener('click', asyn
     const toggleActiveBtn = document.getElementById('toggle-category-active-btn');
     const closeBtn = document.getElementById('close-category-form-btn');
     const saveBtn = document.getElementById('save-category-form-btn');
-    if (editBtn) editBtn.style.display = 'none';
-    if (deleteBtn) deleteBtn.style.display = 'none';
-    if (toggleActiveBtn) toggleActiveBtn.style.display = 'none';
-    if (closeBtn) closeBtn.style.display = 'flex';
-    if (saveBtn) saveBtn.style.display = 'flex';
+    if (editBtn) {
+      editBtn.style.display = 'none';
+      editBtn.classList.add('hidden');
+    }
+    if (deleteBtn) {
+      deleteBtn.style.display = 'none';
+      deleteBtn.classList.add('hidden');
+    }
+    if (toggleActiveBtn) {
+      toggleActiveBtn.style.display = 'none';
+      toggleActiveBtn.classList.add('hidden');
+    }
+    if (closeBtn) {
+      closeBtn.style.display = 'flex';
+      closeBtn.classList.remove('hidden');
+    }
+    if (saveBtn) {
+      saveBtn.style.display = 'flex';
+      saveBtn.classList.remove('hidden');
+    }
   }
 });
 
