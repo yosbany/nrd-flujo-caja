@@ -182,15 +182,27 @@ async function showNewTransactionForm(type) {
   form.classList.remove('hidden');
   if (list) list.style.display = 'none';
   if (header) header.style.display = 'none';
-  // Mantener el filtro de fecha visible para facilitar la selección de fecha
-  // if (dateFilter) dateFilter.style.display = 'none';
+  
+  // Ocultar filtros cuando se muestra el formulario
+  const searchFilter = document.getElementById('transactions-search-filter-container');
+  if (dateFilter) dateFilter.style.display = 'none';
+  if (searchFilter) searchFilter.style.display = 'none';
   
   // Aplicar fondo de color según el tipo de transacción
+  const formHeader = document.getElementById('transaction-form-header');
   form.classList.remove('bg-white', 'bg-green-50', 'bg-red-50');
   if (type === 'income') {
     form.classList.add('bg-green-50');
+    if (formHeader) {
+      formHeader.classList.remove('bg-red-600', 'bg-gray-600');
+      formHeader.classList.add('bg-green-600');
+    }
   } else {
     form.classList.add('bg-red-50');
+    if (formHeader) {
+      formHeader.classList.remove('bg-green-600', 'bg-gray-600');
+      formHeader.classList.add('bg-red-600');
+    }
   }
   
   // Clear editing state
@@ -303,8 +315,14 @@ function setupDescriptionAutocomplete() {
   });
   
   newInput.addEventListener('focus', (e) => {
-    if (e.target.value) {
-      showDescriptionAutocomplete(e.target.value);
+    // Mostrar todas las opciones disponibles al hacer focus
+    showDescriptionAutocomplete(e.target.value || '');
+  });
+  
+  newInput.addEventListener('click', (e) => {
+    // Mostrar todas las opciones disponibles al hacer clic
+    if (!e.target.value) {
+      showDescriptionAutocomplete('');
     }
   });
   
@@ -322,7 +340,7 @@ function setupDescriptionAutocomplete() {
 // Store descriptions for autocomplete
 let availableDescriptions = [];
 
-// Load unique descriptions for autocomplete
+// Load unique descriptions for autocomplete and datalist
 async function loadDescriptionsForAutocomplete() {
   try {
     const transactionsSnapshot = await getTransactionsRef().once('value');
@@ -338,13 +356,24 @@ async function loadDescriptionsForAutocomplete() {
     
     // Store sorted descriptions
     availableDescriptions = Array.from(descriptions).sort();
+    
+    // Populate datalist with all available subcategories
+    const datalist = document.getElementById('subcategory-list');
+    if (datalist) {
+      datalist.innerHTML = '';
+      availableDescriptions.forEach(desc => {
+        const option = document.createElement('option');
+        option.value = desc;
+        datalist.appendChild(option);
+      });
+    }
   } catch (error) {
     console.error('Error loading descriptions:', error);
     availableDescriptions = [];
   }
 }
 
-// Show autocomplete suggestions
+// Show autocomplete suggestions (fallback for browsers that don't support datalist well)
 function showDescriptionAutocomplete(inputValue) {
   const autocompleteList = document.getElementById('description-autocomplete-list');
   if (!autocompleteList) return;
@@ -361,14 +390,15 @@ function showDescriptionAutocomplete(inputValue) {
     return;
   }
   
-  // Show filtered list
+  // Show filtered list (mostrar todas las opciones si el campo está vacío o al hacer focus)
   autocompleteList.innerHTML = '';
   autocompleteList.classList.remove('hidden');
   
-  // Limit to 10 suggestions
-  filtered.slice(0, 10).forEach(desc => {
+  // Show all or filtered suggestions (limit to 15)
+  const toShow = inputValue ? filtered : availableDescriptions;
+  toShow.slice(0, 15).forEach(desc => {
     const item = document.createElement('div');
-    item.className = 'px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm';
+    item.className = 'px-4 py-2.5 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100 last:border-0';
     item.textContent = desc;
     item.addEventListener('click', () => {
       document.getElementById('transaction-description').value = desc;
@@ -402,9 +432,12 @@ function hideTransactionForm() {
   form.classList.remove('bg-green-50', 'bg-red-50');
   form.classList.add('bg-white');
   
+  // Mostrar filtros nuevamente
+  const searchFilter = document.getElementById('transactions-search-filter-container');
   if (list) list.style.display = 'block';
   if (header) header.style.display = 'flex';
   if (dateFilter) dateFilter.style.display = 'flex';
+  if (searchFilter) searchFilter.style.display = 'block';
   
   // Clear form state
   delete form.dataset.editingTransactionId;
@@ -690,20 +723,31 @@ async function viewTransaction(transactionId) {
     const header = document.querySelector('#transactions-view .flex.flex-col');
     const form = document.getElementById('transaction-form');
     const dateFilter = document.getElementById('transactions-date-filter-container');
+    const searchFilter = document.getElementById('transactions-search-filter-container');
     const detail = document.getElementById('transaction-detail');
     
     if (list) list.style.display = 'none';
     if (header) header.style.display = 'none';
     if (detail) detail.classList.add('hidden');
     if (dateFilter) dateFilter.style.display = 'none';
+    if (searchFilter) searchFilter.style.display = 'none';
     if (form) form.classList.remove('hidden');
     
     // Aplicar fondo de color según el tipo de transacción
+    const formHeader = document.getElementById('transaction-form-header');
     form.classList.remove('bg-white', 'bg-green-50', 'bg-red-50');
     if (transaction.type === 'income') {
       form.classList.add('bg-green-50');
+      if (formHeader) {
+        formHeader.classList.remove('bg-red-600', 'bg-gray-600');
+        formHeader.classList.add('bg-green-600');
+      }
     } else {
       form.classList.add('bg-red-50');
+      if (formHeader) {
+        formHeader.classList.remove('bg-green-600', 'bg-gray-600');
+        formHeader.classList.add('bg-red-600');
+      }
     }
     
     // Set form to view mode (readonly)
@@ -714,6 +758,14 @@ async function viewTransaction(transactionId) {
     const formTitle = document.getElementById('transaction-form-title');
     if (formTitle) {
       formTitle.textContent = 'Ver Transacción';
+    }
+    
+    // Actualizar subtítulo según el tipo
+    const formSubtitle = document.getElementById('transaction-form-subtitle');
+    if (formSubtitle) {
+      formSubtitle.textContent = transaction.type === 'income' 
+        ? 'Detalle del ingreso registrado'
+        : 'Detalle del egreso registrado';
     }
     
     // Load form data in readonly mode
@@ -800,11 +852,13 @@ function backToTransactions() {
   const header = document.querySelector('#transactions-view .flex.flex-col');
   const detail = document.getElementById('transaction-detail');
   const dateFilter = document.getElementById('transactions-date-filter-container');
+  const searchFilter = document.getElementById('transactions-search-filter-container');
   
   if (list) list.style.display = 'block';
   if (header) header.style.display = 'flex';
   if (detail) detail.classList.add('hidden');
   if (dateFilter) dateFilter.style.display = 'flex';
+  if (searchFilter) searchFilter.style.display = 'block';
 }
 
 // Edit transaction - switch from view mode to edit mode
@@ -816,17 +870,34 @@ async function editTransaction(transactionId, transaction) {
   form.dataset.editingTransactionId = transactionId;
   
   // Aplicar fondo de color según el tipo de transacción
+  const formHeader = document.getElementById('transaction-form-header');
   form.classList.remove('bg-white', 'bg-green-50', 'bg-red-50');
   if (transaction.type === 'income') {
     form.classList.add('bg-green-50');
+    if (formHeader) {
+      formHeader.classList.remove('bg-red-600', 'bg-gray-600');
+      formHeader.classList.add('bg-green-600');
+    }
   } else {
     form.classList.add('bg-red-50');
+    if (formHeader) {
+      formHeader.classList.remove('bg-green-600', 'bg-gray-600');
+      formHeader.classList.add('bg-red-600');
+    }
   }
   
   // Set form title
   const formTitle = document.getElementById('transaction-form-title');
   if (formTitle) {
     formTitle.textContent = 'Editar Transacción';
+  }
+  
+  // Actualizar subtítulo según el tipo
+  const formSubtitle = document.getElementById('transaction-form-subtitle');
+  if (formSubtitle) {
+    formSubtitle.textContent = transaction.type === 'income' 
+      ? 'Modifique los datos del ingreso'
+      : 'Modifique los datos del egreso';
   }
   
   // Enable all fields for editing
