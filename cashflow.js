@@ -122,6 +122,204 @@ function formatVariation(variation) {
   return `${sign}${variation.toFixed(1)}% vs período anterior`;
 }
 
+// Get day name in Spanish
+function getDayName(date) {
+  const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  return days[date.getDay()];
+}
+
+// Get month name in Spanish
+function getMonthName(monthIndex) {
+  const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+                  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  return months[monthIndex];
+}
+
+// Calculate and display breakdown for weekly view
+function updateWeeklyBreakdown(transactionsToProcess, periodRange) {
+  if (!periodRange) return;
+  
+  // Initialize breakdown by day (Monday to Sunday)
+  const breakdown = {
+    income: {},
+    expenses: {},
+    balance: {}
+  };
+  
+  // Initialize all days of the week
+  const weekStart = new Date(periodRange.start);
+  const weekDay = (weekStart.getDay() + 6) % 7; // Convert to Monday=0, Sunday=6
+  for (let i = 0; i < 7; i++) {
+    const day = new Date(weekStart);
+    day.setDate(weekStart.getDate() + i);
+    const dayKey = day.getTime();
+    breakdown.income[dayKey] = 0;
+    breakdown.expenses[dayKey] = 0;
+    breakdown.balance[dayKey] = 0;
+  }
+  
+  // Process transactions
+  transactionsToProcess.forEach(({ id, ...transaction }) => {
+    const transactionDate = transaction.date || transaction.createdAt;
+    if (!transactionDate) return;
+    
+    const date = new Date(transactionDate);
+    const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+    const dayKey = dayStart.getTime();
+    
+    const amount = parseFloat(transaction.amount || 0);
+    
+    if (transaction.type === 'income') {
+      breakdown.income[dayKey] = (breakdown.income[dayKey] || 0) + amount;
+    } else {
+      breakdown.expenses[dayKey] = (breakdown.expenses[dayKey] || 0) + amount;
+    }
+  });
+  
+  // Calculate balance for each day
+  Object.keys(breakdown.income).forEach(dayKey => {
+    breakdown.balance[dayKey] = (breakdown.income[dayKey] || 0) - (breakdown.expenses[dayKey] || 0);
+  });
+  
+  // Render breakdown
+  renderBreakdown('income-breakdown', breakdown.income, periodRange, 'week', 'green');
+  renderBreakdown('expenses-breakdown', breakdown.expenses, periodRange, 'week', 'red');
+  renderBreakdown('balance-breakdown', breakdown.balance, periodRange, 'week', 'blue');
+}
+
+// Calculate and display breakdown for monthly view
+function updateMonthlyBreakdown(transactionsToProcess, currentYear) {
+  // Initialize breakdown by month (January to current month)
+  const breakdown = {
+    income: {},
+    expenses: {},
+    balance: {}
+  };
+  
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  
+  // Initialize all months from January to current month
+  for (let month = 0; month <= currentMonth; month++) {
+    const monthKey = `${currentYear}-${String(month).padStart(2, '0')}`;
+    breakdown.income[monthKey] = 0;
+    breakdown.expenses[monthKey] = 0;
+    breakdown.balance[monthKey] = 0;
+  }
+  
+  // Process all transactions (not just filtered ones) to show year-to-date
+  // We need to get all transactions for the year, not just the current month
+  // But we'll use transactionsToProcess which should already be filtered to the current month
+  // Actually, we need all transactions from the year, so we'll need to get them separately
+  // For now, let's process what we have and show from January to current month
+  
+  // Process transactions - we need to get ALL transactions from the year, not just current month
+  // This function will be called with transactionsToProcess which is filtered to current month
+  // We need to fetch all transactions for the year instead
+  transactionsToProcess.forEach(({ id, ...transaction }) => {
+    const transactionDate = transaction.date || transaction.createdAt;
+    if (!transactionDate) return;
+    
+    const date = new Date(transactionDate);
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    
+    // Only process if it's the current year
+    if (year === currentYear) {
+      const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+      const amount = parseFloat(transaction.amount || 0);
+      
+      if (transaction.type === 'income') {
+        breakdown.income[monthKey] = (breakdown.income[monthKey] || 0) + amount;
+      } else {
+        breakdown.expenses[monthKey] = (breakdown.expenses[monthKey] || 0) + amount;
+      }
+    }
+  });
+  
+  // Calculate balance for each month
+  Object.keys(breakdown.income).forEach(monthKey => {
+    breakdown.balance[monthKey] = (breakdown.income[monthKey] || 0) - (breakdown.expenses[monthKey] || 0);
+  });
+  
+  // Render breakdown
+  renderBreakdown('income-breakdown', breakdown.income, null, 'month', 'green', currentYear);
+  renderBreakdown('expenses-breakdown', breakdown.expenses, null, 'month', 'red', currentYear);
+  renderBreakdown('balance-breakdown', breakdown.balance, null, 'month', 'blue', currentYear);
+}
+
+// Render breakdown in the UI
+function renderBreakdown(containerId, breakdownData, periodRange, type, color, year = null) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  
+  container.innerHTML = '';
+  container.classList.remove('hidden');
+  
+  // Map color names to Tailwind classes
+  const colorClasses = {
+    'green': 'text-green-600',
+    'red': 'text-red-600',
+    'blue': 'text-blue-600'
+  };
+  const colorClass = colorClasses[color] || 'text-gray-600';
+  
+  if (type === 'week') {
+    // Sort by day (Monday to Sunday)
+    const weekStart = new Date(periodRange.start);
+    const sortedDays = [];
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(weekStart);
+      day.setDate(weekStart.getDate() + i);
+      sortedDays.push(day);
+    }
+    
+    sortedDays.forEach(day => {
+      const dayKey = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 0, 0, 0, 0).getTime();
+      const amount = breakdownData[dayKey] || 0;
+      if (amount === 0) return; // Skip days with no transactions
+      
+      const dayName = getDayName(day);
+      const dayNumber = day.getDate();
+      const item = document.createElement('div');
+      item.className = 'flex justify-between items-center text-xs border-t border-gray-300 pt-1';
+      item.innerHTML = `
+        <span class="text-gray-700">${dayName} ${dayNumber}</span>
+        <span class="${colorClass} font-medium">$${formatNumber(amount)}</span>
+      `;
+      container.appendChild(item);
+    });
+  } else if (type === 'month') {
+    // Sort by month (January to current month)
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    
+    for (let month = 0; month <= currentMonth; month++) {
+      const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+      const amount = breakdownData[monthKey] || 0;
+      
+      const monthName = getMonthName(month);
+      const item = document.createElement('div');
+      item.className = 'flex justify-between items-center text-xs border-t border-gray-300 pt-1';
+      item.innerHTML = `
+        <span class="text-gray-700">${monthName}</span>
+        <span class="${colorClass} font-medium">$${formatNumber(amount)}</span>
+      `;
+      container.appendChild(item);
+    }
+    
+    // Show container even if all amounts are 0, to show the month list
+    if (container.children.length > 0) {
+      container.classList.remove('hidden');
+    }
+  }
+  
+  // Hide container if no data
+  if (container.children.length === 0) {
+    container.classList.add('hidden');
+  }
+}
+
 // Get TOP 3 expense categories
 async function getTopExpenseCategories(transactionsToProcess) {
   // Get all categories
@@ -1297,6 +1495,34 @@ function loadCashflow() {
 
     // Update Top 10 sections
     await updateTop10Sections(transactionsToProcess);
+
+    // Update breakdowns for weekly and monthly views
+    const incomeBreakdown = document.getElementById('income-breakdown');
+    const expensesBreakdown = document.getElementById('expenses-breakdown');
+    const balanceBreakdown = document.getElementById('balance-breakdown');
+    
+    // Hide breakdowns by default
+    if (incomeBreakdown) incomeBreakdown.classList.add('hidden');
+    if (expensesBreakdown) expensesBreakdown.classList.add('hidden');
+    if (balanceBreakdown) balanceBreakdown.classList.add('hidden');
+    
+    if (cashflowSelectedFilterPeriod === 'week' && periodRange) {
+      updateWeeklyBreakdown(transactionsToProcess, periodRange);
+    } else if (cashflowSelectedFilterPeriod === 'month') {
+      const currentYear = cashflowPeriodReferenceDate ? new Date(cashflowPeriodReferenceDate).getFullYear() : new Date().getFullYear();
+      // For monthly view, we need all transactions from the year, not just the current month
+      const yearStart = new Date(currentYear, 0, 1, 0, 0, 0, 0).getTime();
+      const yearEnd = new Date(currentYear, 11, 31, 23, 59, 59, 999).getTime();
+      const allYearTransactions = Object.entries(transactions).map(([id, transaction]) => ({
+        id,
+        ...transaction
+      })).filter(({ id, ...transaction }) => {
+        const transactionDate = transaction.date || transaction.createdAt;
+        if (!transactionDate) return false;
+        return transactionDate >= yearStart && transactionDate <= yearEnd;
+      });
+      updateMonthlyBreakdown(allYearTransactions, currentYear);
+    }
 
     // Apply visual emphasis based on filter
     const balanceCard = document.querySelector('#cashflow-view .bg-blue-50');

@@ -7,7 +7,7 @@
   <title>NRD Flujo de Caja</title>
   <link rel="manifest" href="manifest.json">
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="styles.css?v=1766429549237">
+  <link rel="stylesheet" href="styles.css?v=1766429930053">
   <meta name="theme-color" content="#dc2626">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/svg+xml" href="icon-192.svg">
@@ -150,12 +150,14 @@
             <div id="total-income" class="text-2xl sm:text-3xl font-light text-green-600">$0.00</div>
             <div class="text-xs text-gray-500 mt-1">100% de los ingresos</div>
             <div id="income-variation" class="text-xs text-gray-500 mt-1"></div>
+            <div id="income-breakdown" class="mt-3 space-y-1 hidden"></div>
           </div>
           <div id="expenses-card" class="border border-gray-200 p-4 sm:p-6 bg-red-50">
             <div class="text-xs sm:text-sm uppercase tracking-wider text-gray-600 mb-2">Egresos</div>
             <div id="total-expenses" class="text-2xl sm:text-3xl font-light text-red-600">$0.00</div>
             <div id="expenses-percentage" class="text-xs text-gray-500 mt-1"></div>
             <div id="expenses-variation" class="text-xs text-gray-500 mt-1"></div>
+            <div id="expenses-breakdown" class="mt-3 space-y-1 hidden"></div>
           </div>
           <div class="border border-gray-200 p-4 sm:p-6 bg-blue-50 relative">
             <div class="text-xs sm:text-sm uppercase tracking-wider text-gray-600 mb-2">Balance</div>
@@ -163,6 +165,7 @@
             <div id="balance-percentage" class="text-xs text-gray-500 mt-1"></div>
             <div id="balance-variation" class="text-xs text-gray-500 mt-1"></div>
             <div id="balance-trend" class="text-xs text-gray-500 mt-1"></div>
+            <div id="balance-breakdown" class="mt-3 space-y-1 hidden"></div>
             <!-- Badge de margen -->
             <div id="margin-badge" class="absolute top-3 right-3 px-2 py-1 rounded text-xs font-semibold"></div>
           </div>
@@ -649,15 +652,15 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   
   <!-- App Scripts -->
-  <script src="firebase.js?v=1766429549237"></script>
-  <script src="modal.js?v=1766429549237"></script>
-  <script src="auth.js?v=1766429549237"></script>
-  <script src="db.js?v=1766429549237"></script>
-  <script src="categories.js?v=1766429549237"></script>
-  <script src="transactions.js?v=1766429549237"></script>
-  <script src="cashflow.js?v=1766429549237"></script>
-  <script src="accounts.js?v=1766429549237"></script>
-  <script src="app.js?v=1766429549237"></script>
+  <script src="firebase.js?v=1766429930053"></script>
+  <script src="modal.js?v=1766429930053"></script>
+  <script src="auth.js?v=1766429930053"></script>
+  <script src="db.js?v=1766429930053"></script>
+  <script src="categories.js?v=1766429930053"></script>
+  <script src="transactions.js?v=1766429930053"></script>
+  <script src="cashflow.js?v=1766429930053"></script>
+  <script src="accounts.js?v=1766429930053"></script>
+  <script src="app.js?v=1766429930053"></script>
 
   <script>
     // Global error handler
@@ -708,7 +711,7 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         // Register service worker without version parameter
-        navigator.serviceWorker.register('service-worker.js?v=1766429549237')
+        navigator.serviceWorker.register('service-worker.js?v=1766429930053')
           .then(reg => {
             console.log('Service Worker registered');
             
