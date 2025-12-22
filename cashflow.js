@@ -443,8 +443,8 @@ async function renderEstimatedMoneyNeeded(period, referenceDate, allTransactions
   const periodText = firstAccount.periodDescription;
   
   header.innerHTML = `
-    <h3 class="text-sm sm:text-base font-medium text-gray-700 mb-1">Dinero Necesario Estimado por Cuenta</h3>
-    <p class="text-xs text-gray-500">Basado en: ${periodText} (+10% para gastos extraordinarios)</p>
+    <h3 class="text-xs sm:text-sm font-medium text-gray-700 mb-0.5">Disponibilidades Estimadas Por Cuentas</h3>
+    <p class="text-[10px] sm:text-xs text-gray-500">Basado en: ${periodText} (+10%)</p>
   `;
   
   accountsContainer.innerHTML = '';
@@ -454,16 +454,14 @@ async function renderEstimatedMoneyNeeded(period, referenceDate, allTransactions
     .sort((a, b) => b[1].estimatedAmount - a[1].estimatedAmount);
   
   sortedAccounts.forEach(([accountId, data]) => {
+    // Solo mostrar cuentas con monto mayor a 0
+    if (data.estimatedAmount <= 0) return;
+    
     const card = document.createElement('div');
-    card.className = 'border border-gray-200 p-3 sm:p-4 bg-white rounded-lg';
+    card.className = 'border border-gray-200 p-2 sm:p-2.5 bg-white rounded text-center';
     card.innerHTML = `
-      <div class="flex justify-between items-start mb-2">
-        <div class="text-sm sm:text-base font-medium text-gray-800">${escapeHtml(data.accountName)}</div>
-        <div class="text-lg sm:text-xl font-semibold text-red-600">$${formatNumber(data.estimatedAmount)}</div>
-      </div>
-      <div class="text-xs text-gray-500">
-        Base: $${formatNumber(data.baseAmount)} + 10% = $${formatNumber(data.estimatedAmount)}
-      </div>
+      <div class="text-[10px] sm:text-xs text-gray-600 mb-1 truncate" title="${escapeHtml(data.accountName)}">${escapeHtml(data.accountName)}</div>
+      <div class="text-sm sm:text-base font-semibold text-red-600">$${formatNumber(data.estimatedAmount)}</div>
     `;
     accountsContainer.appendChild(card);
   });
