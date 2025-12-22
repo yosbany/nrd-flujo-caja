@@ -125,10 +125,22 @@ function showAccountForm(accountId = null) {
     const toggleActiveBtn = document.getElementById('toggle-account-active-btn');
     const closeBtn = document.getElementById('close-account-form-btn');
     const saveBtn = document.getElementById('save-account-form-btn');
-    if (deleteBtn) deleteBtn.style.display = 'flex';
-    if (editBtn) editBtn.style.display = 'flex';
-    if (closeBtn) closeBtn.style.display = 'flex';
-    if (saveBtn) saveBtn.style.display = 'none';
+    if (deleteBtn) {
+      deleteBtn.style.display = 'flex';
+      deleteBtn.classList.remove('hidden');
+    }
+    if (editBtn) {
+      editBtn.style.display = 'flex';
+      editBtn.classList.remove('hidden');
+    }
+    if (closeBtn) {
+      closeBtn.style.display = 'flex';
+      closeBtn.classList.remove('hidden');
+    }
+    if (saveBtn) {
+      saveBtn.style.display = 'none';
+      saveBtn.classList.add('hidden');
+    }
     
     // Make fields readonly
     const nameInput = document.getElementById('account-name');
@@ -175,11 +187,26 @@ function showAccountForm(accountId = null) {
     const toggleActiveBtn = document.getElementById('toggle-account-active-btn');
     const closeBtn = document.getElementById('close-account-form-btn');
     const saveBtn = document.getElementById('save-account-form-btn');
-    if (deleteBtn) deleteBtn.style.display = 'none';
-    if (editBtn) editBtn.style.display = 'none';
-    if (toggleActiveBtn) toggleActiveBtn.style.display = 'none';
-    if (closeBtn) closeBtn.style.display = 'flex';
-    if (saveBtn) saveBtn.style.display = 'flex';
+    if (deleteBtn) {
+      deleteBtn.style.display = 'none';
+      deleteBtn.classList.add('hidden');
+    }
+    if (editBtn) {
+      editBtn.style.display = 'none';
+      editBtn.classList.add('hidden');
+    }
+    if (toggleActiveBtn) {
+      toggleActiveBtn.style.display = 'none';
+      toggleActiveBtn.classList.add('hidden');
+    }
+    if (closeBtn) {
+      closeBtn.style.display = 'flex';
+      closeBtn.classList.remove('hidden');
+    }
+    if (saveBtn) {
+      saveBtn.style.display = 'flex';
+      saveBtn.classList.remove('hidden');
+    }
     
     // Enable fields
     const nameInput = document.getElementById('account-name');
@@ -350,11 +377,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const toggleActiveBtn = document.getElementById('toggle-account-active-btn');
         const closeBtn = document.getElementById('close-account-form-btn');
         const saveBtn = document.getElementById('save-account-form-btn');
-        if (editBtn) editBtn.style.display = 'none';
-        if (deleteBtn) deleteBtn.style.display = 'none';
-        if (toggleActiveBtn) toggleActiveBtn.style.display = 'none';
-        if (closeBtn) closeBtn.style.display = 'flex';
-        if (saveBtn) saveBtn.style.display = 'flex';
+        if (editBtn) {
+          editBtn.style.display = 'none';
+          editBtn.classList.add('hidden');
+        }
+        if (deleteBtn) {
+          deleteBtn.style.display = 'none';
+          deleteBtn.classList.add('hidden');
+        }
+        if (toggleActiveBtn) {
+          toggleActiveBtn.style.display = 'none';
+          toggleActiveBtn.classList.add('hidden');
+        }
+        if (closeBtn) {
+          closeBtn.style.display = 'flex';
+          closeBtn.classList.remove('hidden');
+        }
+        if (saveBtn) {
+          saveBtn.style.display = 'flex';
+          saveBtn.classList.remove('hidden');
+        }
       }
     });
   }
