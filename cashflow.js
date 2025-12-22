@@ -513,16 +513,16 @@ async function calculateEstimatedMoneyNeeded(period, referenceDate, allTransacti
   
   if (descalcePeriodo > 0) {
     // Hay déficit: egresos estimados > ingresos estimados
-    // Necesita inyectar la diferencia
+    // Necesita efectivo: sacar de otra cuenta para poner en efectivo
     actionType = 'transfer';
     actionAmount = descalcePeriodo;
-    actionText = 'Inyectar';
+    actionText = 'Sacar efectivo de cuenta';
   } else if (descalcePeriodo < 0) {
     // Hay superávit: ingresos estimados > egresos estimados
-    // Puede depositar el excedente
+    // Sobra efectivo: depositar el exceso a otra cuenta
     actionType = 'deposit';
     actionAmount = Math.abs(descalcePeriodo);
-    actionText = 'Reembolsar';
+    actionText = 'Depositar efectivo a cuenta';
   } else {
     // Equilibrado
     actionType = 'neutral';
