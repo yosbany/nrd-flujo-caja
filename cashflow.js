@@ -152,11 +152,19 @@ async function getTopExpenseCategories(transactionsToProcess) {
   return sorted;
 }
 
-// Calculate current account balance from all transactions
-function calculateAccountBalance(accountId, allTransactions) {
+// Calculate account balance from transactions up to a given date
+function calculateAccountBalance(accountId, allTransactions, upToDate = null) {
   let balance = 0;
   Object.values(allTransactions).forEach(transaction => {
     if (transaction && transaction.accountId === accountId) {
+      // Si hay fecha límite, solo incluir transacciones hasta esa fecha
+      if (upToDate) {
+        const transactionDate = transaction.date || transaction.createdAt;
+        if (transactionDate && transactionDate > upToDate.getTime()) {
+          return; // Saltar esta transacción
+        }
+      }
+      
       const amount = parseFloat(transaction.amount || 0);
       if (transaction.type === 'income') {
         balance += amount;
@@ -219,12 +227,17 @@ async function calculateEstimatedMoneyNeeded(period, referenceDate, allTransacti
   
   const [efectivoAccountId, efectivoAccountData] = efectivoAccount;
   
-  // 1. Obtener el balance actual de la cuenta (Caja Real Final)
-  const cajaRealFinal = calculateAccountBalance(efectivoAccountId, allTransactions);
-  
   // 2. Obtener todos los períodos históricos del mismo tipo
   // Usar la fecha de referencia si está disponible, de lo contrario usar la fecha actual
   const refDate = referenceDate || new Date();
+  
+  // Obtener el rango del período seleccionado para calcular el balance hasta el final de ese período
+  const currentPeriodRange = getPeriodDateRange(period, refDate);
+  const upToDate = currentPeriodRange ? new Date(currentPeriodRange.end) : refDate;
+  
+  // 1. Obtener el balance de la cuenta hasta la fecha del período seleccionado (Caja Real Final)
+  const cajaRealFinal = calculateAccountBalance(efectivoAccountId, allTransactions, upToDate);
+  
   const historicalPeriods = getHistoricalPeriods(period, refDate);
   
   if (historicalPeriods.length === 0) {
