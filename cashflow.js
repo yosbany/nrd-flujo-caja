@@ -327,8 +327,6 @@ async function calculateEstimatedMoneyNeeded(period, referenceDate, allTransacti
   };
 }
 
-}
-
 // Helper: Calculate expenses by account for a given date range
 function calculateExpensesByAccount(transactions, dateRange, accountIdFilter = null) {
   const expenses = {};
