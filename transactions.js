@@ -182,7 +182,16 @@ async function showNewTransactionForm(type) {
   form.classList.remove('hidden');
   if (list) list.style.display = 'none';
   if (header) header.style.display = 'none';
-  if (dateFilter) dateFilter.style.display = 'none';
+  // Mantener el filtro de fecha visible para facilitar la selección de fecha
+  // if (dateFilter) dateFilter.style.display = 'none';
+  
+  // Aplicar fondo de color según el tipo de transacción
+  form.classList.remove('bg-white', 'bg-green-50', 'bg-red-50');
+  if (type === 'income') {
+    form.classList.add('bg-green-50');
+  } else {
+    form.classList.add('bg-red-50');
+  }
   
   // Clear editing state
   delete form.dataset.editingTransactionId;
@@ -389,6 +398,10 @@ function hideTransactionForm() {
   const dateFilter = document.getElementById('transactions-date-filter-container');
   
   form.classList.add('hidden');
+  // Limpiar colores de fondo
+  form.classList.remove('bg-green-50', 'bg-red-50');
+  form.classList.add('bg-white');
+  
   if (list) list.style.display = 'block';
   if (header) header.style.display = 'flex';
   if (dateFilter) dateFilter.style.display = 'flex';
@@ -421,23 +434,23 @@ async function saveTransaction() {
 
   // Validaciones con mensajes claros y preventivos
   
-  // 1. Validación de descripción
+  // 1. Validación de subcategoría
   if (!description || description.length === 0) {
-    await showError('Por favor escriba una descripción de qué es esta transacción');
+    await showError('Por favor ingrese la subcategoría de esta transacción');
     document.getElementById('transaction-description').focus();
     return;
   }
   
-  // Validar longitud máxima de descripción (evitar textos muy largos)
+  // Validar longitud máxima de subcategoría (evitar textos muy largos)
   if (description.length > 200) {
-    await showError('La descripción es muy larga. Por favor use máximo 200 caracteres');
+    await showError('La subcategoría es muy larga. Por favor use máximo 200 caracteres');
     document.getElementById('transaction-description').focus();
     return;
   }
   
-  // Validar que la descripción no sea solo espacios
+  // Validar que la subcategoría no sea solo espacios
   if (description.trim().length === 0) {
-    await showError('La descripción no puede estar vacía');
+    await showError('La subcategoría no puede estar vacía');
     document.getElementById('transaction-description').focus();
     return;
   }
@@ -598,7 +611,7 @@ async function saveTransaction() {
       await showSuccess('✓ Transacción actualizada correctamente');
     } else {
       // Create new transaction
-      // Verificar duplicados potenciales (mismo monto, descripción y fecha en el mismo día)
+      // Verificar duplicados potenciales (mismo monto, subcategoría y fecha en el mismo día)
       const transactionsSnapshot = await getTransactionsRef().once('value');
       const allTransactions = transactionsSnapshot.val() || {};
       const dayStart = new Date(transactionDate);
@@ -618,7 +631,7 @@ async function saveTransaction() {
       if (duplicateCheck) {
         const confirmDuplicate = await showConfirm(
           'Posible duplicado',
-          `Ya existe una transacción similar (mismo monto, descripción y fecha). ¿Desea guardarla de todas formas?`
+          `Ya existe una transacción similar (mismo monto, subcategoría y fecha). ¿Desea guardarla de todas formas?`
         );
         if (!confirmDuplicate) {
           return;
@@ -684,6 +697,14 @@ async function viewTransaction(transactionId) {
     if (detail) detail.classList.add('hidden');
     if (dateFilter) dateFilter.style.display = 'none';
     if (form) form.classList.remove('hidden');
+    
+    // Aplicar fondo de color según el tipo de transacción
+    form.classList.remove('bg-white', 'bg-green-50', 'bg-red-50');
+    if (transaction.type === 'income') {
+      form.classList.add('bg-green-50');
+    } else {
+      form.classList.add('bg-red-50');
+    }
     
     // Set form to view mode (readonly)
     form.dataset.viewMode = 'view';
@@ -793,6 +814,14 @@ async function editTransaction(transactionId, transaction) {
   // Change to edit mode
   form.dataset.viewMode = 'edit';
   form.dataset.editingTransactionId = transactionId;
+  
+  // Aplicar fondo de color según el tipo de transacción
+  form.classList.remove('bg-white', 'bg-green-50', 'bg-red-50');
+  if (transaction.type === 'income') {
+    form.classList.add('bg-green-50');
+  } else {
+    form.classList.add('bg-red-50');
+  }
   
   // Set form title
   const formTitle = document.getElementById('transaction-form-title');
@@ -1531,7 +1560,7 @@ function setupAmountValidation() {
   });
 }
 
-// Validación en tiempo real del campo de descripción
+// Validación en tiempo real del campo de subcategoría
 function setupDescriptionValidation() {
   const descriptionInput = document.getElementById('transaction-description');
   if (!descriptionInput) return;
