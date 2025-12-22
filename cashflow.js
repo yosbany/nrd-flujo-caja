@@ -343,7 +343,7 @@ async function calculateEstimatedMoneyNeeded(period, referenceDate, allTransacti
     income: avgIncome,
     cajaRealFinal: cajaRealFinal,
     peorDescalce: peorDescalce,
-    coh: coh,
+    balanceProyectado: dch,
     dch: dch,
     actionType: actionType,
     actionAmount: actionAmount,
