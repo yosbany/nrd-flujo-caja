@@ -7,7 +7,7 @@
   <title>NRD Flujo de Caja</title>
   <link rel="manifest" href="manifest.json">
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="styles.css?v=1766402956429">
+  <link rel="stylesheet" href="styles.css?v=1766403924644">
   <meta name="theme-color" content="#dc2626">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/svg+xml" href="icon-192.svg">
@@ -165,6 +165,12 @@
             <!-- Badge de margen -->
             <div id="margin-badge" class="absolute top-3 right-3 px-2 py-1 rounded text-xs font-semibold"></div>
           </div>
+        </div>
+        
+        <!-- Dinero Necesario Estimado por Cuenta -->
+        <div id="estimated-money-needed-section" class="mb-4 sm:mb-6 hidden">
+          <div id="estimated-money-needed-header" class="mb-3 sm:mb-4"></div>
+          <div id="estimated-money-needed-accounts" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4"></div>
         </div>
         
         <!-- Subtotal por Cuenta -->
@@ -380,14 +386,17 @@
               <p class="text-xs text-gray-500 mt-1.5">Seleccione la fecha en que ocurrió esta transacción</p>
             </div>
 
-            <!-- Notas (opcional) -->
+            <!-- Notas (opcional o requerido según categoría) -->
             <div class="mb-5 sm:mb-6">
               <label class="block mb-2 text-sm font-medium text-gray-700">
-                Notas adicionales <span class="text-gray-400 text-xs">(opcional)</span>
+                Notas adicionales 
+                <span class="notes-optional text-gray-400 text-xs">(opcional)</span>
+                <span class="notes-required text-red-600 text-xs" style="display: none;">*</span>
               </label>
               <textarea id="transaction-notes" rows="3" maxlength="500" placeholder="Escriba aquí cualquier información adicional que quiera recordar..." 
                 class="w-full px-4 py-3 border-2 border-gray-300 focus:outline-none focus:border-red-600 bg-white resize-y text-base rounded-lg"></textarea>
-              <p class="text-xs text-gray-500 mt-1.5">Puede agregar información adicional si lo desea</p>
+              <p class="text-xs text-gray-500 mt-1.5 notes-help-text">Puede agregar información adicional si lo desea</p>
+              <p class="text-xs text-red-600 mt-1.5 notes-required-text" style="display: none;">Las notas son obligatorias para esta categoría</p>
             </div>
 
             <!-- Botones -->
@@ -642,15 +651,15 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   
   <!-- App Scripts -->
-  <script src="firebase.js?v=1766402956429"></script>
-  <script src="modal.js?v=1766402956429"></script>
-  <script src="auth.js?v=1766402956429"></script>
-  <script src="db.js?v=1766402956429"></script>
-  <script src="categories.js?v=1766402956429"></script>
-  <script src="transactions.js?v=1766402956429"></script>
-  <script src="cashflow.js?v=1766402956429"></script>
-  <script src="accounts.js?v=1766402956429"></script>
-  <script src="app.js?v=1766402956429"></script>
+  <script src="firebase.js?v=1766403924644"></script>
+  <script src="modal.js?v=1766403924644"></script>
+  <script src="auth.js?v=1766403924644"></script>
+  <script src="db.js?v=1766403924644"></script>
+  <script src="categories.js?v=1766403924644"></script>
+  <script src="transactions.js?v=1766403924644"></script>
+  <script src="cashflow.js?v=1766403924644"></script>
+  <script src="accounts.js?v=1766403924644"></script>
+  <script src="app.js?v=1766403924644"></script>
 
   <script>
     // Global error handler
@@ -701,7 +710,7 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         // Register service worker without version parameter
-        navigator.serviceWorker.register('service-worker.js?v=1766402956429')
+        navigator.serviceWorker.register('service-worker.js?v=1766403924644')
           .then(reg => {
             console.log('Service Worker registered');
             

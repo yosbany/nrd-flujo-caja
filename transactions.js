@@ -298,6 +298,12 @@ async function showNewTransactionForm(type) {
   
   // Setup autocomplete input listener
   setupDescriptionAutocomplete();
+  
+  // Setup category change listener for "OTROS" validation
+  // Esperar un poco para que las categorías se carguen completamente
+  setTimeout(() => {
+    setupCategoryNotesValidation();
+  }, 200);
 }
 
 // Setup description autocomplete listeners
@@ -464,6 +470,24 @@ async function saveTransaction() {
   const accountId = document.getElementById('transaction-account').value;
   const dateInput = document.getElementById('transaction-date').value;
   const notes = document.getElementById('transaction-notes').value.trim();
+  
+  // Validar si la categoría contiene "OTROS" y requiere notas
+  if (categoryId) {
+    try {
+      const categorySnapshot = await getCategory(categoryId);
+      const category = categorySnapshot.val();
+      
+      if (category && category.name && category.name.toUpperCase().includes('OTROS')) {
+        if (!notes || notes.trim().length === 0) {
+          await showError('Las notas son obligatorias cuando la categoría contiene "OTROS". Por favor complete las notas adicionales');
+          document.getElementById('transaction-notes').focus();
+          return;
+        }
+      }
+    } catch (error) {
+      console.error('Error validating category:', error);
+    }
+  }
 
   // Validaciones con mensajes claros y preventivos
   
@@ -564,6 +588,8 @@ async function saveTransaction() {
     return;
   }
 
+  // Validar notas si la categoría contiene "OTROS" (ya validado arriba, pero mantener para consistencia)
+  
   try {
     // Verificar que la categoría existe y está activa
     const categorySnapshot = await getCategory(categoryId);
@@ -807,6 +833,11 @@ async function viewTransaction(transactionId) {
       accountSelect.appendChild(option);
     });
     
+    // Setup category validation for "OTROS" after loading categories (aunque esté en modo lectura, para consistencia)
+    setTimeout(() => {
+      setupCategoryNotesValidation();
+    }, 200);
+    
     // Make all fields readonly
     const formInputs = form.querySelectorAll('input, select, textarea');
     formInputs.forEach(input => {
@@ -972,6 +1003,11 @@ async function editTransaction(transactionId, transaction) {
     option.selected = account.id === transaction.accountId;
     accountSelect.appendChild(option);
   });
+  
+  // Setup category validation for "OTROS" after loading categories
+  setTimeout(() => {
+    setupCategoryNotesValidation();
+  }, 200);
 }
 
 // Delete transaction handler
@@ -1650,11 +1686,107 @@ function setupDescriptionValidation() {
   });
 }
 
+// Validación de notas cuando la categoría contiene "OTROS"
+function setupCategoryNotesValidation() {
+  const categorySelect = document.getElementById('transaction-category');
+  const notesTextarea = document.getElementById('transaction-notes');
+  const notesContainer = notesTextarea?.parentElement;
+  const notesLabel = notesContainer?.querySelector('label');
+  const notesHelpText = notesContainer?.querySelector('.notes-help-text');
+  const notesRequiredText = notesContainer?.querySelector('.notes-required-text');
+  
+  if (!categorySelect || !notesTextarea) return;
+  
+  // Función para verificar si la categoría contiene "OTROS"
+  const checkCategoryForOthers = async () => {
+    const categoryId = categorySelect.value;
+    if (!categoryId) {
+      // Si no hay categoría seleccionada, quitar requerido
+      notesTextarea.removeAttribute('required');
+      if (notesLabel) {
+        const spanOptional = notesLabel.querySelector('.notes-optional');
+        const spanRequired = notesLabel.querySelector('.notes-required');
+        if (spanOptional) spanOptional.style.display = 'inline';
+        if (spanRequired) spanRequired.style.display = 'none';
+      }
+      if (notesHelpText) notesHelpText.style.display = 'block';
+      if (notesRequiredText) notesRequiredText.style.display = 'none';
+      notesTextarea.classList.remove('border-red-500', 'bg-red-50');
+      return;
+    }
+    
+    try {
+      const categorySnapshot = await getCategory(categoryId);
+      const category = categorySnapshot.val();
+      
+      if (category && category.name && category.name.toUpperCase().includes('OTROS')) {
+        // Categoría contiene "OTROS", hacer notas obligatorias
+        notesTextarea.setAttribute('required', 'required');
+        if (notesLabel) {
+          const spanOptional = notesLabel.querySelector('.notes-optional');
+          const spanRequired = notesLabel.querySelector('.notes-required');
+          if (spanOptional) spanOptional.style.display = 'none';
+          if (spanRequired) spanRequired.style.display = 'inline';
+        }
+        if (notesHelpText) notesHelpText.style.display = 'none';
+        if (notesRequiredText) notesRequiredText.style.display = 'block';
+        
+        // Validar en tiempo real si está vacío
+        if (!notesTextarea.value.trim()) {
+          notesTextarea.classList.add('border-red-500', 'bg-red-50');
+        } else {
+          notesTextarea.classList.remove('border-red-500', 'bg-red-50');
+        }
+      } else {
+        // Categoría no contiene "OTROS", hacer notas opcionales
+        notesTextarea.removeAttribute('required');
+        if (notesLabel) {
+          const spanOptional = notesLabel.querySelector('.notes-optional');
+          const spanRequired = notesLabel.querySelector('.notes-required');
+          if (spanOptional) spanOptional.style.display = 'inline';
+          if (spanRequired) spanRequired.style.display = 'none';
+        }
+        if (notesHelpText) notesHelpText.style.display = 'block';
+        if (notesRequiredText) notesRequiredText.style.display = 'none';
+        notesTextarea.classList.remove('border-red-500', 'bg-red-50');
+      }
+    } catch (error) {
+      console.error('Error checking category:', error);
+    }
+  };
+  
+  // Escuchar cambios en la categoría
+  categorySelect.addEventListener('change', checkCategoryForOthers);
+  
+  // Validar en tiempo real cuando se escribe en notas
+  notesTextarea.addEventListener('input', () => {
+    if (notesTextarea.hasAttribute('required')) {
+      if (notesTextarea.value.trim()) {
+        notesTextarea.classList.remove('border-red-500', 'bg-red-50');
+      } else {
+        notesTextarea.classList.add('border-red-500', 'bg-red-50');
+      }
+    }
+  });
+  
+  // También verificar cuando se carga el formulario con una categoría ya seleccionada
+  setTimeout(checkCategoryForOthers, 100);
+}
+
 // Setup autocomplete click outside handler
 document.addEventListener('DOMContentLoaded', () => {
   // Configurar validaciones en tiempo real
   setupAmountValidation();
   setupDescriptionValidation();
+  
+  // Configurar validación de notas para categorías "OTROS"
+  // Se configura cuando se abre el formulario, pero también aquí por si acaso
+  const categorySelect = document.getElementById('transaction-category');
+  if (categorySelect) {
+    // Remover listeners previos si existen
+    const newCategorySelect = categorySelect.cloneNode(true);
+    categorySelect.parentNode.replaceChild(newCategorySelect, categorySelect);
+  }
   
   document.addEventListener('click', (e) => {
     const autocompleteList = document.getElementById('description-autocomplete-list');
