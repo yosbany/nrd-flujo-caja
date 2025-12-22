@@ -262,8 +262,12 @@ document.addEventListener('DOMContentLoaded', () => {
           const account = accountSnapshot.val();
           if (account) {
             active = account.active !== false; // Preserve existing status
-            // Preserve initial balance if not provided (only update if explicitly changed)
-            if (!initialBalanceValue && account.initialBalance !== undefined) {
+            // Always update initial balance when in edit mode (even if empty, set to 0)
+            // The form is in edit mode if viewMode is 'edit'
+            const form = document.getElementById('account-form');
+            const isEditMode = form && form.dataset.viewMode === 'edit';
+            if (!isEditMode && !initialBalanceValue && account.initialBalance !== undefined) {
+              // Only preserve if not in edit mode and value is empty
               initialBalance = account.initialBalance;
             }
           }
@@ -320,16 +324,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const title = document.getElementById('account-form-title');
         if (title) title.textContent = 'Editar Cuenta';
         
-        // Enable fields
+        // Enable fields - use more robust method
         const nameInput = document.getElementById('account-name');
         const initialBalanceInput = document.getElementById('account-initial-balance');
         if (nameInput) {
           nameInput.removeAttribute('readonly');
           nameInput.removeAttribute('disabled');
+          nameInput.disabled = false;
+          nameInput.readOnly = false;
         }
         if (initialBalanceInput) {
           initialBalanceInput.removeAttribute('readonly');
           initialBalanceInput.removeAttribute('disabled');
+          initialBalanceInput.disabled = false;
+          initialBalanceInput.readOnly = false;
+          // Focus on the field to ensure it's editable
+          setTimeout(() => {
+            initialBalanceInput.focus();
+          }, 100);
         }
         
         // Update buttons
