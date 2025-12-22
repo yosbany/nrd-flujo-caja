@@ -521,21 +521,25 @@ async function renderEstimatedMoneyNeeded(period, referenceDate, allTransactions
   const container = document.getElementById('estimated-money-needed-section');
   if (!container) return;
   
-  // Ocultar mientras se calcula para evitar mostrar datos antiguos
-  container.classList.add('hidden');
-  
-  const estimatedData = await calculateEstimatedMoneyNeeded(period, referenceDate, allTransactions);
-  
-  if (!estimatedData) {
-    return;
-  }
-  
-  container.classList.remove('hidden');
-  
   const header = container.querySelector('#estimated-money-needed-header');
   const accountsContainer = container.querySelector('#estimated-money-needed-accounts');
   
   if (!header || !accountsContainer) return;
+  
+  // Mostrar indicador de carga
+  container.classList.remove('hidden');
+  header.innerHTML = `
+    <h3 class="text-xs sm:text-sm font-medium text-gray-700 mb-0.5">Disponibilidad en Efectivo Estimado</h3>
+    <p class="text-[10px] sm:text-xs text-gray-500">Calculando...</p>
+  `;
+  accountsContainer.innerHTML = '<div class="text-center py-4 text-sm text-gray-500">Calculando...</div>';
+  
+  const estimatedData = await calculateEstimatedMoneyNeeded(period, referenceDate, allTransactions);
+  
+  if (!estimatedData) {
+    container.classList.add('hidden');
+    return;
+  }
   
   const periodText = estimatedData.periodDescription;
   
