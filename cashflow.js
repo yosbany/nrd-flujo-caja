@@ -1024,6 +1024,61 @@ async function updateAccountSubtotals(transactionsToProcess) {
       });
     }
   }
+  
+  // Render total balance (initial balance + all transactions)
+  // Show all active accounts with their total accumulated balance
+  const totalBalanceContainer = document.getElementById('account-balance-totals');
+  if (totalBalanceContainer) {
+    totalBalanceContainer.innerHTML = '';
+    
+    // Get all transactions to calculate total balance
+    const allTransactionsSnapshot = await getTransactionsRef().once('value');
+    const allTransactions = allTransactionsSnapshot.val() || {};
+    
+    // Calculate total balance per account (initial balance + all transactions)
+    const accountTotalBalances = {};
+    Object.entries(accounts).forEach(([accountId, account]) => {
+      if (account?.active === false) return;
+      
+      // Start with initial balance
+      const initialBalance = parseFloat(account.initialBalance) || 0;
+      let totalBalance = initialBalance;
+      
+      // Add all transactions for this account
+      Object.values(allTransactions).forEach(transaction => {
+        if (transaction && transaction.accountId === accountId) {
+          const amount = parseFloat(transaction.amount || 0);
+          if (transaction.type === 'income') {
+            totalBalance += amount;
+          } else {
+            totalBalance -= amount;
+          }
+        }
+      });
+      
+      accountTotalBalances[accountId] = totalBalance;
+    });
+    
+    if (Object.keys(accountTotalBalances).length === 0) {
+      totalBalanceContainer.innerHTML = '<p class="text-xs text-gray-500">No hay cuentas activas</p>';
+    } else {
+      const sortedTotalBalances = sortAccountsByName(Object.entries(accountTotalBalances));
+      
+      sortedTotalBalances.forEach(([accountId, totalBalance]) => {
+        const account = accounts[accountId];
+        if (!account) return;
+        
+        const item = document.createElement('div');
+        const balanceColor = totalBalance >= 0 ? 'text-purple-600' : 'text-red-600';
+        item.className = 'flex justify-between items-center py-1 border-b border-purple-200 last:border-0';
+        item.innerHTML = `
+          <span class="text-xs text-gray-700 truncate flex-1 mr-2">${escapeHtml(account.name)}</span>
+          <span class="text-xs sm:text-sm font-medium ${balanceColor} whitespace-nowrap">$${formatNumber(Math.abs(totalBalance))}</span>
+        `;
+        totalBalanceContainer.appendChild(item);
+      });
+    }
+  }
 }
 
 // Update Top 10 sections
