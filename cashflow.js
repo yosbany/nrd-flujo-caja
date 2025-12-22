@@ -179,7 +179,9 @@ function getHistoricalPeriods(period, referenceDate, maxPeriods = 12) {
     if (period === 'today') {
       periodDate.setDate(periodDate.getDate() - i);
     } else if (period === 'week') {
-      periodDate.setDate(periodDate.getDate() - (i * 7));
+      // Calcular semana anterior: retroceder 7 días por cada semana
+      const daysToSubtract = i * 7;
+      periodDate.setDate(periodDate.getDate() - daysToSubtract);
     } else if (period === 'month') {
       periodDate.setMonth(periodDate.getMonth() - i);
     } else if (period === 'year') {
@@ -189,6 +191,9 @@ function getHistoricalPeriods(period, referenceDate, maxPeriods = 12) {
     const periodRange = getPeriodDateRange(period, periodDate);
     if (periodRange) {
       periods.push(periodRange);
+    } else {
+      // Si no hay más períodos disponibles, salir del loop
+      break;
     }
   }
   
@@ -218,7 +223,9 @@ async function calculateEstimatedMoneyNeeded(period, referenceDate, allTransacti
   const cajaRealFinal = calculateAccountBalance(efectivoAccountId, allTransactions);
   
   // 2. Obtener todos los períodos históricos del mismo tipo
-  const historicalPeriods = getHistoricalPeriods(period, referenceDate);
+  // Usar la fecha de referencia si está disponible, de lo contrario usar la fecha actual
+  const refDate = referenceDate || new Date();
+  const historicalPeriods = getHistoricalPeriods(period, refDate);
   
   if (historicalPeriods.length === 0) {
     return null;
