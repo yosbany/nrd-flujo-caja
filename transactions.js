@@ -2079,6 +2079,61 @@ async function handleReportSubmit(e) {
   await generateDailyReport(selectedDate);
 }
 
+// Date picker modal for transactions filter
+function showTransactionsDatePicker() {
+  const modal = document.getElementById('transactions-date-picker-modal');
+  const dateInput = document.getElementById('date-picker-input');
+  
+  if (!modal || !dateInput) {
+    console.error('Date picker modal not found');
+    return;
+  }
+  
+  modal.classList.remove('hidden');
+  
+  // Set current filter date if available, otherwise use today
+  if (transactionsSelectedFilterDate) {
+    const dateStr = transactionsSelectedFilterDate.toISOString().split('T')[0];
+    dateInput.value = dateStr;
+  } else {
+    const today = new Date();
+    const dateStr = today.toISOString().split('T')[0];
+    dateInput.value = dateStr;
+  }
+  
+  // Focus on the date input
+  setTimeout(() => {
+    dateInput.focus();
+    // Try to show native date picker if available (some browsers support this)
+    if (dateInput.showPicker && typeof dateInput.showPicker === 'function') {
+      try {
+        dateInput.showPicker();
+      } catch (e) {
+        // showPicker might not be available in all browsers
+        console.log('showPicker not available');
+      }
+    }
+  }, 100);
+}
+
+function hideTransactionsDatePicker() {
+  const modal = document.getElementById('transactions-date-picker-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function applyTransactionsDateFilter(selectedDate) {
+  if (!selectedDate) return;
+  
+  const date = new Date(selectedDate);
+  date.setHours(0, 0, 0, 0);
+  transactionsSelectedFilterDate = date;
+  
+  clearSearchInput();
+  updateTransactionsDateFilterDisplay();
+  loadTransactions(false); // Don't reinitialize date filter
+  hideTransactionsDatePicker();
+}
+
 // Initialize filter display on page load
 document.addEventListener('DOMContentLoaded', () => {
   updateTransactionsDateFilterDisplay();
@@ -2092,12 +2147,56 @@ document.addEventListener('DOMContentLoaded', () => {
       loadTransactions(false); // Don't reinitialize date filter
     });
   }
+  
+  // Setup date filter buttons
+  const todayBtn = document.getElementById('transactions-today-date-btn');
+  const prevBtn = document.getElementById('transactions-prev-date-btn');
+  const nextBtn = document.getElementById('transactions-next-date-btn');
+  const clearBtn = document.getElementById('transactions-clear-date-filter-btn');
+  
+  if (todayBtn) todayBtn.addEventListener('click', setTransactionsToday);
+  if (prevBtn) prevBtn.addEventListener('click', prevTransactionsDate);
+  if (nextBtn) nextBtn.addEventListener('click', nextTransactionsDate);
+  if (clearBtn) clearBtn.addEventListener('click', clearTransactionsDateFilter);
+  
+  // Setup date picker modal
+  const dateDisplay = document.getElementById('transactions-filter-date-display');
+  if (dateDisplay) {
+    dateDisplay.addEventListener('click', showTransactionsDatePicker);
+  }
+  
+  const datePickerForm = document.getElementById('date-picker-form');
+  if (datePickerForm) {
+    datePickerForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const dateInput = document.getElementById('date-picker-input');
+      if (dateInput && dateInput.value) {
+        applyTransactionsDateFilter(dateInput.value);
+      }
+    });
+  }
+  
+  const closeDatePickerBtn = document.getElementById('close-date-picker-modal');
+  const cancelDatePickerBtn = document.getElementById('cancel-date-picker-btn');
+  
+  if (closeDatePickerBtn) {
+    closeDatePickerBtn.addEventListener('click', hideTransactionsDatePicker);
+  }
+  
+  if (cancelDatePickerBtn) {
+    cancelDatePickerBtn.addEventListener('click', hideTransactionsDatePicker);
+  }
+  
+  // Close modal when clicking outside
+  const datePickerModal = document.getElementById('transactions-date-picker-modal');
+  if (datePickerModal) {
+    datePickerModal.addEventListener('click', (e) => {
+      if (e.target === datePickerModal) {
+        hideTransactionsDatePicker();
+      }
+    });
+  }
 });
-
-document.getElementById('transactions-today-date-btn').addEventListener('click', setTransactionsToday);
-document.getElementById('transactions-prev-date-btn').addEventListener('click', prevTransactionsDate);
-document.getElementById('transactions-next-date-btn').addEventListener('click', nextTransactionsDate);
-document.getElementById('transactions-clear-date-filter-btn').addEventListener('click', clearTransactionsDateFilter);
 
 // Update day summary (Ingresos, Egresos, Balance)
 function updateDaySummary(dayTransactions) {

@@ -40,20 +40,23 @@ function loadAccounts() {
     const transactions = transactionsSnapshot.val() || {};
     
     // Calculate balance per account (income - expense)
+    // IMPORTANTE: Este cálculo debe coincidir con cashflow.js cuando period === 'all'
+    // Fórmula: Saldo = initialBalance + (suma de ingresos) - (suma de egresos)
     const accountBalances = {};
     Object.values(transactions).forEach(transaction => {
-      if (transaction && transaction.accountId) {
-        const accountId = transaction.accountId;
-        if (!accountBalances[accountId]) {
-          accountBalances[accountId] = 0;
-        }
-        const amount = parseFloat(transaction.amount) || 0;
-        if (transaction.type === 'income') {
-          accountBalances[accountId] += amount;
-        } else {
-          accountBalances[accountId] -= amount;
-        }
+      if (!transaction || !transaction.accountId) return;
+      
+      const accountId = transaction.accountId;
+      if (!accountBalances[accountId]) {
+        accountBalances[accountId] = 0;
       }
+      const amount = parseFloat(transaction.amount || 0);
+      if (transaction.type === 'income') {
+        accountBalances[accountId] += amount;
+      } else if (transaction.type === 'expense') {
+        accountBalances[accountId] -= amount;
+      }
+      // Si no tiene type, no se cuenta
     });
 
     Object.entries(accounts).forEach(([id, account]) => {
@@ -63,6 +66,7 @@ function loadAccounts() {
       item.className = `border border-gray-200 p-3 sm:p-4 md:p-6 hover:border-red-600 transition-colors cursor-pointer mb-2 sm:mb-3 ${opacityClass}`;
       item.dataset.accountId = id;
       // Calculate balance: initial balance + transactions balance
+      // Esta es la misma fórmula que en cashflow.js líneas 1062-1086 cuando period === 'all'
       const initialBalance = parseFloat(account.initialBalance) || 0;
       const transactionsBalance = accountBalances[id] || 0;
       const balance = initialBalance + transactionsBalance;

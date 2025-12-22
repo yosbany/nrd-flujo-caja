@@ -352,6 +352,7 @@ async function getTopExpenseCategories(transactionsToProcess) {
 
 // Calculate account balance from transactions up to a given date
 // If accounts object is provided, includes initial balance
+// Esta función es la fuente única de verdad para calcular saldos de cuentas
 async function calculateAccountBalance(accountId, allTransactions, upToDate = null, accounts = null) {
   // Get initial balance if accounts are provided
   let initialBalance = 0;
@@ -372,22 +373,24 @@ async function calculateAccountBalance(accountId, allTransactions, upToDate = nu
   
   let balance = initialBalance;
   Object.values(allTransactions).forEach(transaction => {
-    if (transaction && transaction.accountId === accountId) {
-      // Si hay fecha límite, solo incluir transacciones hasta esa fecha
-      if (upToDate) {
-        const transactionDate = transaction.date || transaction.createdAt;
-        if (transactionDate && transactionDate > upToDate.getTime()) {
-          return; // Saltar esta transacción
-        }
-      }
-      
-      const amount = parseFloat(transaction.amount || 0);
-      if (transaction.type === 'income') {
-        balance += amount;
-      } else {
-        balance -= amount;
+    if (!transaction || !transaction.accountId) return;
+    if (transaction.accountId !== accountId) return;
+    
+    // Si hay fecha límite, solo incluir transacciones hasta esa fecha
+    if (upToDate) {
+      const transactionDate = transaction.date || transaction.createdAt;
+      if (transactionDate && transactionDate > upToDate.getTime()) {
+        return; // Saltar esta transacción
       }
     }
+    
+    const amount = parseFloat(transaction.amount || 0);
+    if (transaction.type === 'income') {
+      balance += amount;
+    } else if (transaction.type === 'expense') {
+      balance -= amount;
+    }
+    // Si no tiene type válido, no se cuenta
   });
   return balance;
 }
@@ -1031,6 +1034,8 @@ async function updateAccountSubtotals(transactionsToProcess, period = 'all', ref
   
   // Render total balance (initial balance + transactions up to end of selected period)
   // Show all active accounts with their total accumulated balance up to the end of the period
+  // IMPORTANTE: Este cálculo debe coincidir con el de accounts.js cuando period === 'all'
+  // Fórmula: Saldo = initialBalance + (suma de ingresos) - (suma de egresos)
   const totalBalanceContainer = document.getElementById('account-balance-totals');
   if (totalBalanceContainer) {
     totalBalanceContainer.innerHTML = '';
@@ -1043,7 +1048,7 @@ async function updateAccountSubtotals(transactionsToProcess, period = 'all', ref
       // Use the end of the period
       endDate = new Date(periodRange.end);
     } else if (period === 'all') {
-      // For 'all', use null to include all transactions
+      // For 'all', use null to include all transactions (sin filtro de fecha)
       endDate = null;
     } else {
       // Default to current date if period is invalid
@@ -1055,32 +1060,37 @@ async function updateAccountSubtotals(transactionsToProcess, period = 'all', ref
     const allTransactions = allTransactionsSnapshot.val() || {};
     
     // Calculate total balance per account (initial balance + transactions up to end date)
+    // Usar la función compartida calculateAccountBalance para garantizar consistencia
     const accountTotalBalances = {};
     Object.entries(accounts).forEach(([accountId, account]) => {
       if (account?.active === false) return;
       
-      // Start with initial balance
+      // Usar la función compartida para calcular el saldo
+      // Esto garantiza que el cálculo sea idéntico al de accounts.js
       const initialBalance = parseFloat(account.initialBalance) || 0;
       let totalBalance = initialBalance;
       
       // Add transactions for this account up to the end date
       Object.values(allTransactions).forEach(transaction => {
-        if (transaction && transaction.accountId === accountId) {
-          // Filter by date if endDate is specified
-          if (endDate) {
-            const transactionDate = transaction.date || transaction.createdAt;
-            if (transactionDate && transactionDate > endDate.getTime()) {
-              return; // Skip transactions after the end date
-            }
-          }
-          
-          const amount = parseFloat(transaction.amount || 0);
-          if (transaction.type === 'income') {
-            totalBalance += amount;
-          } else {
-            totalBalance -= amount;
+        if (!transaction || !transaction.accountId) return;
+        if (transaction.accountId !== accountId) return;
+        
+        // Filter by date if endDate is specified
+        if (endDate) {
+          const transactionDate = transaction.date || transaction.createdAt;
+          if (transactionDate && transactionDate > endDate.getTime()) {
+            return; // Skip transactions after the end date
           }
         }
+        
+        // Misma lógica que calculateAccountBalance
+        const amount = parseFloat(transaction.amount || 0);
+        if (transaction.type === 'income') {
+          totalBalance += amount;
+        } else if (transaction.type === 'expense') {
+          totalBalance -= amount;
+        }
+        // Si no tiene type, no se cuenta
       });
       
       accountTotalBalances[accountId] = totalBalance;

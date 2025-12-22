@@ -7,7 +7,7 @@
   <title>NRD Flujo de Caja</title>
   <link rel="manifest" href="manifest.json">
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="styles.css?v=1766439347234">
+  <link rel="stylesheet" href="styles.css?v=1766440084740">
   <meta name="theme-color" content="#dc2626">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/svg+xml" href="icon-192.svg">
@@ -273,7 +273,7 @@
             ‹
           </button>
           <div id="transactions-filter-date-display" 
-            class="px-4 py-2 text-sm sm:text-base font-light text-gray-700 min-w-[120px] text-center">
+            class="px-4 py-2 text-sm sm:text-base font-light text-gray-700 min-w-[120px] text-center cursor-pointer hover:text-red-600 transition-colors">
             Todas las fechas
           </div>
           <button id="transactions-next-date-btn" 
@@ -482,6 +482,33 @@
         </div>
       </div>
 
+      <!-- Date Picker Modal for Transactions Filter -->
+      <div id="transactions-date-picker-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white border border-gray-200 p-3 sm:p-4 md:p-6 max-w-md w-full rounded shadow-lg">
+          <div class="flex items-center justify-between mb-3 sm:mb-4">
+            <h3 class="text-lg sm:text-xl font-light tracking-tight">Seleccionar Fecha</h3>
+            <button id="close-date-picker-modal" class="text-gray-400 hover:text-red-600 text-xl font-light">×</button>
+          </div>
+          <form id="date-picker-form">
+            <div class="mb-4 sm:mb-6">
+              <label class="block mb-1.5 sm:mb-2 text-xs uppercase tracking-wider text-gray-600">Fecha</label>
+              <input type="date" id="date-picker-input" required 
+                class="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-red-600 bg-white text-sm sm:text-base rounded">
+            </div>
+            <div class="flex flex-col sm:flex-row gap-2 sm:gap-4 pt-4 sm:pt-6 border-t border-gray-200">
+              <button type="submit" 
+                class="flex-1 px-4 sm:px-6 py-2 bg-red-600 text-white border border-red-600 hover:bg-red-700 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
+                Aplicar
+              </button>
+              <button type="button" id="cancel-date-picker-btn" 
+                class="flex-1 px-4 sm:px-6 py-2 border border-gray-300 hover:border-red-600 hover:text-red-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light">
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
       <!-- Categories View -->
       <div id="categories-view" class="view space-y-3 sm:space-y-4 hidden">
         <div class="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-2 sm:gap-0 mb-2 sm:mb-3">
@@ -667,15 +694,15 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   
   <!-- App Scripts -->
-  <script src="firebase.js?v=1766439347234"></script>
-  <script src="modal.js?v=1766439347234"></script>
-  <script src="auth.js?v=1766439347234"></script>
-  <script src="db.js?v=1766439347234"></script>
-  <script src="categories.js?v=1766439347234"></script>
-  <script src="transactions.js?v=1766439347234"></script>
-  <script src="cashflow.js?v=1766439347234"></script>
-  <script src="accounts.js?v=1766439347234"></script>
-  <script src="app.js?v=1766439347234"></script>
+  <script src="firebase.js?v=1766440084740"></script>
+  <script src="modal.js?v=1766440084740"></script>
+  <script src="auth.js?v=1766440084740"></script>
+  <script src="db.js?v=1766440084740"></script>
+  <script src="categories.js?v=1766440084740"></script>
+  <script src="transactions.js?v=1766440084740"></script>
+  <script src="cashflow.js?v=1766440084740"></script>
+  <script src="accounts.js?v=1766440084740"></script>
+  <script src="app.js?v=1766440084740"></script>
 
   <script>
     // Global error handler
@@ -726,7 +753,7 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         // Register service worker without version parameter
-        navigator.serviceWorker.register('service-worker.js?v=1766439347234')
+        navigator.serviceWorker.register('service-worker.js?v=1766440084740')
           .then(reg => {
             console.log('Service Worker registered');
             
