@@ -4,10 +4,10 @@ let accountsListener = null;
 
 // Default accounts
 const defaultAccounts = [
-  'Efectivo',
-  'Cuenta Corriente Santander',
-  'Cuenta Credito Santander',
-  'Mercado Pago'
+  'EFECTIVO',
+  'DÉBITO SANTANDER',
+  'CRÉDITO VISA SANTANDER',
+  'MERCADO PAGO'
 ];
 
 // Load accounts
