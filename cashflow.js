@@ -467,7 +467,12 @@ async function renderEstimatedMoneyNeeded(period, referenceDate, allTransactions
   }
   
   container.innerHTML = `
-    <h3 class="text-xs font-light text-gray-700 mb-2 uppercase tracking-wider">Disponibilidad en Efectivo Estimado</h3>
+    <div class="flex items-center justify-between mb-2">
+      <h3 class="text-xs font-light text-gray-700 uppercase tracking-wider">Disponibilidad en Efectivo Estimado</h3>
+      <button id="help-calculacion-btn" class="text-gray-400 hover:text-gray-600 text-sm w-5 h-5 flex items-center justify-center rounded-full hover:bg-gray-200 transition-colors" title="Ver cómo se calculó">
+        ?
+      </button>
+    </div>
     <p class="text-[10px] sm:text-xs text-gray-500 mb-3">Basado en: ${periodText}</p>
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
       <div class="flex-1">
@@ -488,6 +493,167 @@ async function renderEstimatedMoneyNeeded(period, referenceDate, allTransactions
       </div>
     </div>
   `;
+  
+  // Agregar event listener al botón de ayuda
+  const helpBtn = container.querySelector('#help-calculacion-btn');
+  if (helpBtn) {
+    helpBtn.addEventListener('click', () => {
+      showCalculationHelpModal(estimatedData);
+    });
+  }
+}
+
+// Show calculation help modal
+function showCalculationHelpModal(data) {
+  // Crear overlay del modal
+  const overlay = document.createElement('div');
+  overlay.id = 'calculation-help-modal-overlay';
+  overlay.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+  
+  const margenSeguridad = 0.10;
+  const egresosConMargen = data.expenses * (1 + margenSeguridad);
+  const descalceCalculado = egresosConMargen - data.income;
+  
+  const modalContent = `
+    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+      <!-- Header -->
+      <div class="bg-gray-700 px-6 py-4">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xl font-semibold text-white">Cálculo de Disponibilidad en Efectivo</h3>
+          <button id="close-calculation-help-modal" class="text-white hover:text-gray-200 text-2xl font-light w-8 h-8 flex items-center justify-center hover:bg-white/20 rounded-full transition-colors">×</button>
+        </div>
+      </div>
+      
+      <!-- Content -->
+      <div class="p-6 overflow-y-auto space-y-4">
+        <div class="bg-gray-50 p-4 rounded border border-gray-200">
+          <h4 class="text-sm font-semibold text-gray-700 mb-3">Información del Período</h4>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between">
+              <span class="text-gray-600">Período analizado:</span>
+              <span class="font-medium text-gray-800">${data.periodDescription}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Cuenta:</span>
+              <span class="font-medium text-gray-800">${escapeHtml(data.accountName)}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Balance actual:</span>
+              <span class="font-medium ${data.cajaRealFinal >= 0 ? 'text-green-600' : 'text-red-600'}">$${formatNumber(data.cajaRealFinal)}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-gray-50 p-4 rounded border border-gray-200">
+          <h4 class="text-sm font-semibold text-gray-700 mb-3">Promedios Históricos</h4>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between">
+              <span class="text-gray-600">Ingresos promedio:</span>
+              <span class="font-medium text-green-600">$${formatNumber(data.income)}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Egresos promedio:</span>
+              <span class="font-medium text-red-600">$${formatNumber(data.expenses)}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-blue-50 p-4 rounded border border-blue-200">
+          <h4 class="text-sm font-semibold text-blue-700 mb-3">Cálculo del Margen de Seguridad</h4>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between">
+              <span class="text-gray-600">Egresos promedio:</span>
+              <span class="font-medium">$${formatNumber(data.expenses)}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Margen de seguridad:</span>
+              <span class="font-medium">${(margenSeguridad * 100).toFixed(0)}%</span>
+            </div>
+            <div class="border-t border-blue-200 pt-2 mt-2">
+              <div class="flex justify-between">
+                <span class="text-gray-700 font-medium">Egresos estimados (con margen):</span>
+                <span class="font-semibold text-red-600">$${formatNumber(egresosConMargen)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-yellow-50 p-4 rounded border border-yellow-200">
+          <h4 class="text-sm font-semibold text-yellow-700 mb-3">Descalce del Período</h4>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between">
+              <span class="text-gray-600">Egresos estimados:</span>
+              <span class="font-medium text-red-600">$${formatNumber(egresosConMargen)}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Ingresos estimados:</span>
+              <span class="font-medium text-green-600">-$${formatNumber(data.income)}</span>
+            </div>
+            <div class="border-t border-yellow-200 pt-2 mt-2">
+              <div class="flex justify-between">
+                <span class="text-gray-700 font-semibold">Descalce del período:</span>
+                <span class="font-bold ${descalceCalculado >= 0 ? 'text-red-600' : 'text-green-600'}">$${formatNumber(Math.abs(descalceCalculado))}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-green-50 p-4 rounded border border-green-200">
+          <h4 class="text-sm font-semibold text-green-700 mb-3">Resultado</h4>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between items-center">
+              <span class="text-gray-700 font-medium">Acción recomendada:</span>
+              <span class="px-3 py-1 rounded text-xs font-semibold uppercase ${
+                data.actionType === 'transfer' ? 'bg-red-100 text-red-700' :
+                data.actionType === 'deposit' ? 'bg-green-100 text-green-700' :
+                'bg-gray-100 text-gray-700'
+              }">
+                ${data.actionText}
+              </span>
+            </div>
+            ${data.actionType !== 'neutral' ? `
+            <div class="flex justify-between items-center mt-2 pt-2 border-t border-green-200">
+              <span class="text-gray-700 font-semibold">Monto:</span>
+              <span class="text-lg font-bold ${data.actionType === 'transfer' ? 'text-red-600' : 'text-green-600'}">
+                ${data.actionType === 'transfer' ? '↓' : '↑'} $${formatNumber(data.actionAmount)}
+              </span>
+            </div>
+            ` : ''}
+          </div>
+        </div>
+        
+        <div class="bg-gray-50 p-3 rounded border border-gray-200 mt-4">
+          <p class="text-xs text-gray-600">
+            <strong>Nota:</strong> Este cálculo se basa en promedios históricos del mismo tipo de período. 
+            El margen de seguridad del ${(margenSeguridad * 100).toFixed(0)}% se aplica a los egresos para considerar gastos extraordinarios.
+          </p>
+        </div>
+      </div>
+      
+      <!-- Footer -->
+      <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end">
+        <button id="close-calculation-help-modal-btn" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  `;
+  
+  overlay.innerHTML = modalContent;
+  document.body.appendChild(overlay);
+  
+  // Event listeners para cerrar
+  const closeModal = () => {
+    document.body.removeChild(overlay);
+  };
+  
+  overlay.querySelector('#close-calculation-help-modal').addEventListener('click', closeModal);
+  overlay.querySelector('#close-calculation-help-modal-btn').addEventListener('click', closeModal);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+      closeModal();
+    }
+  });
 }
 
 // Calculate and render account subtotals
