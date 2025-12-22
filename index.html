@@ -7,7 +7,7 @@
   <title>NRD Flujo de Caja</title>
   <link rel="manifest" href="manifest.json">
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="styles.css?v=1766405900659">
+  <link rel="stylesheet" href="styles.css?v=1766405950688">
   <meta name="theme-color" content="#dc2626">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/svg+xml" href="icon-192.svg">
@@ -168,10 +168,7 @@
         </div>
         
         <!-- Disponibilidades Estimadas Por Cuentas -->
-        <div id="estimated-money-needed-section" class="mb-3 sm:mb-4 hidden border border-gray-200 bg-gray-50 p-3 sm:p-4">
-          <div id="estimated-money-needed-header" class="mb-2 sm:mb-3"></div>
-          <div id="estimated-money-needed-accounts" class="grid grid-cols-1 gap-2 sm:gap-3"></div>
-        </div>
+        <div id="estimated-money-needed-section" class="mb-3 sm:mb-4 hidden border border-gray-200 bg-gray-50 p-3 sm:p-4"></div>
         
         <!-- Subtotal por Cuenta -->
         <div id="account-subtotals-section" class="mb-4 sm:mb-6 hidden">
@@ -651,15 +648,15 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   
   <!-- App Scripts -->
-  <script src="firebase.js?v=1766405900659"></script>
-  <script src="modal.js?v=1766405900659"></script>
-  <script src="auth.js?v=1766405900659"></script>
-  <script src="db.js?v=1766405900659"></script>
-  <script src="categories.js?v=1766405900659"></script>
-  <script src="transactions.js?v=1766405900659"></script>
-  <script src="cashflow.js?v=1766405900659"></script>
-  <script src="accounts.js?v=1766405900659"></script>
-  <script src="app.js?v=1766405900659"></script>
+  <script src="firebase.js?v=1766405950688"></script>
+  <script src="modal.js?v=1766405950688"></script>
+  <script src="auth.js?v=1766405950688"></script>
+  <script src="db.js?v=1766405950688"></script>
+  <script src="categories.js?v=1766405950688"></script>
+  <script src="transactions.js?v=1766405950688"></script>
+  <script src="cashflow.js?v=1766405950688"></script>
+  <script src="accounts.js?v=1766405950688"></script>
+  <script src="app.js?v=1766405950688"></script>
 
   <script>
     // Global error handler
@@ -710,7 +707,7 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         // Register service worker without version parameter
-        navigator.serviceWorker.register('service-worker.js?v=1766405900659')
+        navigator.serviceWorker.register('service-worker.js?v=1766405950688')
           .then(reg => {
             console.log('Service Worker registered');
             

@@ -521,18 +521,12 @@ async function renderEstimatedMoneyNeeded(period, referenceDate, allTransactions
   const container = document.getElementById('estimated-money-needed-section');
   if (!container) return;
   
-  const header = container.querySelector('#estimated-money-needed-header');
-  const accountsContainer = container.querySelector('#estimated-money-needed-accounts');
-  
-  if (!header || !accountsContainer) return;
-  
   // Mostrar indicador de carga
   container.classList.remove('hidden');
-  header.innerHTML = `
+  container.innerHTML = `
     <h3 class="text-xs font-light text-gray-700 mb-2 uppercase tracking-wider">Disponibilidad en Efectivo Estimado</h3>
     <p class="text-[10px] sm:text-xs text-gray-500">Calculando...</p>
   `;
-  accountsContainer.innerHTML = '<div class="text-center py-4 text-sm text-gray-500">Calculando...</div>';
   
   const estimatedData = await calculateEstimatedMoneyNeeded(period, referenceDate, allTransactions);
   
@@ -542,17 +536,6 @@ async function renderEstimatedMoneyNeeded(period, referenceDate, allTransactions
   }
   
   const periodText = estimatedData.periodDescription;
-  
-  header.innerHTML = `
-    <h3 class="text-xs font-light text-gray-700 mb-2 uppercase tracking-wider">Disponibilidad en Efectivo Estimado</h3>
-    <p class="text-[10px] sm:text-xs text-gray-500">Basado en: ${periodText}</p>
-  `;
-  
-  accountsContainer.innerHTML = '';
-  
-  // Mostrar información de efectivo
-  const card = document.createElement('div');
-  card.className = 'border border-gray-200 p-2 sm:p-3 bg-white';
   
   // Determinar color y texto según la acción
   let actionColor = 'text-gray-600';
@@ -568,28 +551,31 @@ async function renderEstimatedMoneyNeeded(period, referenceDate, allTransactions
     actionBg = 'bg-green-50';
   }
   
-  card.innerHTML = `
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-      <div class="flex-1">
-        <div class="text-xs sm:text-sm font-medium text-gray-700 mb-1.5">${escapeHtml(estimatedData.accountName)}</div>
-        <div class="text-[10px] sm:text-xs text-gray-500 space-y-0.5">
-          <div>Egresos estimados: <span class="font-medium text-red-600">$${formatNumber(estimatedData.estimatedExpenses)}</span></div>
-          <div>Ingresos estimados: <span class="font-medium text-green-600">$${formatNumber(estimatedData.income)}</span></div>
+  container.innerHTML = `
+    <h3 class="text-xs font-light text-gray-700 mb-2 uppercase tracking-wider">Disponibilidad en Efectivo Estimado</h3>
+    <p class="text-[10px] sm:text-xs text-gray-500 mb-3">Basado en: ${periodText}</p>
+    <div class="border border-gray-200 p-2 sm:p-3 bg-white">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div class="flex-1">
+          <div class="text-xs sm:text-sm font-medium text-gray-700 mb-1.5">${escapeHtml(estimatedData.accountName)}</div>
+          <div class="text-[10px] sm:text-xs text-gray-500 space-y-0.5">
+            <div>Egresos estimados: <span class="font-medium text-red-600">$${formatNumber(estimatedData.estimatedExpenses)}</span></div>
+            <div>Ingresos estimados: <span class="font-medium text-green-600">$${formatNumber(estimatedData.income)}</span></div>
+          </div>
         </div>
-      </div>
-      <div class="text-center sm:text-right ${actionBg} px-3 py-2 rounded">
-        ${estimatedData.actionType !== 'neutral' ? `
-        <div class="text-[10px] sm:text-xs text-gray-600 mb-1 uppercase tracking-wide">${estimatedData.actionText}</div>
-        <div class="text-lg sm:text-xl font-bold ${actionColor}">
-          ${actionIcon} $${formatNumber(estimatedData.actionAmount)}
+        <div class="text-center sm:text-right ${actionBg} px-3 py-2 rounded">
+          ${estimatedData.actionType !== 'neutral' ? `
+          <div class="text-[10px] sm:text-xs text-gray-600 mb-1 uppercase tracking-wide">${estimatedData.actionText}</div>
+          <div class="text-lg sm:text-xl font-bold ${actionColor}">
+            ${actionIcon} $${formatNumber(estimatedData.actionAmount)}
+          </div>
+          ` : `
+          <div class="text-xs sm:text-sm text-gray-500">Balance equilibrado</div>
+          `}
         </div>
-        ` : `
-        <div class="text-xs sm:text-sm text-gray-500">Balance equilibrado</div>
-        `}
       </div>
     </div>
   `;
-  accountsContainer.appendChild(card);
 }
 
 // Calculate and render account subtotals
