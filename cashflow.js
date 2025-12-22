@@ -548,7 +548,7 @@ async function renderEstimatedMoneyNeeded(period, referenceDate, allTransactions
   
   // Mostrar información de efectivo
   const card = document.createElement('div');
-  card.className = 'border border-gray-200 p-2 sm:p-3 bg-white rounded-lg';
+  card.className = 'border border-gray-200 p-2 sm:p-3 bg-white';
   
   // Determinar color y texto según la acción
   let actionColor = 'text-gray-600';
