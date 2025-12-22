@@ -889,13 +889,9 @@ async function updateAccountSubtotals(transactionsToProcess) {
     ...Object.keys(accountExpenses)
   ]);
   
-  // Show/hide section based on whether there are accounts with transactions
+  // Always show section (it shows balance by account which is always relevant)
   const section = document.getElementById('account-subtotals-section');
   if (section) {
-    if (accountIds.size === 0) {
-      section.classList.add('hidden');
-      return;
-    }
     section.classList.remove('hidden');
   }
   
@@ -962,24 +958,24 @@ async function updateAccountSubtotals(transactionsToProcess) {
   }
   
   // Render balance subtotals (income - expenses)
+  // Show all active accounts, even if they have no transactions in the period
   const balanceContainer = document.getElementById('account-balance-subtotals');
   if (balanceContainer) {
     balanceContainer.innerHTML = '';
     
     const accountBalances = {};
-    accountIds.forEach(accountId => {
-      if (accounts[accountId]?.active === false) return;
+    // Use all active accounts, not just those with transactions
+    Object.entries(accounts).forEach(([accountId, account]) => {
+      if (account?.active === false) return;
       const income = accountIncome[accountId] || 0;
       const expenses = accountExpenses[accountId] || 0;
       accountBalances[accountId] = income - expenses;
     });
     
     if (Object.keys(accountBalances).length === 0) {
-      balanceContainer.innerHTML = '<p class="text-xs text-gray-500">No hay datos</p>';
+      balanceContainer.innerHTML = '<p class="text-xs text-gray-500">No hay cuentas activas</p>';
     } else {
-      const filteredBalances = Object.entries(accountBalances)
-        .filter(([accountId]) => accounts[accountId]?.active !== false);
-      const sortedBalances = sortAccountsByName(filteredBalances);
+      const sortedBalances = sortAccountsByName(Object.entries(accountBalances));
       
       sortedBalances.forEach(([accountId, balance]) => {
         const account = accounts[accountId];
