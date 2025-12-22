@@ -873,7 +873,7 @@ function showCalculationHelpModal(data) {
 }
 
 // Calculate and render account subtotals
-async function updateAccountSubtotals(transactionsToProcess) {
+async function updateAccountSubtotals(transactionsToProcess, period = 'all', referenceDate = null) {
   // Get accounts
   const accountsSnapshot = await getAccountsRef().once('value');
   const accounts = accountsSnapshot.val() || {};
@@ -1025,17 +1025,32 @@ async function updateAccountSubtotals(transactionsToProcess) {
     }
   }
   
-  // Render total balance (initial balance + all transactions)
-  // Show all active accounts with their total accumulated balance
+  // Render total balance (initial balance + transactions up to end of selected period)
+  // Show all active accounts with their total accumulated balance up to the end of the period
   const totalBalanceContainer = document.getElementById('account-balance-totals');
   if (totalBalanceContainer) {
     totalBalanceContainer.innerHTML = '';
+    
+    // Get period date range to determine the end date
+    const periodRange = getPeriodDateRange(period, referenceDate);
+    let endDate = null;
+    
+    if (periodRange) {
+      // Use the end of the period
+      endDate = new Date(periodRange.end);
+    } else if (period === 'all') {
+      // For 'all', use null to include all transactions
+      endDate = null;
+    } else {
+      // Default to current date if period is invalid
+      endDate = new Date();
+    }
     
     // Get all transactions to calculate total balance
     const allTransactionsSnapshot = await getTransactionsRef().once('value');
     const allTransactions = allTransactionsSnapshot.val() || {};
     
-    // Calculate total balance per account (initial balance + all transactions)
+    // Calculate total balance per account (initial balance + transactions up to end date)
     const accountTotalBalances = {};
     Object.entries(accounts).forEach(([accountId, account]) => {
       if (account?.active === false) return;
@@ -1044,9 +1059,17 @@ async function updateAccountSubtotals(transactionsToProcess) {
       const initialBalance = parseFloat(account.initialBalance) || 0;
       let totalBalance = initialBalance;
       
-      // Add all transactions for this account
+      // Add transactions for this account up to the end date
       Object.values(allTransactions).forEach(transaction => {
         if (transaction && transaction.accountId === accountId) {
+          // Filter by date if endDate is specified
+          if (endDate) {
+            const transactionDate = transaction.date || transaction.createdAt;
+            if (transactionDate && transactionDate > endDate.getTime()) {
+              return; // Skip transactions after the end date
+            }
+          }
+          
           const amount = parseFloat(transaction.amount || 0);
           if (transaction.type === 'income') {
             totalBalance += amount;
@@ -1582,7 +1605,7 @@ function loadCashflow() {
     // Eliminado: desglose de porcentajes de categorías de egresos
 
     // Update account subtotals
-    await updateAccountSubtotals(transactionsToProcess);
+    await updateAccountSubtotals(transactionsToProcess, cashflowSelectedFilterPeriod, cashflowPeriodReferenceDate);
 
     // Calculate and render estimated money needed
     await renderEstimatedMoneyNeeded(cashflowSelectedFilterPeriod, cashflowPeriodReferenceDate, transactions);
