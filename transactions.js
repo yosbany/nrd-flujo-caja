@@ -222,10 +222,16 @@ async function showNewTransactionForm(type) {
   // Set transaction type
   document.getElementById('transaction-type').value = type;
   
-  // Reset form title
+  // Reset form title and subtitle
   const formTitle = document.getElementById('transaction-form-title');
+  const formSubtitle = document.getElementById('transaction-form-subtitle');
   if (formTitle) {
     formTitle.textContent = type === 'income' ? 'Nuevo Ingreso' : 'Nuevo Egreso';
+  }
+  if (formSubtitle) {
+    formSubtitle.textContent = type === 'income' 
+      ? 'Registre un ingreso de dinero. Complete todos los campos marcados con *'
+      : 'Registre un egreso de dinero. Complete todos los campos marcados con *';
   }
   
   // Reset form
@@ -413,35 +419,137 @@ async function saveTransaction() {
   const dateInput = document.getElementById('transaction-date').value;
   const notes = document.getElementById('transaction-notes').value.trim();
 
-  if (!description || isNaN(amount) || amount <= 0) {
-    await showError('Por favor complete todos los campos correctamente');
+  // Validaciones con mensajes claros y preventivos
+  
+  // 1. Validación de descripción
+  if (!description || description.length === 0) {
+    await showError('Por favor escriba una descripción de qué es esta transacción');
+    document.getElementById('transaction-description').focus();
+    return;
+  }
+  
+  // Validar longitud máxima de descripción (evitar textos muy largos)
+  if (description.length > 200) {
+    await showError('La descripción es muy larga. Por favor use máximo 200 caracteres');
+    document.getElementById('transaction-description').focus();
+    return;
+  }
+  
+  // Validar que la descripción no sea solo espacios
+  if (description.trim().length === 0) {
+    await showError('La descripción no puede estar vacía');
+    document.getElementById('transaction-description').focus();
     return;
   }
 
+  // 2. Validación de monto
+  if (!amount || isNaN(amount)) {
+    await showError('Por favor ingrese un monto válido. Use números y punto para decimales (ej: 1500.50)');
+    document.getElementById('transaction-amount').focus();
+    return;
+  }
+  
+  if (amount <= 0) {
+    await showError('El monto debe ser mayor a cero');
+    document.getElementById('transaction-amount').focus();
+    return;
+  }
+  
+  // Validar monto máximo razonable (evitar errores de tipeo)
+  if (amount > 999999999) {
+    await showError('El monto es demasiado grande. Por favor verifique que sea correcto');
+    document.getElementById('transaction-amount').focus();
+    return;
+  }
+  
+  // Validar que el monto tenga máximo 2 decimales
+  const amountStr = document.getElementById('transaction-amount').value;
+  if (amountStr.includes('.') && amountStr.split('.')[1] && amountStr.split('.')[1].length > 2) {
+    await showError('El monto solo puede tener máximo 2 decimales');
+    document.getElementById('transaction-amount').focus();
+    return;
+  }
+
+  // 3. Validación de categoría
   if (!categoryId) {
-    await showError('Por favor seleccione una categoría');
+    await showError('Por favor seleccione una categoría de la lista');
+    document.getElementById('transaction-category').focus();
     return;
   }
 
+  // 4. Validación de cuenta
   if (!accountId) {
-    await showError('Por favor seleccione una cuenta');
+    await showError('Por favor seleccione una cuenta de la lista');
+    document.getElementById('transaction-account').focus();
+    return;
+  }
+  
+  // 5. Validación de fecha
+  if (!dateInput) {
+    await showError('Por favor seleccione una fecha');
+    document.getElementById('transaction-date').focus();
+    return;
+  }
+  
+  // Validar que la fecha no sea muy antigua (más de 10 años)
+  const dateObj = new Date(dateInput);
+  const tenYearsAgo = new Date();
+  tenYearsAgo.setFullYear(tenYearsAgo.getFullYear() - 10);
+  if (dateObj < tenYearsAgo) {
+    await showError('La fecha no puede ser anterior a hace 10 años. Por favor verifique la fecha');
+    document.getElementById('transaction-date').focus();
+    return;
+  }
+  
+  // Validar que la fecha no sea muy futura (más de 1 año)
+  const oneYearFromNow = new Date();
+  oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+  if (dateObj > oneYearFromNow) {
+    await showError('La fecha no puede ser más de un año en el futuro. Por favor verifique la fecha');
+    document.getElementById('transaction-date').focus();
+    return;
+  }
+  
+  // Validar formato de fecha
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (!dateRegex.test(dateInput)) {
+    await showError('La fecha tiene un formato incorrecto. Por favor seleccione una fecha válida');
+    document.getElementById('transaction-date').focus();
     return;
   }
 
   try {
-    // Get category data
+    // Verificar que la categoría existe y está activa
     const categorySnapshot = await getCategory(categoryId);
     const category = categorySnapshot.val();
     if (!category) {
-      await showError('Categoría no encontrada');
+      await showError('La categoría seleccionada no existe. Por favor seleccione otra');
+      document.getElementById('transaction-category').value = '';
+      document.getElementById('transaction-category').focus();
+      return;
+    }
+    
+    if (category.active === false) {
+      await showError('La categoría seleccionada está desactivada. Por favor seleccione otra');
+      document.getElementById('transaction-category').value = '';
+      document.getElementById('transaction-category').focus();
       return;
     }
 
-    // Get account data
+    // Verificar que la cuenta existe y está activa
     const accountSnapshot = await getAccount(accountId);
     const account = accountSnapshot.val();
     if (!account) {
-      await showError('Cuenta no encontrada');
+      await showError('La cuenta seleccionada no existe. Por favor seleccione otra');
+      document.getElementById('transaction-account').value = '';
+      document.getElementById('transaction-account').focus();
+      return;
+    }
+    
+    if (account.active === false) {
+      await showError('La cuenta seleccionada está desactivada. Por favor seleccione otra');
+      document.getElementById('transaction-account').value = '';
+      document.getElementById('transaction-account').focus();
       return;
     }
 
@@ -487,19 +595,46 @@ async function saveTransaction() {
       
       // Reload transaction to show updated data in view mode
       await viewTransaction(transactionId);
-      await showSuccess('Transacción actualizada exitosamente');
+      await showSuccess('✓ Transacción actualizada correctamente');
     } else {
       // Create new transaction
+      // Verificar duplicados potenciales (mismo monto, descripción y fecha en el mismo día)
+      const transactionsSnapshot = await getTransactionsRef().once('value');
+      const allTransactions = transactionsSnapshot.val() || {};
+      const dayStart = new Date(transactionDate);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(transactionDate);
+      dayEnd.setHours(23, 59, 59, 999);
+      
+      const duplicateCheck = Object.values(allTransactions).some(t => {
+        if (!t) return false;
+        const tDate = t.date || t.createdAt;
+        return t.type === type &&
+               t.description && t.description.trim().toLowerCase() === description.trim().toLowerCase() &&
+               Math.abs(parseFloat(t.amount) - amount) < 0.01 &&
+               tDate >= dayStart.getTime() && tDate <= dayEnd.getTime();
+      });
+      
+      if (duplicateCheck) {
+        const confirmDuplicate = await showConfirm(
+          'Posible duplicado',
+          `Ya existe una transacción similar (mismo monto, descripción y fecha). ¿Desea guardarla de todas formas?`
+        );
+        if (!confirmDuplicate) {
+          return;
+        }
+      }
+      
       const transactionData = {
         type,
-        description,
+        description: description.trim(),
         amount,
         categoryId,
         categoryName: category.name,
         accountId,
         accountName: account.name,
         date: transactionDate,
-        notes: notes || null,
+        notes: notes ? notes.trim() : null,
         createdAt: Date.now()
       };
 
@@ -509,11 +644,20 @@ async function saveTransaction() {
       
       // Close form for new transactions
       hideTransactionForm();
-      await showSuccess('Transacción guardada exitosamente');
+      await showSuccess('✓ Transacción guardada correctamente');
     }
   } catch (error) {
     hideSpinner();
-    await showError('Error al guardar transacción: ' + error.message);
+    console.error('Error al guardar transacción:', error);
+    
+    // Mensajes de error más amigables según el tipo de error
+    if (error.message && error.message.includes('network') || error.message.includes('internet')) {
+      await showError('Error de conexión. Por favor verifique su conexión a internet e intente nuevamente');
+    } else if (error.message && error.message.includes('permission')) {
+      await showError('No tiene permisos para realizar esta acción. Por favor contacte al administrador');
+    } else {
+      await showError('Error al guardar la transacción. Por favor verifique los datos e intente nuevamente');
+    }
   }
 }
 
@@ -740,7 +884,7 @@ async function deleteTransactionHandler(transactionId) {
     await deleteTransaction(transactionId);
     hideSpinner();
     backToTransactions();
-    await showSuccess('Transacción eliminada exitosamente');
+    await showSuccess('✓ Transacción eliminada correctamente');
   } catch (error) {
     hideSpinner();
     await showError('Error al eliminar transacción: ' + error.message);
@@ -1349,8 +1493,69 @@ async function generateDailyReport(reportDate) {
   }
 }
 
+// Validación en tiempo real del campo de monto
+function setupAmountValidation() {
+  const amountInput = document.getElementById('transaction-amount');
+  if (!amountInput) return;
+  
+  amountInput.addEventListener('input', (e) => {
+    const value = e.target.value;
+    const amount = parseFloat(value);
+    
+    // Remover clases de error previas
+    e.target.classList.remove('border-red-500', 'bg-red-50');
+    
+    if (value && !isNaN(amount)) {
+      if (amount <= 0) {
+        e.target.classList.add('border-red-500', 'bg-red-50');
+      } else if (amount > 999999999) {
+        e.target.classList.add('border-yellow-500', 'bg-yellow-50');
+      } else {
+        e.target.classList.remove('border-yellow-500', 'bg-yellow-50');
+      }
+    }
+  });
+  
+  // Validar al perder el foco
+  amountInput.addEventListener('blur', (e) => {
+    const value = e.target.value;
+    const amount = parseFloat(value);
+    
+    if (value && !isNaN(amount) && amount > 0 && amount <= 999999999) {
+      // Formatear con máximo 2 decimales
+      const rounded = Math.round(amount * 100) / 100;
+      if (rounded !== amount) {
+        e.target.value = rounded.toFixed(2);
+      }
+    }
+  });
+}
+
+// Validación en tiempo real del campo de descripción
+function setupDescriptionValidation() {
+  const descriptionInput = document.getElementById('transaction-description');
+  if (!descriptionInput) return;
+  
+  descriptionInput.addEventListener('input', (e) => {
+    const value = e.target.value.trim();
+    
+    // Remover clases de error previas
+    e.target.classList.remove('border-red-500', 'bg-red-50');
+    
+    if (value.length === 0) {
+      e.target.classList.add('border-red-500', 'bg-red-50');
+    } else if (value.length > 200) {
+      e.target.classList.add('border-yellow-500', 'bg-yellow-50');
+    }
+  });
+}
+
 // Setup autocomplete click outside handler
 document.addEventListener('DOMContentLoaded', () => {
+  // Configurar validaciones en tiempo real
+  setupAmountValidation();
+  setupDescriptionValidation();
+  
   document.addEventListener('click', (e) => {
     const autocompleteList = document.getElementById('description-autocomplete-list');
     const descriptionInput = document.getElementById('transaction-description');
