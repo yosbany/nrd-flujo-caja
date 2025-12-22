@@ -179,6 +179,9 @@ async function showNewTransactionForm(type) {
   const header = document.querySelector('#transactions-view .flex.flex-col');
   const dateFilter = document.getElementById('transactions-date-filter-container');
   
+  // Restore fields from read-only text display first
+  restoreFieldsFromReadOnlyText();
+  
   form.classList.remove('hidden');
   if (list) list.style.display = 'none';
   if (header) header.style.display = 'none';
@@ -432,6 +435,9 @@ function hideTransactionForm() {
   const list = document.getElementById('transactions-list');
   const header = document.querySelector('#transactions-view .flex.flex-col');
   const dateFilter = document.getElementById('transactions-date-filter-container');
+  
+  // Restore fields from read-only text display first
+  restoreFieldsFromReadOnlyText();
   
   form.classList.add('hidden');
   // Limpiar colores de fondo
@@ -733,6 +739,172 @@ async function saveTransaction() {
   }
 }
 
+// Convert form fields to read-only text display
+function convertFieldsToReadOnlyText(transaction) {
+  const form = document.getElementById('transaction-form');
+  if (!form) return;
+  
+  // Monto
+  const amountInput = document.getElementById('transaction-amount');
+  if (amountInput && !amountInput.dataset.readonlyText) {
+    const amountValue = parseFloat(transaction.amount || 0);
+    const formattedAmount = formatNumber(amountValue);
+    const amountContainer = amountInput.parentElement;
+    const amountText = document.createElement('div');
+    amountText.className = 'w-full px-4 py-3 border-2 border-gray-300 bg-gray-50 text-base sm:text-lg';
+    amountText.textContent = formattedAmount;
+    amountText.id = 'transaction-amount-text';
+    amountInput.dataset.readonlyText = 'true';
+    amountInput.style.display = 'none';
+    amountContainer.insertBefore(amountText, amountInput);
+  }
+  
+  // Subcategoría
+  const descriptionInput = document.getElementById('transaction-description');
+  if (descriptionInput && !descriptionInput.dataset.readonlyText) {
+    const descriptionValue = transaction.description || '';
+    const descriptionContainer = descriptionInput.parentElement;
+    const descriptionText = document.createElement('div');
+    descriptionText.className = 'w-full px-4 py-3 border-2 border-gray-300 bg-gray-50 text-base';
+    descriptionText.textContent = descriptionValue || 'Sin subcategoría';
+    descriptionText.id = 'transaction-description-text';
+    descriptionInput.dataset.readonlyText = 'true';
+    descriptionInput.style.display = 'none';
+    // Ocultar también el autocomplete list si existe
+    const autocompleteList = document.getElementById('description-autocomplete-list');
+    if (autocompleteList) autocompleteList.style.display = 'none';
+    descriptionContainer.insertBefore(descriptionText, descriptionInput);
+  }
+  
+  // Categoría
+  const categorySelect = document.getElementById('transaction-category');
+  if (categorySelect && !categorySelect.dataset.readonlyText) {
+    const selectedOption = categorySelect.options[categorySelect.selectedIndex];
+    const categoryValue = selectedOption ? selectedOption.textContent : 'Sin categoría';
+    const categoryContainer = categorySelect.parentElement;
+    const categoryText = document.createElement('div');
+    categoryText.className = 'w-full px-4 py-3 border-2 border-gray-300 bg-gray-50 text-base';
+    categoryText.textContent = categoryValue;
+    categoryText.id = 'transaction-category-text';
+    categorySelect.dataset.readonlyText = 'true';
+    categorySelect.style.display = 'none';
+    categoryContainer.insertBefore(categoryText, categorySelect);
+  }
+  
+  // Cuenta
+  const accountSelect = document.getElementById('transaction-account');
+  if (accountSelect && !accountSelect.dataset.readonlyText) {
+    const selectedOption = accountSelect.options[accountSelect.selectedIndex];
+    const accountValue = selectedOption ? selectedOption.textContent : 'Sin cuenta';
+    const accountContainer = accountSelect.parentElement;
+    const accountText = document.createElement('div');
+    accountText.className = 'w-full px-4 py-3 border-2 border-gray-300 bg-gray-50 text-base';
+    accountText.textContent = accountValue;
+    accountText.id = 'transaction-account-text';
+    accountSelect.dataset.readonlyText = 'true';
+    accountSelect.style.display = 'none';
+    accountContainer.insertBefore(accountText, accountSelect);
+  }
+  
+  // Fecha
+  const dateInput = document.getElementById('transaction-date');
+  if (dateInput && !dateInput.dataset.readonlyText) {
+    let dateValue = 'Sin fecha';
+    if (transaction.date) {
+      const date = new Date(transaction.date);
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      dateValue = `${day}/${month}/${year}`;
+    }
+    const dateContainer = dateInput.parentElement;
+    const dateText = document.createElement('div');
+    dateText.className = 'w-full px-4 py-3 border-2 border-gray-300 bg-gray-50 text-base';
+    dateText.textContent = dateValue;
+    dateText.id = 'transaction-date-text';
+    dateInput.dataset.readonlyText = 'true';
+    dateInput.style.display = 'none';
+    dateContainer.insertBefore(dateText, dateInput);
+  }
+  
+  // Notas
+  const notesTextarea = document.getElementById('transaction-notes');
+  if (notesTextarea && !notesTextarea.dataset.readonlyText) {
+    const notesValue = transaction.notes || '';
+    const notesContainer = notesTextarea.parentElement;
+    const notesText = document.createElement('div');
+    notesText.className = 'w-full px-4 py-3 border-2 border-gray-300 bg-gray-50 resize-y text-base min-h-[80px]';
+    notesText.textContent = notesValue || 'Sin notas';
+    notesText.id = 'transaction-notes-text';
+    notesTextarea.dataset.readonlyText = 'true';
+    notesTextarea.style.display = 'none';
+    notesContainer.insertBefore(notesText, notesTextarea);
+  }
+}
+
+// Restore form fields from read-only text display
+function restoreFieldsFromReadOnlyText() {
+  const form = document.getElementById('transaction-form');
+  if (!form) return;
+  
+  // Monto
+  const amountInput = document.getElementById('transaction-amount');
+  const amountText = document.getElementById('transaction-amount-text');
+  if (amountInput && amountText) {
+    amountInput.style.display = '';
+    amountText.remove();
+    delete amountInput.dataset.readonlyText;
+  }
+  
+  // Subcategoría
+  const descriptionInput = document.getElementById('transaction-description');
+  const descriptionText = document.getElementById('transaction-description-text');
+  if (descriptionInput && descriptionText) {
+    descriptionInput.style.display = '';
+    descriptionText.remove();
+    delete descriptionInput.dataset.readonlyText;
+    // Mostrar el autocomplete list si existe
+    const autocompleteList = document.getElementById('description-autocomplete-list');
+    if (autocompleteList) autocompleteList.style.display = '';
+  }
+  
+  // Categoría
+  const categorySelect = document.getElementById('transaction-category');
+  const categoryText = document.getElementById('transaction-category-text');
+  if (categorySelect && categoryText) {
+    categorySelect.style.display = '';
+    categoryText.remove();
+    delete categorySelect.dataset.readonlyText;
+  }
+  
+  // Cuenta
+  const accountSelect = document.getElementById('transaction-account');
+  const accountText = document.getElementById('transaction-account-text');
+  if (accountSelect && accountText) {
+    accountSelect.style.display = '';
+    accountText.remove();
+    delete accountSelect.dataset.readonlyText;
+  }
+  
+  // Fecha
+  const dateInput = document.getElementById('transaction-date');
+  const dateText = document.getElementById('transaction-date-text');
+  if (dateInput && dateText) {
+    dateInput.style.display = '';
+    dateText.remove();
+    delete dateInput.dataset.readonlyText;
+  }
+  
+  // Notas
+  const notesTextarea = document.getElementById('transaction-notes');
+  const notesText = document.getElementById('transaction-notes-text');
+  if (notesTextarea && notesText) {
+    notesTextarea.style.display = '';
+    notesText.remove();
+    delete notesTextarea.dataset.readonlyText;
+  }
+}
+
 // View transaction detail
 async function viewTransaction(transactionId) {
   showSpinner('Cargando transacción...');
@@ -758,6 +930,9 @@ async function viewTransaction(transactionId) {
     if (dateFilter) dateFilter.style.display = 'none';
     if (searchFilter) searchFilter.style.display = 'none';
     if (form) form.classList.remove('hidden');
+    
+    // Restore fields first in case we're switching from edit mode
+    restoreFieldsFromReadOnlyText();
     
     // Aplicar fondo de color según el tipo de transacción
     const formHeader = document.getElementById('transaction-form-header');
@@ -833,17 +1008,8 @@ async function viewTransaction(transactionId) {
       accountSelect.appendChild(option);
     });
     
-    // Setup category validation for "OTROS" after loading categories (aunque esté en modo lectura, para consistencia)
-    setTimeout(() => {
-      setupCategoryNotesValidation();
-    }, 200);
-    
-    // Make all fields readonly
-    const formInputs = form.querySelectorAll('input, select, textarea');
-    formInputs.forEach(input => {
-      input.setAttribute('readonly', 'readonly');
-      input.setAttribute('disabled', 'disabled');
-    });
+    // Convert fields to read-only text display
+    convertFieldsToReadOnlyText(transaction);
     
     // Update buttons for view mode
     const editBtn = document.getElementById('edit-transaction-form-btn');
@@ -895,6 +1061,9 @@ function backToTransactions() {
 // Edit transaction - switch from view mode to edit mode
 async function editTransaction(transactionId, transaction) {
   const form = document.getElementById('transaction-form');
+  
+  // Restore fields from read-only text display first
+  restoreFieldsFromReadOnlyText();
   
   // Change to edit mode
   form.dataset.viewMode = 'edit';
@@ -1038,15 +1207,21 @@ document.getElementById('transaction-form-element').addEventListener('submit', a
 });
 document.getElementById('back-to-transactions').addEventListener('click', backToTransactions);
 
-// Edit button - submit form when editing
+// Edit button - switch to edit mode or submit form when editing
 document.getElementById('edit-transaction-form-btn').addEventListener('click', async () => {
   const form = document.getElementById('transaction-form');
-  const isEditing = form.dataset.editingTransactionId;
-  if (isEditing) {
-    // If editing, submit the form
-    await saveTransaction();
+  const viewMode = form.dataset.viewMode;
+  const transactionId = form.dataset.editingTransactionId;
+  
+  if (viewMode === 'view' && transactionId) {
+    // If in view mode, switch to edit mode
+    const transactionData = form.dataset.transactionData;
+    if (transactionData) {
+      const transaction = JSON.parse(transactionData);
+      await editTransaction(transactionId, transaction);
+    }
   } else {
-    // If new, just submit
+    // If already in edit mode, submit the form
     await saveTransaction();
   }
 });
