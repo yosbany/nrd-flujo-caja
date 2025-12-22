@@ -907,10 +907,14 @@ async function updateAccountSubtotals(transactionsToProcess, period = 'all', ref
     ...Object.keys(accountExpenses)
   ]);
   
-  // Always show section (it shows balance by account which is always relevant)
-  const section = document.getElementById('account-subtotals-section');
-  if (section) {
-    section.classList.remove('hidden');
+  // Always show sections (they show balance by account which is always relevant)
+  const subtotalsSection = document.getElementById('account-subtotals-section');
+  if (subtotalsSection) {
+    subtotalsSection.classList.remove('hidden');
+  }
+  const balanceSection = document.getElementById('account-balance-section');
+  if (balanceSection) {
+    balanceSection.classList.remove('hidden');
   }
   
   // Helper function to sort accounts by name consistently
