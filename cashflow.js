@@ -297,35 +297,43 @@ async function calculateEstimatedMoneyNeeded(period, referenceDate, allTransacti
   const margenSeguridad = 0.10;
   const egresosEstimados = avgExpenses * (1 + margenSeguridad);
   
-  // 6. Calcular el balance proyectado: Balance actual + Ingresos estimados - Egresos estimados
-  const balanceProyectado = cajaRealFinal + avgIncome - egresosEstimados;
+  // 6. Calcular el descalce del período: Egresos estimados - Ingresos estimados
+  // Esto representa cuánto falta o sobra para el período basándose en promedios históricos
+  const descalcePeriodo = egresosEstimados - avgIncome;
   
-  // 7. Calcular Desvío de Caja contra Histórico (DCH)
-  // DCH = Balance Proyectado
-  // Si es negativo, significa que después de recibir ingresos, aún falta dinero
-  const dch = balanceProyectado;
+  // 7. Calcular el balance después de recibir ingresos y pagar egresos
+  // Balance Final Proyectado = Balance Actual + Ingresos - Egresos estimados
+  const balanceFinalProyectado = cajaRealFinal + avgIncome - egresosEstimados;
   
   // 8. Aplicar regla de decisión
+  // Si el descalce del período es negativo (ingresos > egresos), no se necesita inyectar
+  // Si el descalce es positivo (egresos > ingresos), se necesita inyectar esa diferencia
+  // Pero también considerar si el balance final proyectado es suficiente
   let actionType = 'neutral';
   let actionAmount = 0;
   let actionText = '';
   
-  if (dch > 0) {
-    // REEMBOLSAR (depositar efectivo) - hay excedente después de cubrir gastos
-    actionType = 'deposit';
-    actionAmount = dch;
-    actionText = 'Reembolsar';
-  } else if (dch < 0) {
-    // INYECTAR (transferir efectivo) - falta dinero incluso después de recibir ingresos
+  if (descalcePeriodo > 0) {
+    // Hay déficit: egresos estimados > ingresos estimados
+    // Necesita inyectar la diferencia
     actionType = 'transfer';
-    actionAmount = Math.abs(dch);
+    actionAmount = descalcePeriodo;
     actionText = 'Inyectar';
+  } else if (descalcePeriodo < 0) {
+    // Hay superávit: ingresos estimados > egresos estimados
+    // Puede depositar el excedente
+    actionType = 'deposit';
+    actionAmount = Math.abs(descalcePeriodo);
+    actionText = 'Reembolsar';
   } else {
-    // MANTENER - balance equilibrado
+    // Equilibrado
     actionType = 'neutral';
     actionAmount = 0;
     actionText = 'Mantener';
   }
+  
+  // DCH es el descalce del período para mantener consistencia
+  const dch = descalcePeriodo;
   
   const periodNames = {
     'today': 'día',
