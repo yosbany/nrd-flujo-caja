@@ -419,6 +419,127 @@ function renderTopSubcategories(subcategories) {
   });
 }
 
+// Show transaction details modal
+async function showTransactionDetailsModal(transactionId) {
+  try {
+    const transactionSnapshot = await getTransaction(transactionId);
+    const transaction = transactionSnapshot.val();
+    
+    if (!transaction) {
+      await showError('Transacción no encontrada');
+      return;
+    }
+    
+    const isIncome = transaction.type === 'income';
+    const headerColor = isIncome ? 'bg-green-600' : 'bg-red-600';
+    const amountColor = isIncome ? 'text-green-600' : 'text-red-600';
+    const prefix = isIncome ? '+' : '-';
+    const date = transaction.date ? new Date(transaction.date) : new Date(transaction.createdAt);
+    
+    // Crear contenido del modal
+    const modalContent = `
+      <div class="bg-white rounded-lg shadow-xl max-w-md w-full overflow-hidden">
+        <!-- Header -->
+        <div class="${headerColor} px-6 py-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xl font-semibold text-white">${isIncome ? 'Ingreso' : 'Egreso'}</h3>
+            <button id="close-transaction-modal" class="text-white hover:text-gray-200 text-2xl font-light w-8 h-8 flex items-center justify-center hover:bg-white/20 rounded-full transition-colors">×</button>
+          </div>
+        </div>
+        
+        <!-- Content -->
+        <div class="p-6 space-y-4">
+          <div>
+            <label class="text-xs uppercase tracking-wider text-gray-500">Subcategoría</label>
+            <p class="text-base font-medium text-gray-800 mt-1">${escapeHtml(transaction.description || 'Sin subcategoría')}</p>
+          </div>
+          
+          <div>
+            <label class="text-xs uppercase tracking-wider text-gray-500">Monto</label>
+            <p class="text-2xl font-semibold ${amountColor} mt-1">${prefix}$${formatNumber(Math.abs(parseFloat(transaction.amount || 0)))}</p>
+          </div>
+          
+          <div>
+            <label class="text-xs uppercase tracking-wider text-gray-500">Fecha</label>
+            <p class="text-base text-gray-800 mt-1">${formatDate24h(date)}</p>
+          </div>
+          
+          <div>
+            <label class="text-xs uppercase tracking-wider text-gray-500">Categoría</label>
+            <p class="text-base text-gray-800 mt-1">${escapeHtml(transaction.categoryName || 'Sin categoría')}</p>
+          </div>
+          
+          <div>
+            <label class="text-xs uppercase tracking-wider text-gray-500">Cuenta</label>
+            <p class="text-base text-gray-800 mt-1">${escapeHtml(transaction.accountName || 'Sin cuenta')}</p>
+          </div>
+          
+          ${transaction.notes ? `
+          <div>
+            <label class="text-xs uppercase tracking-wider text-gray-500">Notas</label>
+            <p class="text-base text-gray-800 mt-1">${escapeHtml(transaction.notes)}</p>
+          </div>
+          ` : ''}
+        </div>
+        
+        <!-- Footer -->
+        <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex gap-3">
+          <button id="view-full-transaction-btn" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+            Ver Completo
+          </button>
+          <button id="close-transaction-modal-btn" class="flex-1 px-4 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:border-gray-400 transition-colors text-sm font-medium">
+            Cerrar
+          </button>
+        </div>
+      </div>
+    `;
+    
+    // Crear o actualizar el modal
+    let modal = document.getElementById('transaction-details-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'transaction-details-modal';
+      modal.className = 'fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4';
+      document.body.appendChild(modal);
+    }
+    
+    modal.innerHTML = modalContent;
+    modal.classList.remove('hidden');
+    
+    // Event listeners
+    const closeModal = () => {
+      modal.classList.add('hidden');
+    };
+    
+    const viewFull = () => {
+      closeModal();
+      if (typeof switchView === 'function') {
+        switchView('transactions');
+        setTimeout(() => {
+          if (typeof viewTransaction === 'function') {
+            viewTransaction(transactionId);
+          }
+        }, 300);
+      }
+    };
+    
+    document.getElementById('close-transaction-modal').addEventListener('click', closeModal);
+    document.getElementById('close-transaction-modal-btn').addEventListener('click', closeModal);
+    document.getElementById('view-full-transaction-btn').addEventListener('click', viewFull);
+    
+    // Cerrar al hacer clic fuera del modal
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        closeModal();
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error showing transaction modal:', error);
+    await showError('Error al cargar los detalles de la transacción');
+  }
+}
+
 // Render Top 10 Transacciones
 function renderTopTransactions(transactions) {
   const container = document.getElementById('top-transactions-list');
@@ -436,14 +557,7 @@ function renderTopTransactions(transactions) {
     if (transaction.id) {
       item.dataset.transactionId = transaction.id;
       item.addEventListener('click', () => {
-        if (typeof switchView === 'function') {
-          switchView('transactions');
-          setTimeout(() => {
-            if (typeof viewTransaction === 'function') {
-              viewTransaction(transaction.id);
-            }
-          }, 300);
-        }
+        showTransactionDetailsModal(transaction.id);
       });
     }
     
