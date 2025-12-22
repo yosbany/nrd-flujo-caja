@@ -263,41 +263,6 @@ async function calculateEstimatedMoneyNeeded(period, referenceDate, allTransacti
     return null;
   }
   
-  // 4. Determinar el peor descalce histórico (máximo, ya que descalce = egresos - ingresos)
-  // El peor descalce es el más positivo (mayor déficit)
-  // Si todos los descalces son negativos (siempre hubo superávit), usar 0
-  const maxDescalce = Math.max(...descalces);
-  const peorDescalce = maxDescalce < 0 ? 0 : maxDescalce;
-  
-  // 5. Calcular Caja Objetivo Histórica (COH) con margen de seguridad del 10%
-  const margenSeguridad = 0.10;
-  const coh = peorDescalce * (1 + margenSeguridad);
-  
-  // 6. Calcular Desvío de Caja contra Histórico (DCH)
-  const dch = cajaRealFinal - coh;
-  
-  // 7. Aplicar regla de decisión
-  let actionType = 'neutral';
-  let actionAmount = 0;
-  let actionText = '';
-  
-  if (dch > 0) {
-    // REEMBOLSAR (depositar efectivo)
-    actionType = 'deposit';
-    actionAmount = dch;
-    actionText = 'Reembolsar';
-  } else if (dch < 0) {
-    // INYECTAR (transferir efectivo)
-    actionType = 'transfer';
-    actionAmount = Math.abs(dch);
-    actionText = 'Inyectar';
-  } else {
-    // MANTENER
-    actionType = 'neutral';
-    actionAmount = 0;
-    actionText = 'Mantener';
-  }
-  
   // Calcular promedio de ingresos y egresos históricos para mostrar
   const historicalExpenses = {};
   const historicalIncome = {};
@@ -321,6 +286,46 @@ async function calculateEstimatedMoneyNeeded(period, referenceDate, allTransacti
   
   const avgExpenses = periodsWithData > 0 ? totalHistoricalExpenses / periodsWithData : 0;
   const avgIncome = periodsWithData > 0 ? totalHistoricalIncome / periodsWithData : 0;
+  
+  // 4. Determinar el peor descalce histórico (máximo, ya que descalce = egresos - ingresos)
+  // El peor descalce es el más positivo (mayor déficit)
+  // Si todos los descalces son negativos (siempre hubo superávit), usar 0
+  const maxDescalce = Math.max(...descalces);
+  const peorDescalce = maxDescalce < 0 ? 0 : maxDescalce;
+  
+  // 5. Calcular Egresos estimados con margen de seguridad del 10%
+  const margenSeguridad = 0.10;
+  const egresosEstimados = avgExpenses * (1 + margenSeguridad);
+  
+  // 6. Calcular el balance proyectado: Balance actual + Ingresos estimados - Egresos estimados
+  const balanceProyectado = cajaRealFinal + avgIncome - egresosEstimados;
+  
+  // 7. Calcular Desvío de Caja contra Histórico (DCH)
+  // DCH = Balance Proyectado
+  // Si es negativo, significa que después de recibir ingresos, aún falta dinero
+  const dch = balanceProyectado;
+  
+  // 8. Aplicar regla de decisión
+  let actionType = 'neutral';
+  let actionAmount = 0;
+  let actionText = '';
+  
+  if (dch > 0) {
+    // REEMBOLSAR (depositar efectivo) - hay excedente después de cubrir gastos
+    actionType = 'deposit';
+    actionAmount = dch;
+    actionText = 'Reembolsar';
+  } else if (dch < 0) {
+    // INYECTAR (transferir efectivo) - falta dinero incluso después de recibir ingresos
+    actionType = 'transfer';
+    actionAmount = Math.abs(dch);
+    actionText = 'Inyectar';
+  } else {
+    // MANTENER - balance equilibrado
+    actionType = 'neutral';
+    actionAmount = 0;
+    actionText = 'Mantener';
+  }
   
   const periodNames = {
     'today': 'día',
