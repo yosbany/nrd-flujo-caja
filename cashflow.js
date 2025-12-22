@@ -899,6 +899,16 @@ async function updateAccountSubtotals(transactionsToProcess) {
     section.classList.remove('hidden');
   }
   
+  // Helper function to sort accounts by name consistently
+  const sortAccountsByName = (entries) => {
+    return entries.sort((a, b) => {
+      const accountA = accounts[a[0]];
+      const accountB = accounts[b[0]];
+      if (!accountA || !accountB) return 0;
+      return accountA.name.localeCompare(accountB.name);
+    });
+  };
+  
   // Render income subtotals
   const incomeContainer = document.getElementById('account-income-subtotals');
   if (incomeContainer) {
@@ -906,9 +916,9 @@ async function updateAccountSubtotals(transactionsToProcess) {
     if (Object.keys(accountIncome).length === 0) {
       incomeContainer.innerHTML = '<p class="text-xs text-gray-500">No hay ingresos</p>';
     } else {
-      const sortedIncome = Object.entries(accountIncome)
-        .sort((a, b) => b[1] - a[1])
+      const filteredIncome = Object.entries(accountIncome)
         .filter(([accountId]) => accounts[accountId]?.active !== false);
+      const sortedIncome = sortAccountsByName(filteredIncome);
       
       sortedIncome.forEach(([accountId, amount]) => {
         const account = accounts[accountId];
@@ -932,9 +942,9 @@ async function updateAccountSubtotals(transactionsToProcess) {
     if (Object.keys(accountExpenses).length === 0) {
       expenseContainer.innerHTML = '<p class="text-xs text-gray-500">No hay egresos</p>';
     } else {
-      const sortedExpenses = Object.entries(accountExpenses)
-        .sort((a, b) => b[1] - a[1])
+      const filteredExpenses = Object.entries(accountExpenses)
         .filter(([accountId]) => accounts[accountId]?.active !== false);
+      const sortedExpenses = sortAccountsByName(filteredExpenses);
       
       sortedExpenses.forEach(([accountId, amount]) => {
         const account = accounts[accountId];
@@ -967,8 +977,9 @@ async function updateAccountSubtotals(transactionsToProcess) {
     if (Object.keys(accountBalances).length === 0) {
       balanceContainer.innerHTML = '<p class="text-xs text-gray-500">No hay datos</p>';
     } else {
-      const sortedBalances = Object.entries(accountBalances)
-        .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
+      const filteredBalances = Object.entries(accountBalances)
+        .filter(([accountId]) => accounts[accountId]?.active !== false);
+      const sortedBalances = sortAccountsByName(filteredBalances);
       
       sortedBalances.forEach(([accountId, balance]) => {
         const account = accounts[accountId];
@@ -1698,18 +1709,45 @@ function navigateToNextPeriod() {
   loadCashflow();
 }
 
+// Check if period is current period
+function isCurrentPeriod(period, referenceDate = null) {
+  const today = new Date();
+  const refDate = referenceDate || new Date();
+  
+  if (period === 'today') {
+    return refDate.getDate() === today.getDate() &&
+           refDate.getMonth() === today.getMonth() &&
+           refDate.getFullYear() === today.getFullYear();
+  }
+  
+  if (period === 'week') {
+    // Check if reference date is in current week
+    const weekRange = getPeriodDateRange('week', today);
+    if (!weekRange) return false;
+    return refDate.getTime() >= weekRange.start && refDate.getTime() <= weekRange.end;
+  }
+  
+  if (period === 'month') {
+    return refDate.getMonth() === today.getMonth() &&
+           refDate.getFullYear() === today.getFullYear();
+  }
+  
+  if (period === 'year') {
+    return refDate.getFullYear() === today.getFullYear();
+  }
+  
+  return false;
+}
+
 // Format period display text
 function formatPeriodDisplay(period, referenceDate = null) {
   if (period === 'all') return 'Todos los períodos';
   
   const refDate = referenceDate || new Date();
+  const isCurrent = isCurrentPeriod(period, refDate);
   
   if (period === 'today') {
-    const today = new Date();
-    const isToday = refDate.getDate() === today.getDate() &&
-                    refDate.getMonth() === today.getMonth() &&
-                    refDate.getFullYear() === today.getFullYear();
-    if (isToday) {
+    if (isCurrent) {
       return 'Hoy';
     } else {
       return `Día: ${formatDate24h(refDate)}`;
@@ -1726,13 +1764,25 @@ function formatPeriodDisplay(period, referenceDate = null) {
   if (period === 'week') {
     const startStr = formatDate24h(startDate);
     const endStr = formatDate24h(endDate);
-    return `Semana: ${startStr} - ${endStr}`;
+    if (isCurrent) {
+      return `Semana Actual, ${startStr} - ${endStr}`;
+    } else {
+      return `Semana: ${startStr} - ${endStr}`;
+    }
   } else if (period === 'month') {
     const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
                         'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-    return `Mes: ${monthNames[startDate.getMonth()]} ${startDate.getFullYear()}`;
+    if (isCurrent) {
+      return `Mes Actual, ${monthNames[startDate.getMonth()]} ${startDate.getFullYear()}`;
+    } else {
+      return `Mes: ${monthNames[startDate.getMonth()]} ${startDate.getFullYear()}`;
+    }
   } else if (period === 'year') {
-    return `Año: ${startDate.getFullYear()}`;
+    if (isCurrent) {
+      return `Año Actual, ${startDate.getFullYear()}`;
+    } else {
+      return `Año: ${startDate.getFullYear()}`;
+    }
   }
   
   return '';
@@ -1743,7 +1793,16 @@ function updatePeriodDisplay() {
   const periodDisplayEl = document.getElementById('cashflow-period-display');
   if (periodDisplayEl) {
     const displayText = formatPeriodDisplay(cashflowSelectedFilterPeriod, cashflowPeriodReferenceDate);
+    const isCurrent = isCurrentPeriod(cashflowSelectedFilterPeriod, cashflowPeriodReferenceDate);
+    
     periodDisplayEl.textContent = displayText;
+    
+    // Highlight current period
+    if (isCurrent && cashflowSelectedFilterPeriod !== 'all' && cashflowSelectedFilterPeriod !== 'today') {
+      periodDisplayEl.className = 'text-sm sm:text-base font-semibold text-red-600';
+    } else {
+      periodDisplayEl.className = 'text-sm sm:text-base font-light text-gray-700';
+    }
     
     // Show/hide navigation arrows
     const prevBtn = document.getElementById('cashflow-period-prev-btn');

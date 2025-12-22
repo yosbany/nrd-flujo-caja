@@ -1546,7 +1546,7 @@ async function generateDailyReport(reportDate) {
       doc.setFontSize(12);
       doc.setFont(undefined, 'bold');
       doc.text('Resumen de Cuentas', startX, yPos);
-      yPos += 8;
+      yPos += 3;
       
       const tableHeaders = ['Cuenta', 'Apertura', 'Cierre', 'Diferencia'];
       // Usar el mismo ancho que el título (desde startX hasta rightMargin)
@@ -1662,7 +1662,7 @@ async function generateDailyReport(reportDate) {
     doc.setFontSize(12);
     doc.setFont(undefined, 'bold');
     doc.text('Movimientos', startX, yPos);
-    yPos += 8;
+    yPos += 3;
     
     const sortedTransactions = dayTransactions.sort((a, b) => {
       const dateA = a.date || a.createdAt;
