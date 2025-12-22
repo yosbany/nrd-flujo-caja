@@ -1908,6 +1908,60 @@ function formatPeriodDisplay(period, referenceDate = null) {
   return '';
 }
 
+// Date picker modal for cashflow period filter (when period is 'today')
+function showCashflowDatePicker() {
+  const modal = document.getElementById('cashflow-date-picker-modal');
+  const dateInput = document.getElementById('cashflow-date-picker-input');
+  
+  if (!modal || !dateInput) {
+    console.error('Cashflow date picker modal not found');
+    return;
+  }
+  
+  modal.classList.remove('hidden');
+  
+  // Set current reference date if available, otherwise use today
+  if (cashflowPeriodReferenceDate) {
+    const dateStr = cashflowPeriodReferenceDate.toISOString().split('T')[0];
+    dateInput.value = dateStr;
+  } else {
+    const today = new Date();
+    const dateStr = today.toISOString().split('T')[0];
+    dateInput.value = dateStr;
+  }
+  
+  // Focus on the date input
+  setTimeout(() => {
+    dateInput.focus();
+    // Try to show native date picker if available
+    if (dateInput.showPicker && typeof dateInput.showPicker === 'function') {
+      try {
+        dateInput.showPicker();
+      } catch (e) {
+        // showPicker might not be available in all browsers
+        console.log('showPicker not available');
+      }
+    }
+  }, 100);
+}
+
+function hideCashflowDatePicker() {
+  const modal = document.getElementById('cashflow-date-picker-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function applyCashflowDateFilter(selectedDate) {
+  if (!selectedDate) return;
+  
+  const date = new Date(selectedDate);
+  date.setHours(0, 0, 0, 0);
+  cashflowPeriodReferenceDate = date;
+  
+  updatePeriodDisplay();
+  loadCashflow();
+  hideCashflowDatePicker();
+}
+
 // Update period display
 function updatePeriodDisplay() {
   const periodDisplayEl = document.getElementById('cashflow-period-display');
@@ -1917,9 +1971,21 @@ function updatePeriodDisplay() {
     
     periodDisplayEl.textContent = displayText;
     
+    // Make clickeable when period is 'today' (diario)
+    if (cashflowSelectedFilterPeriod === 'today') {
+      periodDisplayEl.classList.add('cursor-pointer', 'hover:text-red-600', 'transition-colors');
+      periodDisplayEl.title = 'Haz clic para seleccionar una fecha';
+    } else {
+      periodDisplayEl.classList.remove('cursor-pointer', 'hover:text-red-600', 'transition-colors');
+      periodDisplayEl.title = '';
+    }
+    
     // Highlight current period
     if (isCurrent && cashflowSelectedFilterPeriod !== 'all' && cashflowSelectedFilterPeriod !== 'today') {
       periodDisplayEl.className = 'text-sm sm:text-base font-semibold text-red-600';
+    } else if (cashflowSelectedFilterPeriod === 'today') {
+      // Keep clickeable styles for today period
+      periodDisplayEl.className = 'text-sm sm:text-base font-light text-gray-700 cursor-pointer hover:text-red-600 transition-colors';
     } else {
       periodDisplayEl.className = 'text-sm sm:text-base font-light text-gray-700';
     }
@@ -1964,6 +2030,49 @@ document.addEventListener('DOMContentLoaded', () => {
   if (allBtn) allBtn.addEventListener('click', () => setPeriodFilter('all'));
   if (prevBtn) prevBtn.addEventListener('click', navigateToPreviousPeriod);
   if (nextBtn) nextBtn.addEventListener('click', navigateToNextPeriod);
+  
+  // Setup date picker for period display when period is 'today'
+  const periodDisplayEl = document.getElementById('cashflow-period-display');
+  if (periodDisplayEl) {
+    periodDisplayEl.addEventListener('click', () => {
+      if (cashflowSelectedFilterPeriod === 'today') {
+        showCashflowDatePicker();
+      }
+    });
+  }
+  
+  // Setup cashflow date picker modal
+  const cashflowDatePickerForm = document.getElementById('cashflow-date-picker-form');
+  if (cashflowDatePickerForm) {
+    cashflowDatePickerForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const dateInput = document.getElementById('cashflow-date-picker-input');
+      if (dateInput && dateInput.value) {
+        applyCashflowDateFilter(dateInput.value);
+      }
+    });
+  }
+  
+  const closeCashflowDatePickerBtn = document.getElementById('close-cashflow-date-picker-modal');
+  const cancelCashflowDatePickerBtn = document.getElementById('cancel-cashflow-date-picker-btn');
+  
+  if (closeCashflowDatePickerBtn) {
+    closeCashflowDatePickerBtn.addEventListener('click', hideCashflowDatePicker);
+  }
+  
+  if (cancelCashflowDatePickerBtn) {
+    cancelCashflowDatePickerBtn.addEventListener('click', hideCashflowDatePicker);
+  }
+  
+  // Close modal when clicking outside
+  const cashflowDatePickerModal = document.getElementById('cashflow-date-picker-modal');
+  if (cashflowDatePickerModal) {
+    cashflowDatePickerModal.addEventListener('click', (e) => {
+      if (e.target === cashflowDatePickerModal) {
+        hideCashflowDatePicker();
+      }
+    });
+  }
   
   updatePeriodFilterButtons();
   updatePeriodDisplay();

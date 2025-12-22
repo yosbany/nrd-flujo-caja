@@ -144,7 +144,9 @@ function loadTransactions(initializeToToday = true) {
     
     // Calculate totals for the selected day (after applying search filter)
     if (transactionsSelectedFilterDate) {
-      updateDaySummary(transactionsToShow);
+      updateDaySummary(transactionsToShow).catch(err => {
+        console.error('Error updating day summary:', err);
+      });
     }
     
     // Show filtered transactions
@@ -2199,7 +2201,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Update day summary (Ingresos, Egresos, Balance)
-function updateDaySummary(dayTransactions) {
+async function updateDaySummary(dayTransactions) {
   const summaryContainer = document.getElementById('transactions-day-summary');
   const totalIncomeEl = document.getElementById('day-total-income');
   const totalExpensesEl = document.getElementById('day-total-expenses');
@@ -2238,6 +2240,102 @@ function updateDaySummary(dayTransactions) {
   
   // Show summary
   summaryContainer.classList.remove('hidden');
+  
+  // Calculate and display account balances
+  await updateTransactionsAccountBalances();
+}
+
+// Update account balances for transactions view
+async function updateTransactionsAccountBalances() {
+  const accountBalancesContainer = document.getElementById('transactions-account-balances');
+  const accountBalancesList = document.getElementById('transactions-account-balances-list');
+  
+  if (!accountBalancesContainer || !accountBalancesList) return;
+  
+  // Only show if a date is selected
+  if (!transactionsSelectedFilterDate) {
+    accountBalancesContainer.classList.add('hidden');
+    return;
+  }
+  
+  // Get all accounts and transactions
+  const [accountsSnapshot, transactionsSnapshot] = await Promise.all([
+    getAccountsRef().once('value'),
+    getTransactionsRef().once('value')
+  ]);
+  
+  const accounts = accountsSnapshot.val() || {};
+  const allTransactions = transactionsSnapshot.val() || {};
+  
+  // Calculate end date (end of selected day)
+  const filterDateEnd = new Date(transactionsSelectedFilterDate.getFullYear(), 
+                                  transactionsSelectedFilterDate.getMonth(), 
+                                  transactionsSelectedFilterDate.getDate(), 
+                                  23, 59, 59, 999).getTime();
+  
+  // Calculate balance per account (initial balance + transactions up to end of selected day)
+  const accountTotalBalances = {};
+  
+  Object.entries(accounts).forEach(([accountId, account]) => {
+    if (account?.active === false) return;
+    
+    // Start with initial balance
+    const initialBalance = parseFloat(account.initialBalance) || 0;
+    let totalBalance = initialBalance;
+    
+    // Add transactions for this account up to the end date
+    Object.values(allTransactions).forEach(transaction => {
+      if (!transaction || !transaction.accountId) return;
+      if (transaction.accountId !== accountId) return;
+      
+      const transactionDate = transaction.date || transaction.createdAt;
+      if (!transactionDate) return;
+      
+      // Only include transactions up to the end of the selected day
+      if (transactionDate > filterDateEnd) {
+        return; // Skip transactions after the selected day
+      }
+      
+      const amount = parseFloat(transaction.amount || 0);
+      if (transaction.type === 'income') {
+        totalBalance += amount;
+      } else if (transaction.type === 'expense') {
+        totalBalance -= amount;
+      }
+    });
+    
+    accountTotalBalances[accountId] = {
+      name: account.name,
+      balance: totalBalance
+    };
+  });
+  
+  // Clear and render account balances
+  accountBalancesList.innerHTML = '';
+  
+  if (Object.keys(accountTotalBalances).length === 0) {
+    accountBalancesContainer.classList.add('hidden');
+    return;
+  }
+  
+  // Sort accounts by name
+  const sortedAccounts = Object.entries(accountTotalBalances).sort((a, b) => {
+    return a[1].name.localeCompare(b[1].name);
+  });
+  
+  sortedAccounts.forEach(([accountId, accountData]) => {
+    const item = document.createElement('div');
+    const balanceColor = accountData.balance >= 0 ? 'text-purple-600' : 'text-red-600';
+    item.className = 'flex justify-between items-center py-1 border-b border-gray-200 last:border-0';
+    item.innerHTML = `
+      <span class="text-xs text-gray-700 truncate flex-1 mr-2">${escapeHtml(accountData.name)}</span>
+      <span class="text-xs sm:text-sm font-medium ${balanceColor} whitespace-nowrap">$${formatNumber(Math.abs(accountData.balance))}</span>
+    `;
+    accountBalancesList.appendChild(item);
+  });
+  
+  // Show account balances section
+  accountBalancesContainer.classList.remove('hidden');
 }
 
 // Escape HTML to prevent XSS
