@@ -721,8 +721,10 @@ async function saveTransaction() {
       await updateTransaction(transactionId, transactionData);
       hideSpinner();
       
-      // Reload transaction to show updated data in view mode
-      await viewTransaction(transactionId);
+      // Cerrar el formulario y volver a la lista de transacciones
+      hideTransactionForm();
+      // Recargar las transacciones para actualizar la lista del día seleccionado
+      loadTransactions(false);
       await showSuccess('✓ Transacción actualizada correctamente');
     } else {
       // Create new transaction
@@ -772,6 +774,8 @@ async function saveTransaction() {
       
       // Close form for new transactions
       hideTransactionForm();
+      // Recargar las transacciones para actualizar la lista del día seleccionado
+      loadTransactions(false);
       await showSuccess('✓ Transacción guardada correctamente');
     }
   } catch (error) {
@@ -1254,7 +1258,10 @@ async function deleteTransactionHandler(transactionId) {
   try {
     await deleteTransaction(transactionId);
     hideSpinner();
-    backToTransactions();
+    // Cerrar el formulario y volver a la lista de transacciones
+    hideTransactionForm();
+    // Recargar las transacciones para actualizar la lista del día seleccionado
+    loadTransactions(false);
     await showSuccess('✓ Transacción eliminada correctamente');
   } catch (error) {
     hideSpinner();
@@ -1265,8 +1272,16 @@ async function deleteTransactionHandler(transactionId) {
 // Event listeners
 document.getElementById('new-income-btn').addEventListener('click', () => showNewTransactionForm('income'));
 document.getElementById('new-expense-btn').addEventListener('click', () => showNewTransactionForm('expense'));
-document.getElementById('close-transaction-form-btn').addEventListener('click', hideTransactionForm);
-document.getElementById('close-transaction-form').addEventListener('click', hideTransactionForm);
+document.getElementById('close-transaction-form-btn').addEventListener('click', () => {
+  hideTransactionForm();
+  // Recargar las transacciones para actualizar la lista del día seleccionado
+  loadTransactions(false);
+});
+document.getElementById('close-transaction-form').addEventListener('click', () => {
+  hideTransactionForm();
+  // Recargar las transacciones para actualizar la lista del día seleccionado
+  loadTransactions(false);
+});
 document.getElementById('transaction-form-element').addEventListener('submit', async (e) => {
   e.preventDefault();
   await saveTransaction();
