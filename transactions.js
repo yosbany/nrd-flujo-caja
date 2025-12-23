@@ -356,10 +356,8 @@ function setupDescriptionAutocomplete() {
   });
   
   newInput.addEventListener('click', (e) => {
-    // Mostrar todas las opciones disponibles al hacer clic
-    if (!e.target.value) {
-      showDescriptionAutocomplete('');
-    }
+    // Mostrar todas las opciones disponibles al hacer clic, ordenadas por uso reciente del mismo tipo
+    showDescriptionAutocomplete(e.target.value || '');
   });
   
   newInput.addEventListener('blur', () => {
@@ -375,26 +373,37 @@ function setupDescriptionAutocomplete() {
 
 // Store descriptions for autocomplete
 let availableDescriptions = [];
+let descriptionsWithMetadata = {}; // Store metadata: { description: { type, lastUsed } }
 
-// Load unique descriptions for autocomplete and datalist
+// Load unique descriptions for autocomplete with metadata
 async function loadDescriptionsForAutocomplete() {
   try {
     const transactionsSnapshot = await getTransactionsRef().once('value');
     const transactions = transactionsSnapshot.val() || {};
     
-    // Extract unique descriptions
-    const descriptions = new Set();
+    // Extract unique descriptions with metadata (type and last used date)
+    descriptionsWithMetadata = {};
     Object.values(transactions).forEach(transaction => {
       if (transaction && transaction.description && transaction.description.trim()) {
-        descriptions.add(transaction.description.trim());
+        const desc = transaction.description.trim();
+        const transactionDate = transaction.date || transaction.createdAt || 0;
+        
+        // If description doesn't exist or this transaction is more recent, update metadata
+        if (!descriptionsWithMetadata[desc] || transactionDate > descriptionsWithMetadata[desc].lastUsed) {
+          descriptionsWithMetadata[desc] = {
+            type: transaction.type,
+            lastUsed: transactionDate
+          };
+        }
       }
     });
     
-    // Store sorted descriptions
-    availableDescriptions = Array.from(descriptions).sort();
+    // Store sorted descriptions alphabetically for default
+    availableDescriptions = Object.keys(descriptionsWithMetadata).sort();
   } catch (error) {
     console.error('Error loading descriptions:', error);
     availableDescriptions = [];
+    descriptionsWithMetadata = {};
   }
 }
 
@@ -403,25 +412,43 @@ function showDescriptionAutocomplete(inputValue) {
   const autocompleteList = document.getElementById('description-autocomplete-list');
   if (!autocompleteList) return;
   
+  // Get current transaction type
+  const transactionType = document.getElementById('transaction-type')?.value;
+  
   // Filter descriptions based on input
-  const filtered = availableDescriptions.filter(desc => 
+  let filtered = availableDescriptions.filter(desc => 
     desc.toLowerCase().includes(inputValue.toLowerCase())
   );
   
-  // If no matches or input is empty, hide list
-  if (!inputValue || filtered.length === 0) {
+  // Always sort by: same type first (most recent first), then other types (most recent first)
+  filtered = filtered.sort((a, b) => {
+    const metaA = descriptionsWithMetadata[a] || { type: '', lastUsed: 0 };
+    const metaB = descriptionsWithMetadata[b] || { type: '', lastUsed: 0 };
+    
+    const aIsSameType = metaA.type === transactionType;
+    const bIsSameType = metaB.type === transactionType;
+    
+    // If one is same type and other is not, same type comes first
+    if (aIsSameType && !bIsSameType) return -1;
+    if (!aIsSameType && bIsSameType) return 1;
+    
+    // If both are same type or both are different, sort by lastUsed (most recent first)
+    return metaB.lastUsed - metaA.lastUsed;
+  });
+  
+  // If no matches, hide list
+  if (filtered.length === 0) {
     autocompleteList.classList.add('hidden');
     autocompleteList.innerHTML = '';
     return;
   }
   
-  // Show filtered list (mostrar todas las opciones si el campo está vacío o al hacer focus)
+  // Show filtered list
   autocompleteList.innerHTML = '';
   autocompleteList.classList.remove('hidden');
   
-  // Show all or filtered suggestions (limit to 15)
-  const toShow = inputValue ? filtered : availableDescriptions;
-  toShow.slice(0, 15).forEach(desc => {
+  // Show suggestions (limit to 15)
+  filtered.slice(0, 15).forEach(desc => {
     const item = document.createElement('div');
     item.className = 'px-4 py-2.5 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100 last:border-0';
     item.textContent = desc;
