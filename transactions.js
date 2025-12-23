@@ -211,12 +211,14 @@ async function showNewTransactionForm(type) {
   if (dateFilter) dateFilter.style.display = 'none';
   if (searchFilter) searchFilter.style.display = 'none';
   
+  // Ocultar la sección de resúmenes cuando se crea una nueva transacción
+  const daySummary = document.getElementById('transactions-day-summary');
+  if (daySummary) {
+    daySummary.style.display = 'none';
+  }
+  
   // Aplicar fondo de color según el tipo de transacción
   const formHeader = document.getElementById('transaction-form-header');
-  // Mostrar el header cuando se crea una nueva transacción
-  if (formHeader) {
-    formHeader.style.display = '';
-  }
   form.classList.remove('bg-white', 'bg-green-50', 'bg-red-50');
   if (type === 'income') {
     form.classList.add('bg-green-50');
@@ -480,6 +482,13 @@ function hideTransactionForm() {
   if (header) header.style.display = 'flex';
   if (dateFilter) dateFilter.style.display = 'flex';
   if (searchFilter) searchFilter.style.display = 'block';
+  
+  // Mostrar la sección de resúmenes nuevamente cuando se cierra el formulario
+  const daySummary = document.getElementById('transactions-day-summary');
+  if (daySummary && transactionsSelectedFilterDate) {
+    // Solo mostrar si hay una fecha seleccionada (para que se muestre si corresponde)
+    daySummary.style.display = '';
+  }
   
   // Clear form state
   delete form.dataset.editingTransactionId;
@@ -995,9 +1004,10 @@ async function viewTransaction(transactionId) {
     form.dataset.viewMode = 'view';
     form.dataset.editingTransactionId = transactionId;
     
-    // Ocultar el header cuando se está viendo una transacción
-    if (formHeader) {
-      formHeader.style.display = 'none';
+    // Ocultar la sección de resúmenes cuando se está viendo una transacción
+    const daySummary = document.getElementById('transactions-day-summary');
+    if (daySummary) {
+      daySummary.style.display = 'none';
     }
     
     // Load form data in readonly mode
@@ -1471,8 +1481,33 @@ async function generateDailyReport(reportDate) {
       });
     });
     
-    // Sort accounts by name
-    accountSummary.sort((a, b) => a.name.localeCompare(b.name));
+    // Helper function to get account order (fixed order)
+    const getAccountOrder = (accountName) => {
+      const nameUpper = accountName.toUpperCase();
+      // Orden fijo: 1. Efectivo, 2. Débito, 3. Crédito, 4. Mercado Pago
+      if (nameUpper.includes('EFECTIVO')) return 1;
+      if (nameUpper.includes('DÉBITO') || nameUpper.includes('DEBITO')) return 2;
+      if (nameUpper.includes('CRÉDITO') || nameUpper.includes('CREDITO')) return 3;
+      if (nameUpper.includes('MERCADO PAGO') || nameUpper.includes('MERCADOPAGO')) return 4;
+      // Si no coincide con ninguno, ponerlo al final pero ordenado alfabéticamente
+      return 999;
+    };
+    
+    // Sort accounts by fixed order
+    accountSummary.sort((a, b) => {
+      const orderA = getAccountOrder(a.name);
+      const orderB = getAccountOrder(b.name);
+      
+      // Si ambos tienen orden fijo, ordenar por ese orden
+      if (orderA !== 999 && orderB !== 999) {
+        return orderA - orderB;
+      }
+      // Si solo uno tiene orden fijo, ese va primero
+      if (orderA !== 999) return -1;
+      if (orderB !== 999) return 1;
+      // Si ninguno tiene orden fijo, ordenar alfabéticamente
+      return a.name.localeCompare(b.name);
+    });
     
     // Calculate totals
     let totalIngresos = 0;
@@ -1555,14 +1590,15 @@ async function generateDailyReport(reportDate) {
       doc.text('Resumen de Cuentas', startX, yPos);
       yPos += 3;
       
-      const tableHeaders = ['Cuenta', 'Apertura', 'Cierre', 'Diferencia'];
+      const tableHeaders = ['Cuenta', 'Apertura', 'Cierre', 'Diferencia', 'Saldo'];
       // Usar el mismo ancho que el título (desde startX hasta rightMargin)
       const tableWidth = rightMargin - startX;
       const colWidths = [
-        Math.floor(tableWidth * 0.45), // Cuenta: 45%
-        Math.floor(tableWidth * 0.18), // Apertura: 18%
-        Math.floor(tableWidth * 0.18), // Cierre: 18%
-        Math.floor(tableWidth * 0.18)  // Diferencia: 18%
+        Math.floor(tableWidth * 0.35), // Cuenta: 35%
+        Math.floor(tableWidth * 0.15), // Apertura: 15%
+        Math.floor(tableWidth * 0.15), // Cierre: 15%
+        Math.floor(tableWidth * 0.15), // Diferencia: 15%
+        Math.floor(tableWidth * 0.20)  // Saldo: 20%
       ];
       const headerHeight = 8;
       const rowHeight = 7;
@@ -1580,8 +1616,8 @@ async function generateDailyReport(reportDate) {
       tableHeaders.forEach((header, i) => {
         const align = i === 0 ? 'left' : 'right';
         const textX = i === 0 ? xPos + 3 : xPos + colWidths[i] - 3;
-        // Resaltar el encabezado "Saldo" (última columna, índice 3) con tamaño de fuente ligeramente mayor
-        if (i === 3) {
+        // Resaltar el encabezado "Saldo" (última columna, índice 4) con tamaño de fuente ligeramente mayor
+        if (i === 4) {
           doc.setFontSize(10);
         } else {
           doc.setFontSize(9);
@@ -1612,8 +1648,8 @@ async function generateDailyReport(reportDate) {
           tableHeaders.forEach((header, i) => {
             const align = i === 0 ? 'left' : 'right';
             const textX = i === 0 ? xPos + 3 : xPos + colWidths[i] - 3;
-            // Resaltar el encabezado "Diferencia" (última columna, índice 3) con tamaño de fuente ligeramente mayor
-            if (i === 3) {
+            // Resaltar el encabezado "Saldo" (última columna, índice 4) con tamaño de fuente ligeramente mayor
+            if (i === 4) {
               doc.setFontSize(10);
             } else {
               doc.setFontSize(9);
@@ -1636,15 +1672,16 @@ async function generateDailyReport(reportDate) {
           acc.name,
           formatNumber(acc.saldoInicial),
           formatNumber(acc.saldoFinal),
-          formatNumber(acc.diferencia)
+          formatNumber(acc.diferencia),
+          formatNumber(acc.saldoFinal) // Saldo (saldo final)
         ];
         
         rowData.forEach((cell, i) => {
           const align = i === 0 ? 'left' : 'right';
           const textX = i === 0 ? xPos + 3 : xPos + colWidths[i] - 3;
           
-          // Resaltar la columna Diferencia (última columna, índice 3) con negrita
-          if (i === 3) {
+          // Resaltar la columna Saldo (última columna, índice 4) con negrita
+          if (i === 4) {
             doc.setFont(undefined, 'bold');
           } else {
             doc.setFont(undefined, 'normal');
