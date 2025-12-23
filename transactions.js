@@ -262,6 +262,7 @@ async function showNewTransactionForm(type) {
   if (closeBtn) {
     closeBtn.classList.remove('hidden');
     closeBtn.style.display = 'flex';
+    closeBtn.textContent = 'Cancelar';
   }
   if (saveBtn) {
     saveBtn.classList.remove('hidden');
@@ -1059,25 +1060,29 @@ async function viewTransaction(transactionId) {
     // Convert fields to read-only text display
     convertFieldsToReadOnlyText(transaction);
     
-    // Update buttons for view mode - hide all buttons at bottom, only X in header
+    // Update buttons for view mode - show Edit, Delete, and Close buttons
     const editBtn = document.getElementById('edit-transaction-form-btn');
     const deleteBtn = document.getElementById('delete-transaction-form-btn');
     const closeBtn = document.getElementById('close-transaction-form-btn');
     const saveBtn = document.getElementById('save-transaction-form-btn');
     
+    // Show Edit button
     if (editBtn) {
-      editBtn.classList.add('hidden');
-      editBtn.style.display = 'none';
+      editBtn.classList.remove('hidden');
+      editBtn.style.display = 'flex';
     }
+    // Show Delete button
     if (deleteBtn) {
-      deleteBtn.classList.add('hidden');
-      deleteBtn.style.display = 'none';
+      deleteBtn.classList.remove('hidden');
+      deleteBtn.style.display = 'flex';
     }
+    // Show Close button (renamed to "Cerrar")
     if (closeBtn) {
-      // Ocultar el botón Cancelar cuando se está viendo una transacción
-      closeBtn.classList.add('hidden');
-      closeBtn.style.display = 'none';
+      closeBtn.classList.remove('hidden');
+      closeBtn.style.display = 'flex';
+      closeBtn.textContent = 'Cerrar';
     }
+    // Hide Save button in view mode
     if (saveBtn) {
       saveBtn.classList.add('hidden');
       saveBtn.style.display = 'none';
@@ -1183,6 +1188,7 @@ async function editTransaction(transactionId, transaction) {
   if (closeBtn) {
     closeBtn.classList.remove('hidden');
     closeBtn.style.display = 'flex';
+    closeBtn.textContent = 'Cancelar';
   }
   if (saveBtn) {
     saveBtn.classList.remove('hidden');
