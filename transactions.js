@@ -213,6 +213,10 @@ async function showNewTransactionForm(type) {
   
   // Aplicar fondo de color según el tipo de transacción
   const formHeader = document.getElementById('transaction-form-header');
+  // Mostrar el header cuando se crea una nueva transacción
+  if (formHeader) {
+    formHeader.style.display = '';
+  }
   form.classList.remove('bg-white', 'bg-green-50', 'bg-red-50');
   if (type === 'income') {
     form.classList.add('bg-green-50');
@@ -463,6 +467,12 @@ function hideTransactionForm() {
   // Limpiar colores de fondo
   form.classList.remove('bg-green-50', 'bg-red-50');
   form.classList.add('bg-white');
+  
+  // Mostrar el header nuevamente cuando se cierra el formulario
+  const formHeader = document.getElementById('transaction-form-header');
+  if (formHeader) {
+    formHeader.style.display = '';
+  }
   
   // Mostrar filtros nuevamente
   const searchFilter = document.getElementById('transactions-search-filter-container');
@@ -985,18 +995,9 @@ async function viewTransaction(transactionId) {
     form.dataset.viewMode = 'view';
     form.dataset.editingTransactionId = transactionId;
     
-    // Set form title
-    const formTitle = document.getElementById('transaction-form-title');
-    if (formTitle) {
-      formTitle.textContent = 'Ver Transacción';
-    }
-    
-    // Actualizar subtítulo según el tipo
-    const formSubtitle = document.getElementById('transaction-form-subtitle');
-    if (formSubtitle) {
-      formSubtitle.textContent = transaction.type === 'income' 
-        ? 'Detalle del ingreso registrado'
-        : 'Detalle del egreso registrado';
+    // Ocultar el header cuando se está viendo una transacción
+    if (formHeader) {
+      formHeader.style.display = 'none';
     }
     
     // Load form data in readonly mode
@@ -1102,6 +1103,10 @@ async function editTransaction(transactionId, transaction) {
   
   // Aplicar fondo de color según el tipo de transacción
   const formHeader = document.getElementById('transaction-form-header');
+  // Mostrar el header cuando se está editando
+  if (formHeader) {
+    formHeader.style.display = '';
+  }
   form.classList.remove('bg-white', 'bg-green-50', 'bg-red-50');
   if (transaction.type === 'income') {
     form.classList.add('bg-green-50');
@@ -2318,8 +2323,31 @@ async function updateTransactionsAccountBalances() {
     return;
   }
   
-  // Sort accounts by name
+  // Helper function to get account order (fixed order)
+  const getAccountOrder = (accountName) => {
+    const nameUpper = accountName.toUpperCase();
+    // Orden fijo: 1. Efectivo, 2. Débito, 3. Crédito, 4. Mercado Pago
+    if (nameUpper.includes('EFECTIVO')) return 1;
+    if (nameUpper.includes('DÉBITO') || nameUpper.includes('DEBITO')) return 2;
+    if (nameUpper.includes('CRÉDITO') || nameUpper.includes('CREDITO')) return 3;
+    if (nameUpper.includes('MERCADO PAGO') || nameUpper.includes('MERCADOPAGO')) return 4;
+    // Si no coincide con ninguno, ponerlo al final pero ordenado alfabéticamente
+    return 999;
+  };
+  
+  // Sort accounts by fixed order
   const sortedAccounts = Object.entries(accountTotalBalances).sort((a, b) => {
+    const orderA = getAccountOrder(a[1].name);
+    const orderB = getAccountOrder(b[1].name);
+    
+    // Si ambos tienen orden fijo, ordenar por ese orden
+    if (orderA !== 999 && orderB !== 999) {
+      return orderA - orderB;
+    }
+    // Si solo uno tiene orden fijo, ese va primero
+    if (orderA !== 999) return -1;
+    if (orderB !== 999) return 1;
+    // Si ninguno tiene orden fijo, ordenar alfabéticamente
     return a[1].name.localeCompare(b[1].name);
   });
   

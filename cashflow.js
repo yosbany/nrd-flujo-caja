@@ -920,12 +920,35 @@ async function updateAccountSubtotals(transactionsToProcess, period = 'all', ref
     balanceSection.classList.remove('hidden');
   }
   
-  // Helper function to sort accounts by name consistently
+  // Helper function to sort accounts by fixed order
+  const getAccountOrder = (accountName) => {
+    const nameUpper = accountName.toUpperCase();
+    // Orden fijo: 1. Efectivo, 2. Débito, 3. Crédito, 4. Mercado Pago
+    if (nameUpper.includes('EFECTIVO')) return 1;
+    if (nameUpper.includes('DÉBITO') || nameUpper.includes('DEBITO')) return 2;
+    if (nameUpper.includes('CRÉDITO') || nameUpper.includes('CREDITO')) return 3;
+    if (nameUpper.includes('MERCADO PAGO') || nameUpper.includes('MERCADOPAGO')) return 4;
+    // Si no coincide con ninguno, ponerlo al final pero ordenado alfabéticamente
+    return 999;
+  };
+  
   const sortAccountsByName = (entries) => {
     return entries.sort((a, b) => {
       const accountA = accounts[a[0]];
       const accountB = accounts[b[0]];
       if (!accountA || !accountB) return 0;
+      
+      const orderA = getAccountOrder(accountA.name);
+      const orderB = getAccountOrder(accountB.name);
+      
+      // Si ambos tienen orden fijo, ordenar por ese orden
+      if (orderA !== 999 && orderB !== 999) {
+        return orderA - orderB;
+      }
+      // Si solo uno tiene orden fijo, ese va primero
+      if (orderA !== 999) return -1;
+      if (orderB !== 999) return 1;
+      // Si ninguno tiene orden fijo, ordenar alfabéticamente
       return accountA.name.localeCompare(accountB.name);
     });
   };
