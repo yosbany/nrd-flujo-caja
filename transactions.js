@@ -1346,7 +1346,7 @@ function updateTransactionsDateFilterDisplay() {
   if (!display) return;
   
   // Remove color classes first
-  display.classList.remove('text-red-600', 'text-gray-600');
+  display.classList.remove('text-red-600', 'text-gray-700');
   
   if (transactionsSelectedFilterDate) {
     const today = new Date();
@@ -1360,11 +1360,11 @@ function updateTransactionsDateFilterDisplay() {
       display.classList.add('text-red-600');
     } else {
       display.textContent = formatDateWithDay(transactionsSelectedFilterDate);
-      display.classList.add('text-gray-600');
+      display.classList.add('text-gray-700');
     }
   } else {
     display.textContent = 'Todas';
-    display.classList.add('text-gray-600');
+    display.classList.add('text-gray-700');
   }
 }
 
