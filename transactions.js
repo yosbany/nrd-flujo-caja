@@ -1298,6 +1298,11 @@ document.getElementById('delete-transaction-form-btn').addEventListener('click',
   }
 });
 
+// Save button - save transaction
+document.getElementById('save-transaction-form-btn').addEventListener('click', async () => {
+  await saveTransaction();
+});
+
 // Date filter handlers
 function updateTransactionsDateFilterDisplay() {
   const display = document.getElementById('transactions-filter-date-display');
