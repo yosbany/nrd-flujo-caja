@@ -7,7 +7,7 @@
   <title>NRD Flujo de Caja</title>
   <link rel="manifest" href="manifest.json">
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="styles.css?v=1766493066018">
+  <link rel="stylesheet" href="styles.css?v=1766493173383">
   <meta name="theme-color" content="#dc2626">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/svg+xml" href="icon-192.svg">
@@ -358,13 +358,12 @@
               <label class="block mb-2 text-sm font-medium text-gray-700">
                 Subcategoría <span class="text-red-600">*</span>
               </label>
-              <input type="text" id="transaction-description" list="subcategory-list" required maxlength="200"
+              <input type="text" id="transaction-description" required maxlength="200"
                 class="w-full px-4 py-3 border-2 border-gray-300 focus:outline-none focus:border-red-600 bg-white text-base"
                 placeholder="Seleccione o escriba una subcategoría..."
                 autocomplete="off">
-              <datalist id="subcategory-list"></datalist>
               <div id="description-autocomplete-list" class="hidden absolute z-50 w-full mt-1 bg-white border-2 border-gray-300 shadow-lg max-h-60 overflow-y-auto"></div>
-              <p class="text-xs text-gray-500 mt-1.5">Seleccione de la lista o escriba una nueva subcategoría (ej: Pago a Marselo, Compra a Nacirol)</p>
+              <p class="text-xs text-gray-500 mt-1.5">Haga clic en el campo para ver las opciones disponibles o escriba una nueva subcategoría (ej: Pago a Marselo, Compra a Nacirol)</p>
             </div>
 
             <!-- Categoría -->
@@ -727,15 +726,15 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   
   <!-- App Scripts -->
-  <script src="firebase.js?v=1766493066018"></script>
-  <script src="modal.js?v=1766493066018"></script>
-  <script src="auth.js?v=1766493066018"></script>
-  <script src="db.js?v=1766493066018"></script>
-  <script src="categories.js?v=1766493066018"></script>
-  <script src="transactions.js?v=1766493066018"></script>
-  <script src="cashflow.js?v=1766493066018"></script>
-  <script src="accounts.js?v=1766493066018"></script>
-  <script src="app.js?v=1766493066018"></script>
+  <script src="firebase.js?v=1766493173383"></script>
+  <script src="modal.js?v=1766493173383"></script>
+  <script src="auth.js?v=1766493173383"></script>
+  <script src="db.js?v=1766493173383"></script>
+  <script src="categories.js?v=1766493173383"></script>
+  <script src="transactions.js?v=1766493173383"></script>
+  <script src="cashflow.js?v=1766493173383"></script>
+  <script src="accounts.js?v=1766493173383"></script>
+  <script src="app.js?v=1766493173383"></script>
 
   <script>
     // Global error handler
@@ -786,7 +785,7 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         // Register service worker without version parameter
-        navigator.serviceWorker.register('service-worker.js?v=1766493066018')
+        navigator.serviceWorker.register('service-worker.js?v=1766493173383')
           .then(reg => {
             console.log('Service Worker registered');
             

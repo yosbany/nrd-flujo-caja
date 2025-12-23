@@ -392,17 +392,6 @@ async function loadDescriptionsForAutocomplete() {
     
     // Store sorted descriptions
     availableDescriptions = Array.from(descriptions).sort();
-    
-    // Populate datalist with all available subcategories
-    const datalist = document.getElementById('subcategory-list');
-    if (datalist) {
-      datalist.innerHTML = '';
-      availableDescriptions.forEach(desc => {
-        const option = document.createElement('option');
-        option.value = desc;
-        datalist.appendChild(option);
-      });
-    }
   } catch (error) {
     console.error('Error loading descriptions:', error);
     availableDescriptions = [];
