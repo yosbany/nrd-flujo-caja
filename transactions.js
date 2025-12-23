@@ -1004,6 +1004,12 @@ async function viewTransaction(transactionId) {
     form.dataset.viewMode = 'view';
     form.dataset.editingTransactionId = transactionId;
     
+    // Actualizar título del header a "Ver Transacción"
+    const formTitle = document.getElementById('transaction-form-title');
+    if (formTitle) {
+      formTitle.textContent = 'Ver Transacción';
+    }
+    
     // Ocultar la sección de resúmenes cuando se está viendo una transacción
     const daySummary = document.getElementById('transactions-day-summary');
     if (daySummary) {
@@ -1053,7 +1059,7 @@ async function viewTransaction(transactionId) {
     // Convert fields to read-only text display
     convertFieldsToReadOnlyText(transaction);
     
-    // Update buttons for view mode - only show close button, hide edit and delete
+    // Update buttons for view mode - hide all buttons at bottom, only X in header
     const editBtn = document.getElementById('edit-transaction-form-btn');
     const deleteBtn = document.getElementById('delete-transaction-form-btn');
     const closeBtn = document.getElementById('close-transaction-form-btn');
@@ -1068,12 +1074,19 @@ async function viewTransaction(transactionId) {
       deleteBtn.style.display = 'none';
     }
     if (closeBtn) {
-      closeBtn.classList.remove('hidden');
-      closeBtn.style.display = 'flex';
+      // Ocultar el botón Cancelar cuando se está viendo una transacción
+      closeBtn.classList.add('hidden');
+      closeBtn.style.display = 'none';
     }
     if (saveBtn) {
       saveBtn.classList.add('hidden');
       saveBtn.style.display = 'none';
+    }
+    
+    // Asegurar que el botón X del header esté visible
+    const closeHeaderBtn = document.getElementById('close-transaction-form');
+    if (closeHeaderBtn) {
+      closeHeaderBtn.style.display = 'flex';
     }
     
     // Store transaction data
@@ -1445,30 +1458,61 @@ async function generateDailyReport(reportDate) {
       }
     });
     
-    // Calculate current balances (initial + day transactions)
-    Object.keys(accounts).forEach(accountId => {
-      accountBalances[accountId] = accountInitialBalances[accountId] || 0;
+    // Calculate current balances (initial balance + all transactions up to end of day)
+    // Primero inicializar con el saldo inicial de cada cuenta
+    Object.entries(accounts).forEach(([accountId, account]) => {
+      const initialBalance = parseFloat(account.initialBalance) || 0;
+      accountBalances[accountId] = initialBalance;
     });
     
-    dayTransactions.forEach(transaction => {
-      if (transaction.accountId) {
-        const accountId = transaction.accountId;
-        if (!accountBalances[accountId]) {
-          accountBalances[accountId] = accountInitialBalances[accountId] || 0;
-        }
+    // Sumar todas las transacciones hasta el final del día del reporte
+    Object.values(allTransactions).forEach(transaction => {
+      if (!transaction || !transaction.accountId) return;
+      const transactionDate = transaction.date || transaction.createdAt;
+      if (!transactionDate) return;
+      
+      // Solo incluir transacciones hasta el final del día del reporte
+      if (transactionDate > dateEnd) return;
+      
+      const accountId = transaction.accountId;
+      const amount = parseFloat(transaction.amount) || 0;
+      
+      if (transaction.type === 'income') {
+        accountBalances[accountId] = (accountBalances[accountId] || 0) + amount;
+      } else if (transaction.type === 'expense') {
+        accountBalances[accountId] = (accountBalances[accountId] || 0) - amount;
+      }
+    });
+    
+    // Calcular saldo inicial (initial balance + transacciones antes del día del reporte)
+    Object.entries(accounts).forEach(([accountId, account]) => {
+      const initialBalance = parseFloat(account.initialBalance) || 0;
+      let saldoInicial = initialBalance;
+      
+      // Sumar transacciones antes del día del reporte
+      Object.values(allTransactions).forEach(transaction => {
+        if (!transaction || !transaction.accountId) return;
+        if (transaction.accountId !== accountId) return;
+        
+        const transactionDate = transaction.date || transaction.createdAt;
+        if (!transactionDate || transactionDate >= dateStart) return;
+        
         const amount = parseFloat(transaction.amount) || 0;
         if (transaction.type === 'income') {
-          accountBalances[accountId] += amount;
-        } else {
-          accountBalances[accountId] -= amount;
+          saldoInicial += amount;
+        } else if (transaction.type === 'expense') {
+          saldoInicial -= amount;
         }
-      }
+      });
+      
+      accountInitialBalances[accountId] = saldoInicial;
     });
     
     // Prepare account summary data
     const accountSummary = [];
     
     Object.entries(accounts).forEach(([id, account]) => {
+      if (account?.active === false) return;
       const saldoFinal = accountBalances[id] || 0;
       const saldoInicial = accountInitialBalances[id] || 0;
       const diferencia = saldoFinal - saldoInicial;
