@@ -7,7 +7,7 @@
   <title>NRD Flujo de Caja</title>
   <link rel="manifest" href="manifest.json">
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="styles.css?v=1766492921011">
+  <link rel="stylesheet" href="styles.css?v=1766493066018">
   <meta name="theme-color" content="#dc2626">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/svg+xml" href="icon-192.svg">
@@ -263,25 +263,25 @@
         </div>
         
         <!-- Date Filter -->
-        <div id="transactions-date-filter-container" class="flex items-center justify-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+        <div id="transactions-date-filter-container" class="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4 flex-wrap">
           <button id="transactions-today-date-btn" 
-            class="px-3 py-2 text-xs text-gray-500 hover:text-red-600 transition-colors">
+            class="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 hover:text-red-600 hover:border-red-600 border border-gray-300 transition-colors uppercase tracking-wider">
             Hoy
           </button>
           <button id="transactions-prev-date-btn" 
-            class="px-3 py-2 text-gray-600 hover:text-red-600 transition-colors text-lg sm:text-xl">
-            ‹
+            class="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 hover:text-red-600 hover:border-red-600 border border-gray-300 transition-colors uppercase tracking-wider">
+            ‹ Anterior
           </button>
-          <div id="transactions-filter-date-display" 
-            class="px-4 py-2 text-sm sm:text-base font-light text-gray-700 min-w-[120px] text-center cursor-pointer hover:text-red-600 transition-colors">
+          <button id="transactions-filter-date-display" 
+            class="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 hover:text-red-600 hover:border-red-600 border border-gray-300 transition-colors uppercase tracking-wider min-w-[120px]">
             Todas las fechas
-          </div>
+          </button>
           <button id="transactions-next-date-btn" 
-            class="px-3 py-2 text-gray-600 hover:text-red-600 transition-colors text-lg sm:text-xl">
-            ›
+            class="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 hover:text-red-600 hover:border-red-600 border border-gray-300 transition-colors uppercase tracking-wider">
+            Siguiente ›
           </button>
           <button id="transactions-clear-date-filter-btn" 
-            class="px-3 py-2 text-xs text-gray-500 hover:text-red-600 transition-colors">
+            class="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 hover:text-red-600 hover:border-red-600 border border-gray-300 transition-colors uppercase tracking-wider">
             Limpiar
           </button>
         </div>
@@ -727,15 +727,15 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   
   <!-- App Scripts -->
-  <script src="firebase.js?v=1766492921011"></script>
-  <script src="modal.js?v=1766492921011"></script>
-  <script src="auth.js?v=1766492921011"></script>
-  <script src="db.js?v=1766492921011"></script>
-  <script src="categories.js?v=1766492921011"></script>
-  <script src="transactions.js?v=1766492921011"></script>
-  <script src="cashflow.js?v=1766492921011"></script>
-  <script src="accounts.js?v=1766492921011"></script>
-  <script src="app.js?v=1766492921011"></script>
+  <script src="firebase.js?v=1766493066018"></script>
+  <script src="modal.js?v=1766493066018"></script>
+  <script src="auth.js?v=1766493066018"></script>
+  <script src="db.js?v=1766493066018"></script>
+  <script src="categories.js?v=1766493066018"></script>
+  <script src="transactions.js?v=1766493066018"></script>
+  <script src="cashflow.js?v=1766493066018"></script>
+  <script src="accounts.js?v=1766493066018"></script>
+  <script src="app.js?v=1766493066018"></script>
 
   <script>
     // Global error handler
@@ -786,7 +786,7 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         // Register service worker without version parameter
-        navigator.serviceWorker.register('service-worker.js?v=1766492921011')
+        navigator.serviceWorker.register('service-worker.js?v=1766493066018')
           .then(reg => {
             console.log('Service Worker registered');
             
