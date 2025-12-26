@@ -1935,33 +1935,72 @@ async function generateDailyReport(reportDate) {
     doc.setDrawColor(0, 0, 0);
     doc.line(startX, yPos + 3, startX + 80, yPos + 3);
     
-    // Abrir diálogo de impresión directamente usando iframe oculto
+    // Generar PDF y abrir diálogo de impresión
     const pdfBlob = doc.output('blob');
     const pdfUrl = URL.createObjectURL(pdfBlob);
     
-    // Crear un iframe oculto
+    // Crear un iframe visible pero fuera de la pantalla para mejor compatibilidad
     const iframe = document.createElement('iframe');
     iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
+    iframe.style.left = '-9999px';
+    iframe.style.top = '-9999px';
+    iframe.style.width = '210mm'; // Ancho A4
+    iframe.style.height = '297mm'; // Alto A4
     iframe.style.border = '0';
     iframe.src = pdfUrl;
     document.body.appendChild(iframe);
     
-    // Esperar a que el PDF se cargue y luego abrir el diálogo de impresión
-    iframe.onload = function() {
-      setTimeout(function() {
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
-        // Limpiar el iframe después de un tiempo razonable
-        setTimeout(function() {
+    // Función para limpiar recursos
+    const cleanup = () => {
+      setTimeout(() => {
+        if (iframe && iframe.parentNode) {
           document.body.removeChild(iframe);
-          URL.revokeObjectURL(pdfUrl);
-        }, 1000);
-      }, 500);
+        }
+        URL.revokeObjectURL(pdfUrl);
+      }, 3000);
     };
+    
+    // Esperar a que el PDF se cargue completamente
+    iframe.onload = function() {
+      // Dar tiempo suficiente para que el PDF se renderice completamente
+      setTimeout(function() {
+        try {
+          iframe.contentWindow.focus();
+          // Intentar imprimir
+          iframe.contentWindow.print();
+          // Limpiar después de un tiempo razonable
+          cleanup();
+        } catch (error) {
+          console.error('Error al imprimir:', error);
+          hideSpinner();
+          showError('Error al abrir el diálogo de impresión. Por favor, intente nuevamente.');
+          cleanup();
+        }
+      }, 1500); // Aumentado a 1.5 segundos para dar más tiempo
+    };
+    
+    // Manejar errores de carga
+    iframe.onerror = function() {
+      hideSpinner();
+      showError('Error al cargar el PDF. Por favor, intente nuevamente.');
+      cleanup();
+    };
+    
+    // Timeout de seguridad en caso de que onload no se dispare
+    setTimeout(function() {
+      if (iframe && iframe.parentNode) {
+        try {
+          iframe.contentWindow.focus();
+          iframe.contentWindow.print();
+          cleanup();
+        } catch (error) {
+          console.error('Error al imprimir (timeout):', error);
+          hideSpinner();
+          showError('Error al abrir el diálogo de impresión. Por favor, intente nuevamente.');
+          cleanup();
+        }
+      }
+    }, 3000);
     
     hideSpinner();
   } catch (error) {
