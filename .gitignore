@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment variables
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Build outputs
+dist/
+build/
+
+# Cache
+.cache/
+.parcel-cache/
+
+# Service worker cache
+sw.js.map
+
+# Python virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# Migration data files (large JSON exports)
+tools/migration/*-export.json
+tools/migration/descriptions-output.txt
+tools/migration/descriptions-list.txt
+

@@ -1,0 +1,79 @@
+/* Minimal custom styles - most styling handled by Tailwind */
+.hidden {
+  display: none !important;
+}
+
+@media print {
+  /* Márgenes mínimos al imprimir */
+  @page {
+    margin: 0.5cm;
+  }
+  /* Ocultar header, navegación y botones */
+  #app-header-container,
+  #app-nav-container,
+  .no-print {
+    display: none !important;
+  }
+  /* Imprimir solo el reporte del presupuesto: ocultar el resto de la app */
+  #cashflow-view,
+  #transactions-view,
+  #categories-view,
+  #accounts-view,
+  #budget-list-view,
+  #budget-form-view {
+    display: none !important;
+  }
+  /* Mostrar solo la vista del reporte */
+  #budget-view {
+    display: block !important;
+  }
+  #budget-report-view {
+    display: block !important;
+  }
+  main {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* Custom scrollbar styles */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Firefox scrollbar */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f1f1;
+}
+
+/* Hide scrollbars but keep scrolling functionality */
+.modal-scroll {
+  overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.modal-scroll::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
