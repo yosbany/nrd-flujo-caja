@@ -479,7 +479,7 @@ async function reconcileAllTransactions() {
       return;
     }
 
-    window.NRDCommon?.showSpinner?.('Conciliando transacciones...');
+    showSpinner('Conciliando transacciones...');
 
     for (const tx of accountTransactions) {
       if (!tx.reconciled) {
@@ -490,7 +490,7 @@ async function reconcileAllTransactions() {
       }
     }
 
-    window.NRDCommon?.hideSpinner?.();
+    hideSpinner();
     await window.NRDCommon?.showSuccess?.('Todas las transacciones han sido marcadas como conciliadas');
     
     // Update account last reconciliation
@@ -504,7 +504,7 @@ async function reconcileAllTransactions() {
     await renderReconciliation();
     
   } catch (error) {
-    window.NRDCommon?.hideSpinner?.();
+    hideSpinner();
     logger.error('Error reconciling all transactions', error);
     await window.NRDCommon?.showError?.(error.message || 'Error al conciliar transacciones');
   }
@@ -526,7 +526,7 @@ async function unreconcileAllTransactions() {
       return;
     }
 
-    window.NRDCommon?.showSpinner?.('Desmarcando transacciones...');
+    showSpinner('Desmarcando transacciones...');
 
     for (const tx of accountTransactions) {
       if (tx.reconciled) {
@@ -537,13 +537,13 @@ async function unreconcileAllTransactions() {
       }
     }
 
-    window.NRDCommon?.hideSpinner?.();
+    hideSpinner();
     await window.NRDCommon?.showSuccess?.('Todas las transacciones han sido desmarcadas');
     
     await renderReconciliation();
     
   } catch (error) {
-    window.NRDCommon?.hideSpinner?.();
+    hideSpinner();
     logger.error('Error unreconciling transactions', error);
     await window.NRDCommon?.showError?.(error.message || 'Error al desmarcar transacciones');
   }
@@ -599,16 +599,16 @@ async function createAdjustmentTransaction(description, amount) {
       createdAt: Date.now()
     };
 
-    window.NRDCommon?.showSpinner?.('Creando ajuste...');
+    showSpinner('Creando ajuste...');
     const transactionId = await nrd.transactions.create(transactionData);
     logger.info('Adjustment transaction created', { transactionId });
-    window.NRDCommon?.hideSpinner?.();
+    hideSpinner();
     
     await window.NRDCommon?.showSuccess?.('Ajuste creado exitosamente');
     await renderReconciliation();
     
   } catch (error) {
-    window.NRDCommon?.hideSpinner?.();
+    hideSpinner();
     logger.error('Error creating adjustment', error);
     await window.NRDCommon?.showError?.(error.message || 'Error al crear ajuste');
   }

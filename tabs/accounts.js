@@ -45,9 +45,8 @@ function populateStatementProcessorSelect() {
 
 // Show reconciliation loading state (each time user enters the tab)
 function showReconciliationLoading() {
-  const loadingEl = document.getElementById('reconciliation-loading');
+  showSpinner('Cargando conciliación...');
   const contentEl = document.getElementById('reconciliation-content');
-  if (loadingEl) loadingEl.classList.remove('hidden');
   if (contentEl) contentEl.classList.add('hidden');
 }
 
@@ -1535,9 +1534,8 @@ function loadReconciliationData() {
 }
 
 function showReconciliationContentWhenReady() {
-  const loadingEl = document.getElementById('reconciliation-loading');
+  hideSpinner();
   const contentEl = document.getElementById('reconciliation-content');
-  if (loadingEl) loadingEl.classList.add('hidden');
   if (contentEl) contentEl.classList.remove('hidden');
 }
 
@@ -1572,8 +1570,6 @@ async function loadAccountReconciliation() {
 
 // Process statement Excel file según el procesador de la cuenta (Santander, Mercado Pago, etc.)
 async function processStatementExcelFile(file) {
-  const showSpinner = window.NRDCommon?.showSpinner || (() => {});
-  const hideSpinner = window.NRDCommon?.hideSpinner || (() => {});
   const showSuccess = window.NRDCommon?.showSuccess || (async () => {});
   const showError = window.NRDCommon?.showError || (async () => {});
 
@@ -2612,7 +2608,7 @@ async function reconcileAllTransactions() {
       return;
     }
 
-    window.NRDCommon?.showSpinner?.('Conciliando transacciones...');
+    showSpinner('Conciliando transacciones...');
 
     for (const tx of accountTransactions) {
       if (!tx.reconciled) {
@@ -2623,7 +2619,7 @@ async function reconcileAllTransactions() {
       }
     }
 
-    window.NRDCommon?.hideSpinner?.();
+    hideSpinner();
     await window.NRDCommon?.showSuccess?.('Todas las transacciones han sido marcadas como conciliadas');
     
     // Update account last reconciliation
@@ -2637,7 +2633,7 @@ async function reconcileAllTransactions() {
     await renderReconciliation();
     
   } catch (error) {
-    window.NRDCommon?.hideSpinner?.();
+    hideSpinner();
     logger.error('Error reconciling all transactions', error);
     await window.NRDCommon?.showError?.(error.message || 'Error al conciliar transacciones');
   }
@@ -2659,7 +2655,7 @@ async function unreconcileAllTransactions() {
       return;
     }
 
-    window.NRDCommon?.showSpinner?.('Desmarcando transacciones...');
+    showSpinner('Desmarcando transacciones...');
 
     for (const tx of accountTransactions) {
       if (tx.reconciled) {
@@ -2670,13 +2666,13 @@ async function unreconcileAllTransactions() {
       }
     }
 
-    window.NRDCommon?.hideSpinner?.();
+    hideSpinner();
     await window.NRDCommon?.showSuccess?.('Todas las transacciones han sido desmarcadas');
     
     await renderReconciliation();
     
   } catch (error) {
-    window.NRDCommon?.hideSpinner?.();
+    hideSpinner();
     logger.error('Error unreconciling transactions', error);
     await window.NRDCommon?.showError?.(error.message || 'Error al desmarcar transacciones');
   }
@@ -2732,16 +2728,16 @@ async function createAdjustmentTransaction(description, amount) {
       createdAt: Date.now()
     };
 
-    window.NRDCommon?.showSpinner?.('Creando ajuste...');
+    showSpinner('Creando ajuste...');
     const transactionId = await nrd.transactions.create(transactionData);
     logger.info('Adjustment transaction created', { transactionId });
-    window.NRDCommon?.hideSpinner?.();
+    hideSpinner();
     
     await window.NRDCommon?.showSuccess?.('Ajuste creado exitosamente');
     await renderReconciliation();
     
   } catch (error) {
-    window.NRDCommon?.hideSpinner?.();
+    hideSpinner();
     logger.error('Error creating adjustment', error);
     await window.NRDCommon?.showError?.(error.message || 'Error al crear ajuste');
   }
@@ -2922,8 +2918,6 @@ async function confirmBankReconciliation() {
       return;
     }
     
-    const showSpinner = window.NRDCommon?.showSpinner || (() => {});
-    const hideSpinner = window.NRDCommon?.hideSpinner || (() => {});
     const showSuccess = window.NRDCommon?.showSuccess || (async () => {});
     const showError = window.NRDCommon?.showError || (async () => {});
     
@@ -3306,7 +3300,6 @@ async function confirmBankReconciliation() {
     
   } catch (error) {
     logger.error('Error confirming bank reconciliation', error);
-    const hideSpinner = window.NRDCommon?.hideSpinner || (() => {});
     const showError = window.NRDCommon?.showError || (async () => {});
     hideSpinner();
     await showError(error.message || 'Error al confirmar conciliación bancaria');

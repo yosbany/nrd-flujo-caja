@@ -72,6 +72,7 @@ function loadForecastingData() {
 
 // Calculate and render forecast
 async function calculateAndRenderForecast() {
+  showSpinner('Calculando proyección...');
   try {
     const monthsInput = document.getElementById('forecast-months-input');
     const monthsAhead = parseInt(monthsInput?.value || 3, 10);
@@ -98,6 +99,8 @@ async function calculateAndRenderForecast() {
   } catch (error) {
     logger.error('Error calculating forecast', error);
     await window.NRDCommon?.showError?.(error.message || 'Error al calcular proyecciones');
+  } finally {
+    hideSpinner();
   }
 }
 
