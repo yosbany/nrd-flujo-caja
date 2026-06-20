@@ -67,7 +67,7 @@
   <div id="redirecting-screen" class="min-h-screen flex items-center justify-center bg-white">
     <div class="flex flex-col items-center gap-4">
       <div class="w-12 h-12 border-4 border-gray-200 border-t-red-600 animate-spin"></div>
-      <p class="text-sm text-gray-600 font-light">Redirigiendo...</p>
+      <p class="text-sm text-gray-600 font-light" data-auth-status>Redirigiendo...</p>
     </div>
   </div>
 
@@ -1362,111 +1362,52 @@
   <!-- jsPDF for PDF generation -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   
+  <!-- Flujo Caja: dashboard -> transactions redirect -->
+  <script>
+    (function() {
+      function patchNavigationService() {
+        if (!window.NRDCommon || !window.NRDCommon.NavigationService) return false;
+        var originalSwitchView = window.NRDCommon.NavigationService.prototype.switchView;
+        window.NRDCommon.NavigationService.prototype.switchView = function(viewName) {
+          if (viewName === 'dashboard') {
+            var dashboardView = document.getElementById('dashboard-view');
+            if (!dashboardView) {
+              return originalSwitchView.call(this, 'transactions');
+            }
+          }
+          return originalSwitchView.call(this, viewName);
+        };
+        return true;
+      }
+      var start = Date.now();
+      var timer = setInterval(function() {
+        if (patchNavigationService()) clearInterval(timer);
+        else if (Date.now() - start > 10000) clearInterval(timer);
+      }, 50);
+    })();
+  </script>
+
   <!-- NRD Common Library Initialization -->
   <script>
-    // Wait for NRD Common Library to be available and initialize
-    (function() {
-      const maxWait = 10000;
-      const startTime = Date.now();
-      
-      function showLoginFallback() {
-        const redirectingScreen = document.getElementById('redirecting-screen');
-        const loginScreen = document.getElementById('login-screen');
-        const appScreen = document.getElementById('app-screen');
-
-        // If the app is already visible, don't bring back the login screen.
-        if (appScreen && !appScreen.classList.contains('hidden')) return;
-
-        if (redirectingScreen) redirectingScreen.classList.add('hidden');
-        if (loginScreen) loginScreen.classList.remove('hidden');
-      }
-
-      const checkNRDCommon = setInterval(() => {
-        if (typeof window.NRDCommon !== 'undefined') {
-          clearInterval(checkNRDCommon);
-          console.log('NRD Common Library loaded successfully');
-          
-          // Create logger instance FIRST, before anything else uses it
-          window.logger = new window.NRDCommon.Logger('NRD Flujo de Caja', {
-            logLevel: window.NRDCommon.LOG_LEVELS.INFO,
-            enableColors: true,
-            enableTimestamp: true
-          });
-          
-          // Expose common functions globally for backward compatibility
-          if (window.NRDCommon) {
-            window.showAlert = window.NRDCommon.showAlert;
-            window.showConfirm = window.NRDCommon.showConfirm;
-            window.showError = window.NRDCommon.showError;
-            window.showSuccess = window.NRDCommon.showSuccess;
-            window.showInfo = window.NRDCommon.showInfo;
-            window.showWarning = window.NRDCommon.showWarning;
-            window.showSpinner = window.NRDCommon.showSpinner;
-            window.hideSpinner = window.NRDCommon.hideSpinner;
-            window.formatNumber = window.NRDCommon.formatNumber;
-            window.formatCurrency = window.NRDCommon.formatCurrency;
-            window.formatDecimalWithComma = window.NRDCommon.formatDecimalWithComma;
-            window.parseDecimalWithComma = window.NRDCommon.parseDecimalWithComma;
-            window.escapeHtml = window.NRDCommon.escapeHtml;
-            window.getMonthName = window.NRDCommon.getMonthName;
-            window.formatDate = window.NRDCommon.formatDate;
-          }
-          
-          // Intercept NavigationService.switchView to handle 'dashboard' -> 'transactions' redirect
-          // This must be done before AuthService is created
-          if (window.NRDCommon.NavigationService) {
-            const originalSwitchView = window.NRDCommon.NavigationService.prototype.switchView;
-            window.NRDCommon.NavigationService.prototype.switchView = function(viewName) {
-              if (viewName === 'dashboard') {
-                const dashboardView = document.getElementById('dashboard-view');
-                if (!dashboardView) {
-                  console.log('Dashboard view not found, redirecting to transactions');
-                  return originalSwitchView.call(this, 'transactions');
-                }
-              }
-              return originalSwitchView.call(this, viewName);
-            };
-            console.log('NavigationService.switchView intercepted for dashboard -> transactions redirect');
-          }
-          
-          // Initialize NRD Data Access using NRDCommon
-          if (window.NRDCommon.initializeNRD) {
-            window.NRDCommon.initializeNRD().then(success => {
-              if (success) {
-                console.log('NRD Data Access initialized successfully');
-                
-                // Initialize AuthService immediately after NRD is ready
-                if (window.NRDCommon.AuthService && window.nrd) {
-                  try {
-                    window.authService = new window.NRDCommon.AuthService(window.nrd);
-                    console.log('AuthService initialized successfully');
-                  } catch (error) {
-                    console.error('Error initializing AuthService:', error);
-                    showLoginFallback();
-                  }
-                } else {
-                  console.error('AuthService or nrd not available');
-                  showLoginFallback();
-                }
-              } else {
-                console.error('NRD Data Access initialization failed');
-                showLoginFallback();
-              }
-            }).catch(error => {
-              console.error('Error initializing NRD Data Access:', error);
-              showLoginFallback();
-            });
+    (function(cfg) {
+      var start = Date.now();
+      var timer = setInterval(function() {
+        if (window.NRDCommon && window.NRDCommon.initializeAppAuth) {
+          clearInterval(timer);
+          window.NRDCommon.initializeAppAuth(cfg);
+        } else if (Date.now() - start > 10000) {
+          clearInterval(timer);
+          if (window.NRDCommon && window.NRDCommon.showLoginFallback) {
+            window.NRDCommon.showLoginFallback();
           } else {
-            console.error('initializeNRD not available in NRDCommon');
-            showLoginFallback();
+            var ls = document.getElementById('login-screen');
+            var rs = document.getElementById('redirecting-screen');
+            if (rs) rs.classList.add('hidden');
+            if (ls) ls.classList.remove('hidden');
           }
-        } else if (Date.now() - startTime >= maxWait) {
-          clearInterval(checkNRDCommon);
-          console.error('NRD Common Library not loaded after timeout');
-          showLoginFallback();
         }
       }, 100);
-    })();
+    })({ appName: 'NRD Flujo de Caja' });
   </script>
   
   <!-- NRD Data Access Library Initialization -->

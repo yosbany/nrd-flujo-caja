@@ -264,55 +264,22 @@ async function initializeApp() {
   }, 50);
 }
 
-// Wait for NRDCommon and user authentication
-// AuthService from NRDCommon will handle showing app-screen when user is authenticated
-function waitForNRDAndInitialize() {
-  const maxWait = 10000;
-  const startTime = Date.now();
-  
-  const checkNRD = setInterval(() => {
-    const NRDCommon = window.NRDCommon;
-    const nrd = window.nrd;
-    
-    if (NRDCommon && nrd && nrd.auth) {
-      clearInterval(checkNRD);
-      logger.info('NRDCommon and NRD available, setting up auth listener');
-      
-      // Check current auth state
-      const currentUser = nrd.auth.getCurrentUser();
-      if (currentUser) {
-        logger.info('Current user found, initializing app', { uid: currentUser.uid });
-        initializeApp();
-      }
-      
-      // Listen for auth state changes
-      nrd.auth.onAuthStateChanged((user) => {
-        logger.info('Auth state changed', { hasUser: !!user });
-        if (user) {
-          // User is authenticated, initialize app
-          initializeApp();
-          
-          // NavigationService.switchView is already intercepted to redirect 'dashboard' -> 'cashflow'
-          // So no additional handling needed here
-        } else {
-          logger.debug('User not authenticated, app initialization skipped');
-          appInitialized = false;
-        }
-      });
-    } else if (Date.now() - startTime >= maxWait) {
-      clearInterval(checkNRD);
-      logger.error('NRDCommon or NRD not available after timeout');
-      // Try to initialize anyway with fallback
-      initializeApp();
+function startFlujoCajaApp() {
+  (window.NRDCommon?.startApp || function(fn, opts) {
+    window.__nrdStartQueue = window.__nrdStartQueue || [];
+    window.__nrdStartQueue.push({ onReady: fn, options: opts || {} });
+  })(() => initializeApp(), {
+    initDelay: 50,
+    onLogout: () => {
+      appInitialized = false;
     }
-  }, 100);
+  });
 }
 
-// Start waiting when DOM is ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', waitForNRDAndInitialize);
+  document.addEventListener('DOMContentLoaded', startFlujoCajaApp);
 } else {
-  waitForNRDAndInitialize();
+  startFlujoCajaApp();
 }
 
 
