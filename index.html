@@ -9,7 +9,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <link rel="stylesheet" href="styles.css?v=1775791650929">
+  <link rel="stylesheet" href="styles.css?v=1780057171955">
   <meta name="theme-color" content="#dc2626">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="apple-touch-icon" href="icon-192.png">
@@ -99,7 +99,7 @@
 
     <main class="flex-1 p-3 sm:p-4 md:p-6 overflow-y-auto max-w-6xl mx-auto w-full">
       <!-- Cashflow View -->
-      <div id="cashflow-view" class="view space-y-3 sm:space-y-4">
+      <div id="cashflow-view" class="view space-y-3 sm:space-y-4 hidden">
         <!-- Period Display -->
         <div id="cashflow-period-display-container" class="mb-2 sm:mb-3 text-center">
           <div id="cashflow-period-display" class="text-sm sm:text-base font-light text-gray-700"></div>
@@ -161,15 +161,12 @@
             <div id="expenses-variation" class="text-xs text-gray-500 mt-1"></div>
             <div id="expenses-breakdown" class="mt-3 space-y-1 hidden"></div>
           </div>
-          <div class="border border-gray-200 p-4 sm:p-6 bg-blue-50 relative">
+          <div class="border border-gray-200 p-4 sm:p-6 bg-blue-50">
             <div class="text-xs sm:text-sm uppercase tracking-wider text-gray-600 mb-2">Balance</div>
             <div id="total-balance" class="text-2xl sm:text-3xl font-light text-blue-600">$0.00</div>
             <div id="balance-percentage" class="text-xs text-gray-500 mt-1"></div>
             <div id="balance-variation" class="text-xs text-gray-500 mt-1"></div>
-            <div id="balance-trend" class="text-xs text-gray-500 mt-1"></div>
             <div id="balance-breakdown" class="mt-3 space-y-1 hidden"></div>
-            <!-- Badge de margen -->
-            <div id="margin-badge" class="absolute top-3 right-3 px-2 py-1 text-xs font-semibold"></div>
           </div>
         </div>
         
@@ -194,108 +191,11 @@
             </div>
           </div>
         </div>
-        
-        <!-- Disponibilidades Estimadas Por Cuentas -->
-        <div id="estimated-money-needed-section" class="mb-3 sm:mb-4 hidden border border-gray-200 bg-gray-50 p-3 sm:p-4"></div>
-        
-        <!-- Top 10 Sections -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
-          <!-- Top 10 Categorías -->
-          <div class="border border-gray-200 p-3 sm:p-4 bg-white">
-            <h3 class="text-xs font-light text-gray-700 mb-2 uppercase tracking-wider">Top 10 Categorías</h3>
-            <div id="top-categories-list" class="space-y-0">
-              <p class="text-[10px] text-gray-500 text-center py-4">Cargando...</p>
-            </div>
-          </div>
-          
-          <!-- Top 10 Subcategorías -->
-          <div class="border border-gray-200 p-3 sm:p-4 bg-white">
-            <h3 class="text-xs font-light text-gray-700 mb-2 uppercase tracking-wider">Top 10 Subcategorías</h3>
-            <div id="top-subcategories-list" class="space-y-0">
-              <p class="text-[10px] text-gray-500 text-center py-4">Cargando...</p>
-            </div>
-          </div>
-          
-          <!-- Top 10 Transacciones -->
-          <div class="border border-gray-200 p-3 sm:p-4 bg-white">
-            <h3 class="text-xs font-light text-gray-700 mb-2 uppercase tracking-wider">Top 10 Transacciones</h3>
-            <div id="top-transactions-list" class="space-y-0">
-              <p class="text-[10px] text-gray-500 text-center py-4">Cargando...</p>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Panel de drill-down de egresos -->
-        <div id="expenses-drilldown" class="hidden border border-gray-200 p-4 sm:p-6 bg-white mb-4 sm:mb-6">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-light">Desglose de Egresos por Categoría</h3>
-            <button id="close-expenses-drilldown" class="text-gray-500 hover:text-red-600 text-xl">&times;</button>
-          </div>
-          <div id="expenses-drilldown-content" class="space-y-2"></div>
-        </div>
-        
-        <!-- Key Metrics Dashboard -->
-        <div id="dashboard-metrics-section" class="mb-4 sm:mb-6 hidden">
-          <h3 class="text-xs sm:text-sm font-light text-gray-700 mb-3 sm:mb-4 uppercase tracking-wider">Métricas Clave</h3>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            <!-- Net Cash Flow -->
-            <div class="border border-gray-200 p-4 sm:p-6 bg-white">
-              <div class="text-xs sm:text-sm uppercase tracking-wider text-gray-600 mb-2">Flujo Neto del Mes</div>
-              <div id="dashboard-net-cashflow" class="text-2xl sm:text-3xl font-light text-gray-600">$0.00</div>
-              <div id="dashboard-net-cashflow-variation" class="text-xs text-gray-500 mt-1"></div>
-              <div class="text-xs text-gray-500 mt-1 border-t border-gray-100 pt-1.5 mt-1.5">Objetivo: Positivo</div>
-            </div>
-            <!-- Savings Rate -->
-            <div class="border border-gray-200 p-4 sm:p-6 bg-white">
-              <div class="text-xs sm:text-sm uppercase tracking-wider text-gray-600 mb-2">Tasa de Ahorro</div>
-              <div id="dashboard-savings-rate" class="text-2xl sm:text-3xl font-light text-gray-600">0%</div>
-              <div class="text-xs text-gray-500 mt-1">(Ingresos - Gastos) / Ingresos</div>
-              <div class="text-xs text-gray-500 mt-1 border-t border-gray-100 pt-1.5 mt-1.5">Objetivo: ≥ 20%</div>
-            </div>
-            <!-- Days of Cash -->
-            <div class="border border-gray-200 p-4 sm:p-6 bg-white">
-              <div class="text-xs sm:text-sm uppercase tracking-wider text-gray-600 mb-2">Días de Efectivo</div>
-              <div id="dashboard-days-of-cash" class="text-2xl sm:text-3xl font-light text-gray-600">0 días</div>
-              <div class="text-xs text-gray-500 mt-1">Saldo / Gasto diario promedio</div>
-              <div class="text-xs text-gray-500 mt-1 border-t border-gray-100 pt-1.5 mt-1.5">Objetivo: ≥ 90 días</div>
-            </div>
-            <!-- Total Balance -->
-            <div class="border border-gray-200 p-4 sm:p-6 bg-white">
-              <div class="text-xs sm:text-sm uppercase tracking-wider text-gray-600 mb-2">Saldo Total</div>
-              <div id="dashboard-total-balance" class="text-2xl sm:text-3xl font-light text-blue-600">$0.00</div>
-              <div class="text-xs text-gray-500 mt-1">Suma de todas las cuentas</div>
-              <div id="dashboard-total-balance-target" class="text-xs text-gray-500 mt-1 border-t border-gray-100 pt-1.5 mt-1.5">Objetivo: ≥ 3 meses de gastos</div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Dashboard Charts -->
-        <div id="dashboard-charts-section" class="mb-4 sm:mb-6 hidden">
-          <h3 class="text-xs sm:text-sm font-light text-gray-700 mb-3 sm:mb-4 uppercase tracking-wider">Visualizaciones</h3>
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            <!-- Cash Flow Timeline Chart -->
-            <div class="border border-gray-200 p-4 bg-white">
-              <canvas id="cashflow-timeline-chart" style="height: 300px;"></canvas>
-            </div>
-            <!-- Income vs Expenses Bar Chart -->
-            <div class="border border-gray-200 p-4 bg-white">
-              <canvas id="income-expenses-bar-chart" style="height: 300px;"></canvas>
-            </div>
-            <!-- Expenses by Category Chart -->
-            <div class="border border-gray-200 p-4 bg-white">
-              <canvas id="expenses-category-chart" style="height: 300px;"></canvas>
-            </div>
-            <!-- Account Balance Trend Chart -->
-            <div class="border border-gray-200 p-4 bg-white">
-              <canvas id="account-balance-trend-chart" style="height: 300px;"></canvas>
-            </div>
-          </div>
-        </div>
 
       </div>
 
       <!-- Transactions View -->
-      <div id="transactions-view" class="view space-y-3 sm:space-y-4 hidden">
+      <div id="transactions-view" class="view space-y-3 sm:space-y-4">
         <!-- Action Buttons (like products: top row, right aligned) -->
         <div class="flex flex-col sm:flex-row justify-end items-stretch sm:items-center gap-2 sm:gap-0 mb-2 sm:mb-3">
           <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
@@ -1512,22 +1412,21 @@
             window.formatDate = window.NRDCommon.formatDate;
           }
           
-          // Intercept NavigationService.switchView to handle 'dashboard' -> 'cashflow' redirect
+          // Intercept NavigationService.switchView to handle 'dashboard' -> 'transactions' redirect
           // This must be done before AuthService is created
           if (window.NRDCommon.NavigationService) {
             const originalSwitchView = window.NRDCommon.NavigationService.prototype.switchView;
             window.NRDCommon.NavigationService.prototype.switchView = function(viewName) {
-              // If trying to switch to 'dashboard' but it doesn't exist, use 'cashflow' instead
               if (viewName === 'dashboard') {
                 const dashboardView = document.getElementById('dashboard-view');
                 if (!dashboardView) {
-                  console.log('Dashboard view not found, redirecting to cashflow');
-                  return originalSwitchView.call(this, 'cashflow');
+                  console.log('Dashboard view not found, redirecting to transactions');
+                  return originalSwitchView.call(this, 'transactions');
                 }
               }
               return originalSwitchView.call(this, viewName);
             };
-            console.log('NavigationService.switchView intercepted for dashboard -> cashflow redirect');
+            console.log('NavigationService.switchView intercepted for dashboard -> transactions redirect');
           }
           
           // Initialize NRD Data Access using NRDCommon
@@ -1576,17 +1475,17 @@
   <!-- Firebase is initialized internally by NRD Data Access Library -->
   
   <!-- View Modules (load with defer) -->
-  <script type="module" src="tabs/categories.js?v=1775791650929" defer></script>
-  <script type="module" src="tabs/transactions.js?v=1775791650929" defer></script>
-  <script type="module" src="tabs/cashflow.js?v=1775791650929" defer></script>
-  <script type="module" src="tabs/accounts.js?v=1775791650929" defer></script>
+  <script type="module" src="tabs/categories.js?v=1780057171955" defer></script>
+  <script type="module" src="tabs/transactions.js?v=1780057171955" defer></script>
+  <script type="module" src="tabs/cashflow.js?v=1780057171955" defer></script>
+  <script type="module" src="tabs/accounts.js?v=1780057171955" defer></script>
   <script type="module" src="tabs/budget.js" defer></script>
   <script type="module" src="tabs/forecasting.js" defer></script>
   <script type="module" src="tabs/alerts.js" defer></script>
   
   <!-- Main App (load last with defer) -->
   <!-- Note: AuthService and NavigationService are now loaded from NRDCommon CDN -->
-  <script type="module" src="app.js?v=1775791650929" defer></script>
+  <script type="module" src="app.js?v=1780057171955" defer></script>
   
   <!-- Application Initialization - Waits for all modules to load -->
   <script>
@@ -1647,7 +1546,7 @@
     // Register service worker with update check
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('service-worker.js?v=1775791650929')
+        navigator.serviceWorker.register('service-worker.js?v=1780057171955')
           .then(reg => {
             console.log('Service Worker registered');
             // Force update check

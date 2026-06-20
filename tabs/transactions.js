@@ -1,5 +1,14 @@
 // Transaction management
 
+import {
+  initializeDescriptionsIndex,
+  getAvailableDescriptions,
+  getDescriptionsMetadata,
+  getDescriptionsForCategory,
+  getDescriptionsForCategories
+} from '../modules/transaction-descriptions.js';
+import { getCategoriesDict } from '../modules/categories-store.js';
+
 let transactionsListener = null;
 // Initialize with today's date by default
 let transactionsSelectedFilterDate = (() => {
@@ -479,8 +488,8 @@ async function showNewTransactionForm(type) {
     accountSelect.appendChild(option);
   });
   
-  // Load unique descriptions for autocomplete
-  await loadDescriptionsForAutocomplete();
+  // Load unique descriptions for autocomplete (from in-memory index)
+  loadDescriptionsForAutocomplete();
   
   // Setup autocomplete input listener
   setupDescriptionAutocomplete();
@@ -589,62 +598,11 @@ function setupDescriptionAutocomplete() {
 let availableDescriptions = [];
 let descriptionsWithMetadata = {}; // Store metadata: { description: { type, lastUsed, accountId, categoryId } }
 
-// Load unique descriptions for autocomplete with metadata
-async function loadDescriptionsForAutocomplete() {
-  try {
-    const transactions = await nrd.transactions.getAll();
-    
-    // Extract unique descriptions with metadata (type, accountId, categoryId, and last used date)
-    descriptionsWithMetadata = {};
-    Object.values(transactions).forEach(transaction => {
-      if (transaction && transaction.description && transaction.description.trim()) {
-        const desc = transaction.description.trim();
-        const transactionDate = transaction.date || transaction.createdAt || 0;
-        
-        // Store metadata for each description, keeping track of last use per account/category combination
-        if (!descriptionsWithMetadata[desc]) {
-          descriptionsWithMetadata[desc] = {
-            type: transaction.type,
-            lastUsed: transactionDate,
-            accountId: transaction.accountId || null,
-            categoryId: transaction.categoryId || null,
-            // Categorías con las que esta descripción (subcategoría) se ha usado al menos una vez
-            categoryIds: new Set(),
-            // Store last use per account/category combination
-            usageByAccountCategory: {}
-          };
-        }
-        
-        // Registrar que esta descripción se usó con esta categoría
-        if (transaction.categoryId) {
-          descriptionsWithMetadata[desc].categoryIds.add(transaction.categoryId);
-        }
-        
-        // Update last used date if this transaction is more recent
-        if (transactionDate > descriptionsWithMetadata[desc].lastUsed) {
-          descriptionsWithMetadata[desc].lastUsed = transactionDate;
-          descriptionsWithMetadata[desc].type = transaction.type;
-        }
-        
-        // Track last use for specific account/category combinations
-        const accountId = transaction.accountId || null;
-        const categoryId = transaction.categoryId || null;
-        const key = `${accountId || 'none'}_${categoryId || 'none'}`;
-        
-        if (!descriptionsWithMetadata[desc].usageByAccountCategory[key] || 
-            transactionDate > descriptionsWithMetadata[desc].usageByAccountCategory[key]) {
-          descriptionsWithMetadata[desc].usageByAccountCategory[key] = transactionDate;
-        }
-      }
-    });
-    
-    // Store sorted descriptions alphabetically for default
-    availableDescriptions = Object.keys(descriptionsWithMetadata).sort();
-  } catch (error) {
-    logger.error('Error loading descriptions:', error);
-    availableDescriptions = [];
-    descriptionsWithMetadata = {};
-  }
+// Load unique descriptions for autocomplete with metadata (from shared index, no network)
+function loadDescriptionsForAutocomplete() {
+  initializeDescriptionsIndex();
+  availableDescriptions = getAvailableDescriptions();
+  descriptionsWithMetadata = getDescriptionsMetadata();
 }
 
 // Show autocomplete suggestions (fallback for browsers that don't support datalist well)
@@ -660,17 +618,13 @@ function showDescriptionAutocomplete(inputValue) {
   // Filter descriptions based on input
   const normalizeSearchText = window.normalizeSearchText || window.NRDCommon?.normalizeSearchText || ((t) => t.toLowerCase());
   const normalizedInput = normalizeSearchText(inputValue);
-  let filtered = availableDescriptions.filter(desc => 
+  const sourceDescriptions = categoryId
+    ? getDescriptionsForCategory(categoryId)
+    : availableDescriptions;
+
+  let filtered = sourceDescriptions.filter(desc =>
     normalizeSearchText(desc).includes(normalizedInput)
   );
-  
-  // Si hay categoría seleccionada, mostrar solo subcategorías (descripciones) asociadas al menos una vez a esa categoría
-  if (categoryId) {
-    filtered = filtered.filter(desc => {
-      const meta = descriptionsWithMetadata[desc];
-      return meta && meta.categoryIds && meta.categoryIds.has(categoryId);
-    });
-  }
   
   // Sort by: same account+category first (most recent first), then same account (most recent first), then same type (most recent first), then others
   filtered = filtered.sort((a, b) => {
@@ -1782,7 +1736,7 @@ async function editTransaction(transactionId, transaction) {
   });
   
   // Cargar descripciones para el autocomplete de subcategoría (filtrado por categoría seleccionada)
-  await loadDescriptionsForAutocomplete();
+  loadDescriptionsForAutocomplete();
 
   // Check if this is a transferencia transaction and load transfer account
   const nrd = window.nrd;
@@ -3001,7 +2955,7 @@ async function checkCategoryForTransfer() {
       if (descriptionInput && (!descriptionInput.value || descriptionInput.value.trim() === '')) {
         // Asegurarse de que las descripciones estén cargadas
         if (availableDescriptions.length === 0) {
-          await loadDescriptionsForAutocomplete();
+          loadDescriptionsForAutocomplete();
         }
         
         // Buscar "transferencia" en las descripciones disponibles (case-insensitive)
@@ -3299,13 +3253,11 @@ async function _onTransactionsFilterTypeChange() {
 }
 
 // Carga y rellena el select de categorías filtrado por tipo (income/expense/null=todos), orden: ingresos primero, luego egresos
-async function loadFilterCategoriesByType(typeFilter) {
-  const nrd = window.nrd;
+function loadFilterCategoriesByType(typeFilter) {
   const categorySelect = document.getElementById('transactions-filter-categories');
-  if (!nrd?.categories || !categorySelect) return;
-  const raw = await nrd.categories.getAll();
-  const list = Array.isArray(raw) ? raw : Object.values(raw || {});
-  let categories = list.filter(c => c && c.id && c.active !== false);
+  if (!categorySelect) return;
+
+  let categories = Object.values(getCategoriesDict()).filter(c => c && c.id && c.active !== false);
   if (typeFilter) {
     categories = categories.filter(c => c.type === typeFilter);
   }
@@ -3340,7 +3292,7 @@ async function loadFilterCategoriesByType(typeFilter) {
 }
 
 // Carga el listado de subcategorías para las categorías seleccionadas (description de transacciones con ese categoryId)
-async function loadSubcategoriesForFilter(selectedCategoryIds) {
+function loadSubcategoriesForFilter(selectedCategoryIds) {
   const container = document.getElementById('transactions-filter-subcategories-container');
   const subSelect = document.getElementById('transactions-filter-subcategories');
   if (!container || !subSelect) return;
@@ -3349,21 +3301,9 @@ async function loadSubcategoriesForFilter(selectedCategoryIds) {
     container.classList.add('hidden');
     return;
   }
-  const nrd = window.nrd;
-  if (!nrd || !nrd.transactions) {
-    container.classList.add('hidden');
-    return;
-  }
-  const transactions = await nrd.transactions.getAll();
-  const list = Array.isArray(transactions) ? transactions : Object.values(transactions || {});
-  const categoryIdSet = new Set(selectedCategoryIds);
-  const descriptionsSet = new Set();
-  list.forEach(tx => {
-    if (tx && tx.categoryId && categoryIdSet.has(tx.categoryId) && tx.description && String(tx.description).trim()) {
-      descriptionsSet.add(String(tx.description).trim());
-    }
-  });
-  const subcategories = Array.from(descriptionsSet).sort((a, b) => a.localeCompare(b));
+
+  initializeDescriptionsIndex();
+  const subcategories = getDescriptionsForCategories(selectedCategoryIds);
   subSelect.innerHTML = '';
   subcategories.forEach(desc => {
     const option = document.createElement('option');
@@ -3404,10 +3344,8 @@ async function loadAdvancedFiltersOptions() {
   const typeSelect = document.getElementById('transactions-filter-type');
   const selectedType = transactionsAdvancedFilters.type || null;
   const categorySelect = document.getElementById('transactions-filter-categories');
-  if (categorySelect && nrd.categories) {
-    const raw = await nrd.categories.getAll();
-    const list = Array.isArray(raw) ? raw : Object.values(raw || {});
-    let categories = list.filter(c => c && c.id && c.active !== false);
+  if (categorySelect) {
+    let categories = Object.values(getCategoriesDict()).filter(c => c && c.id && c.active !== false);
     if (selectedType) {
       categories = categories.filter(c => c.type === selectedType);
     }

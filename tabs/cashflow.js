@@ -1537,7 +1537,6 @@ export function loadCashflow() {
     }
     // Excluir transferencias de todos los cálculos de flujo
     const transactionsToProcessNoTransfers = filterOutTransferTransactions(transactionsToProcess, transferIds);
-    const allNoTransfers = filterOutTransferTransactions(arr, transferIds);
 
     // Calculate current totals (sin transferencias)
     let totalIncome = 0;
@@ -1649,72 +1648,8 @@ export function loadCashflow() {
       }
     }
 
-    // Calculate margin percentage
-    const marginPercentage = totalIncome > 0 ? (balance / totalIncome) * 100 : 0;
-    
-    // Update margin badge
-    const marginBadge = document.getElementById('margin-badge');
-    if (marginBadge) {
-      if (marginPercentage > 3) {
-        marginBadge.textContent = 'Margen > 3%';
-        marginBadge.className = 'absolute top-3 right-3 px-2 py-1 text-xs font-semibold bg-green-500 text-white';
-      } else if (marginPercentage >= 1) {
-        marginBadge.textContent = 'Margen 1-3%';
-        marginBadge.className = 'absolute top-3 right-3 px-2 py-1 text-xs font-semibold bg-yellow-500 text-white';
-      } else {
-        marginBadge.textContent = 'Margen < 1%';
-        marginBadge.className = 'absolute top-3 right-3 px-2 py-1 text-xs font-semibold bg-red-500 text-white';
-      }
-    }
-
-    // Update trend indicator (for YEAR and ALL)
-    const balanceTrendEl = document.getElementById('balance-trend');
-    if (balanceTrendEl) {
-      if (cashflowSelectedFilterPeriod === 'year' || cashflowSelectedFilterPeriod === 'all') {
-        if (balanceVariation !== null && !isNaN(balanceVariation)) {
-          const trend = balanceVariation >= 0 ? '↑' : '↓';
-          balanceTrendEl.textContent = `Tendencia: ${trend}`;
-          balanceTrendEl.className = 'text-xs mt-1 ' + (balanceVariation >= 0 ? 'text-green-600' : 'text-red-600');
-        } else {
-          balanceTrendEl.textContent = '';
-        }
-      } else {
-        balanceTrendEl.textContent = '';
-      }
-    }
-
-    // Get TOP 3 expense categories (sin transferencias)
-    const topCategories = await getTopExpenseCategories(transactionsToProcessNoTransfers);
-
     // Update account subtotals (sin transferencias)
     await updateAccountSubtotals(transactionsToProcessNoTransfers, cashflowSelectedFilterPeriod, cashflowPeriodReferenceDate);
-
-    // Estimated money: balance con todas las transacciones; ingresos/egresos sin transferencias (se filtran dentro)
-    await renderEstimatedMoneyNeeded(cashflowSelectedFilterPeriod, cashflowPeriodReferenceDate, arr);
-
-    // Update Top 10 sections (sin transferencias)
-    await updateTop10Sections(transactionsToProcessNoTransfers);
-
-    // Render key metrics dashboard (sin transferencias)
-    const accountsArray = await nrd.accounts.getAll();
-    const accounts = accountsArray.reduce((acc, account) => {
-      if (account && account.id) {
-        acc[account.id] = account;
-      }
-      return acc;
-    }, {});
-    
-    const metricsSection = document.getElementById('dashboard-metrics-section');
-    if (metricsSection) {
-      metricsSection.classList.remove('hidden');
-      await renderKeyMetrics(allNoTransfers, accounts);
-    }
-    
-    const chartsSection = document.getElementById('dashboard-charts-section');
-    if (chartsSection) {
-      chartsSection.classList.remove('hidden');
-      await renderDashboardCharts(allNoTransfers, accounts);
-    }
 
     // Update breakdowns for weekly and monthly views
     const incomeBreakdown = document.getElementById('income-breakdown');

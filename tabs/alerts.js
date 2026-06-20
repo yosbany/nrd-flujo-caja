@@ -1,11 +1,18 @@
 // Alert logic - background processing and notifications (no UI)
 // Depends on: cashflow.js (calculateAccountBalance, getAverageMonthlyFlow), window.formatCurrency
 
+import {
+  initializeTransactionsStore,
+  subscribeTransactions,
+  transactionsToDict
+} from '../modules/transactions-store.js';
+
 const logger = window.logger || console;
 
-let transactionsListener = null;
+let transactionsUnsubscribe = null;
 let accountsListener = null;
 let budgetsListener = null;
+let alertsDebounceTimer = null;
 let currentTransactions = {};
 let currentAccounts = {};
 let currentBudgets = [];
@@ -294,6 +301,14 @@ function setLastNotificationTime(timestamp) {
 }
 
 // Background: calculate alerts and trigger critical notifications
+function scheduleAlertsBackground() {
+  if (alertsDebounceTimer) clearTimeout(alertsDebounceTimer);
+  alertsDebounceTimer = setTimeout(() => {
+    alertsDebounceTimer = null;
+    void runAlertsBackground();
+  }, 300);
+}
+
 async function runAlertsBackground() {
   try {
     const settings = await getAlertSettings();
@@ -321,30 +336,34 @@ function initializeAlertsBackground() {
     return;
   }
 
-  if (transactionsListener) return;
+  if (transactionsUnsubscribe) return;
 
-  transactionsListener = nrd.transactions.onValue((transactions) => {
-    currentTransactions = Array.isArray(transactions)
-      ? transactions.reduce((acc, tx) => { if (tx && tx.id) acc[tx.id] = tx; return acc; }, {})
-      : transactions || {};
-    runAlertsBackground();
-  });
+  void initializeTransactionsStore()
+    .catch((error) => logger.error('Failed to init transactions store for alerts', error))
+    .finally(() => {
+      if (transactionsUnsubscribe) return;
+
+      transactionsUnsubscribe = subscribeTransactions((transactionsArray) => {
+        currentTransactions = transactionsToDict(transactionsArray);
+        scheduleAlertsBackground();
+      });
+    });
 
   accountsListener = nrd.accounts.onValue((accounts) => {
     currentAccounts = Array.isArray(accounts)
       ? accounts.reduce((acc, a) => { if (a && a.id) acc[a.id] = a; return acc; }, {})
       : accounts || {};
-    runAlertsBackground();
+    scheduleAlertsBackground();
   });
 
   if (nrd.budgets) {
     budgetsListener = nrd.budgets.onValue((budgets) => {
       currentBudgets = Array.isArray(budgets) ? budgets : Object.values(budgets || {});
-      runAlertsBackground();
+      scheduleAlertsBackground();
     });
   }
 
-  runAlertsBackground();
+  scheduleAlertsBackground();
 }
 
 // Expose globally

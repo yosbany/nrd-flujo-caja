@@ -1,5 +1,9 @@
 // Main app controller (ES Module)
 // Using NRDCommon from CDN (loaded in index.html)
+import { initializeTransactionsStore } from './modules/transactions-store.js';
+import { initializeCategoriesStore } from './modules/categories-store.js';
+import { initializeDescriptionsIndex } from './modules/transaction-descriptions.js';
+
 const logger = window.logger || console;
 
 // Import view initialization functions (these will be loaded as modules)
@@ -16,8 +20,8 @@ function setupNavigationButtons() {
   navContainer.className = 'bg-white border-b border-gray-200 flex overflow-x-auto';
   
   navContainer.innerHTML = `
-    <button class="nav-btn flex-1 px-3 sm:px-4 py-3 sm:py-3.5 border-b-2 border-red-600 text-red-600 bg-red-50 font-medium transition-colors uppercase tracking-wider text-xs sm:text-sm font-light" data-view="cashflow">Flujo</button>
-    <button class="nav-btn flex-1 px-3 sm:px-4 py-3 sm:py-3.5 border-b-2 border-transparent text-gray-600 hover:text-red-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light" data-view="transactions">Transacciones</button>
+    <button class="nav-btn flex-1 px-3 sm:px-4 py-3 sm:py-3.5 border-b-2 border-red-600 text-red-600 bg-red-50 font-medium transition-colors uppercase tracking-wider text-xs sm:text-sm font-light" data-view="transactions">Transacciones</button>
+    <button class="nav-btn flex-1 px-3 sm:px-4 py-3 sm:py-3.5 border-b-2 border-transparent text-gray-600 hover:text-red-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light" data-view="cashflow">Flujo</button>
     <button class="nav-btn flex-1 px-3 sm:px-4 py-3 sm:py-3.5 border-b-2 border-transparent text-gray-600 hover:text-red-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light" data-view="categories">Categorías</button>
     <button class="nav-btn flex-1 px-3 sm:px-4 py-3 sm:py-3.5 border-b-2 border-transparent text-gray-600 hover:text-red-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light" data-view="accounts">Cuentas</button>
     <button class="nav-btn flex-1 px-3 sm:px-4 py-3 sm:py-3.5 border-b-2 border-transparent text-gray-600 hover:text-red-600 transition-colors uppercase tracking-wider text-xs sm:text-sm font-light" data-view="budget">Presupuesto</button>
@@ -42,6 +46,24 @@ function createNavigationService() {
   
   navigationService = new NavigationService();
   window.navigationService = navigationService;
+
+  const VIEW_CLEANUPS = {
+    cashflow: () => window.cleanupCashflow?.(),
+    transactions: () => window.cleanupTransactions?.(),
+    categories: () => window.cleanupCategories?.(),
+    accounts: () => window.cleanupAccounts?.(),
+    budget: () => window.cleanupBudget?.(),
+    forecasting: () => window.cleanupForecasting?.()
+  };
+
+  const originalSwitchView = navigationService.switchView.bind(navigationService);
+  navigationService.switchView = function(viewName) {
+    const previousView = navigationService.currentView;
+    if (previousView && previousView !== viewName && VIEW_CLEANUPS[previousView]) {
+      VIEW_CLEANUPS[previousView]();
+    }
+    originalSwitchView(viewName);
+  };
   
   // Register view handlers
   navigationService.registerView('cashflow', () => {
@@ -165,13 +187,21 @@ function createNavigationService() {
 // Initialize app when NRDCommon is ready and user is authenticated
 // Note: AuthService from NRDCommon handles authentication, we just setup navigation
 let appInitialized = false;
-function initializeApp() {
+async function initializeApp() {
   if (appInitialized) {
     logger.debug('App already initialized, skipping');
     return;
   }
   appInitialized = true;
   logger.debug('Initializing app');
+
+  try {
+    await initializeTransactionsStore();
+    await initializeCategoriesStore();
+    initializeDescriptionsIndex();
+  } catch (error) {
+    logger.error('Failed to initialize data stores', error);
+  }
   
   // Create navigation service first (registers view handlers)
   const navService = createNavigationService();
@@ -184,7 +214,7 @@ function initializeApp() {
         const view = btn.dataset.view;
         logger.debug('Nav button clicked (fallback)', { view });
         // Manual view switching as fallback
-        const views = ['cashflow', 'transactions', 'categories', 'accounts', 'budget', 'forecasting'];
+        const views = ['transactions', 'cashflow', 'categories', 'accounts', 'budget', 'forecasting'];
         views.forEach(v => {
           const el = document.getElementById(`${v}-view`);
           if (el) el.classList.add('hidden');
@@ -203,10 +233,10 @@ function initializeApp() {
       });
     });
     // Switch to default view manually
-    const defaultView = document.getElementById('cashflow-view');
+    const defaultView = document.getElementById('transactions-view');
     if (defaultView) {
       defaultView.classList.remove('hidden');
-      if (typeof loadCashflow === 'function') loadCashflow();
+      if (typeof loadTransactions === 'function') loadTransactions();
     }
     if (typeof window.initializeAlertsBackground === 'function') {
       window.initializeAlertsBackground();
@@ -223,7 +253,7 @@ function initializeApp() {
     navService.setupNavButtons();
     
     // Switch to default view
-    navService.switchView('cashflow');
+    navService.switchView('transactions');
     
     // Initialize alerts background (calculates alerts, triggers critical notifications)
     if (typeof window.initializeAlertsBackground === 'function') {

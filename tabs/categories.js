@@ -1,8 +1,381 @@
 // Category management
 
-let categoriesListener = null;
+import {
+  initializeTransactionsStore,
+  subscribeTransactions,
+  getTransactions,
+  getTransactionsDict,
+  transactionsToDict
+} from '../modules/transactions-store.js';
+import { getCategoriesDict, initializeCategoriesStore } from '../modules/categories-store.js';
 
-// Load categories
+const SUBCATEGORIES_PAGE_SIZE = 50;
+const SUBCATEGORIES_TREND_BATCH = 20;
+const RENDER_DEBOUNCE_MS = 120;
+
+let categoriesListener = null;
+let transactionsUnsubscribe = null;
+let categoriesViewActive = false;
+let categoriesDictCache = {};
+let renderDebounceTimer = null;
+let renderGeneration = 0;
+let subcategoriesVisibleCount = SUBCATEGORIES_PAGE_SIZE;
+let subcategoriesTrendCancelGen = 0;
+
+function getTransferCategoryIds(categoriesDict) {
+  return new Set(
+    Object.entries(categoriesDict)
+      .filter(([, cat]) => cat && cat.name && String(cat.name).toUpperCase().includes('TRANSFERENCIA'))
+      .map(([id]) => id)
+  );
+}
+
+function buildAggregatesFromTransactions(transactionsArray, categoriesDict) {
+  const transferCategoryIds = getTransferCategoryIds(categoriesDict);
+  const categoryTotals = {};
+  const categoryTransactions = {};
+  const subcategoriesMap = {};
+
+  for (const transaction of transactionsArray) {
+    if (!transaction) continue;
+
+    const categoryId = transaction.categoryId;
+    if (categoryId && !transferCategoryIds.has(categoryId)) {
+      if (!categoryTotals[categoryId]) {
+        categoryTotals[categoryId] = 0;
+        categoryTransactions[categoryId] = [];
+      }
+      categoryTotals[categoryId] += parseFloat(transaction.amount) || 0;
+      const categoryDate = transaction.date || transaction.createdAt || 0;
+      if (categoryDate > 0) {
+        categoryTransactions[categoryId].push({
+          id: transaction.id,
+          date: categoryDate,
+          amount: parseFloat(transaction.amount) || 0,
+          type: transaction.type
+        });
+      }
+    }
+
+    const rawDesc = transaction.description;
+    if (!rawDesc || !String(rawDesc).trim()) continue;
+
+    const desc = String(rawDesc).trim();
+    if (!subcategoriesMap[desc]) {
+      subcategoriesMap[desc] = {
+        count: 0,
+        incomeCount: 0,
+        expenseCount: 0,
+        transactionIds: [],
+        total: 0,
+        lastUsedDate: 0,
+        transactions: []
+      };
+    }
+
+    const entry = subcategoriesMap[desc];
+    entry.count++;
+    if (transaction.id) entry.transactionIds.push(transaction.id);
+    if (transaction.type === 'expense') entry.expenseCount++;
+    else if (transaction.type === 'income') entry.incomeCount++;
+
+    const amount = parseFloat(transaction.amount) || 0;
+    if (transaction.type === 'expense') entry.total -= amount;
+    else entry.total += amount;
+
+    const transactionDate = transaction.date || transaction.createdAt || 0;
+    if (transactionDate > entry.lastUsedDate) entry.lastUsedDate = transactionDate;
+    if (transactionDate > 0) {
+      entry.transactions.push({
+        id: transaction.id,
+        date: transactionDate,
+        amount,
+        type: transaction.type
+      });
+    }
+  }
+
+  return { transferCategoryIds, categoryTotals, categoryTransactions, subcategoriesMap };
+}
+
+function scheduleCategoriesRender() {
+  if (!categoriesViewActive) return;
+  if (renderDebounceTimer) clearTimeout(renderDebounceTimer);
+  renderDebounceTimer = setTimeout(() => {
+    renderDebounceTimer = null;
+    void renderCategoriesView();
+  }, RENDER_DEBOUNCE_MS);
+}
+
+function renderCategorySection(categoriesList, title, items, colorClass, hoverClass) {
+  if (items.length === 0) return;
+
+  const section = document.createElement('div');
+  section.className = 'mb-4 sm:mb-6';
+  section.innerHTML = `<h3 class="text-sm sm:text-base font-light text-gray-600 mb-2 sm:mb-3 uppercase tracking-wider">${title}</h3>`;
+  categoriesList.appendChild(section);
+
+  items.forEach(({ id, category, total, transactions: categoryTrans }) => {
+    const item = document.createElement('div');
+    const isActive = category.active !== false;
+    const opacityClass = isActive ? '' : 'opacity-50';
+    item.className = `border border-gray-200 p-3 sm:p-4 md:p-6 ${hoverClass} transition-colors cursor-pointer mb-2 sm:mb-3 ${opacityClass}`;
+    item.dataset.categoryId = id;
+    const formattedTotal = new Intl.NumberFormat('es-UY', { style: 'currency', currency: 'UYU' }).format(total);
+    const statusText = isActive ? '' : ' (Desactivada)';
+    const trendGraph = calculateTrendGraph(categoryTrans || [], category.name);
+
+    item.innerHTML = `
+      <div class="flex justify-between items-center">
+        <div class="flex-1">
+          <div class="text-base sm:text-lg font-light ${colorClass}">${escapeHtml(category.name)}${statusText}</div>
+        </div>
+        <div class="flex items-center gap-3 sm:gap-4">
+          <div class="text-sm sm:text-base font-light ${colorClass}">${formattedTotal}</div>
+          <div class="flex-shrink-0">${trendGraph.svg}</div>
+        </div>
+      </div>
+    `;
+
+    if (trendGraph.clickable) {
+      const svgElement = item.querySelector('svg');
+      if (svgElement) {
+        svgElement.style.cursor = 'pointer';
+        svgElement.addEventListener('click', (e) => {
+          e.stopPropagation();
+          showTrendGraphModal(category.name, categoryTrans || []);
+        });
+      }
+    }
+
+    item.addEventListener('click', () => viewCategory(id));
+    categoriesList.appendChild(item);
+  });
+}
+
+function renderSubcategoryTrendsLazy(trendCells, descriptions, subcategoriesMap, renderGen) {
+  subcategoriesTrendCancelGen++;
+  const trendGen = subcategoriesTrendCancelGen;
+  let index = 0;
+
+  function renderBatch() {
+    if (!categoriesViewActive || trendGen !== subcategoriesTrendCancelGen || renderGen !== renderGeneration) return;
+
+    const end = Math.min(index + SUBCATEGORIES_TREND_BATCH, trendCells.length);
+    for (; index < end; index++) {
+      const description = descriptions[index];
+      const trendCell = trendCells[index];
+      const data = subcategoriesMap[description];
+      if (!trendCell || !data) continue;
+
+      const trendGraph = calculateTrendGraph(data.transactions || [], description);
+      trendCell.innerHTML = trendGraph.svg;
+
+      if (trendGraph.clickable) {
+        const svgElement = trendCell.querySelector('svg');
+        if (svgElement) {
+          svgElement.style.cursor = 'pointer';
+          svgElement.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showTrendGraphModal(description, data.transactions || []);
+          });
+        }
+      }
+    }
+
+    if (index < trendCells.length) {
+      requestAnimationFrame(renderBatch);
+    }
+  }
+
+  requestAnimationFrame(renderBatch);
+}
+
+function renderSubcategoriesSection(container, subcategoriesMap, transactions, renderGen) {
+  const subcategoriesSection = document.createElement('div');
+  subcategoriesSection.className = 'mt-8 sm:mt-10 pt-6 sm:pt-8 border-t border-gray-300';
+  subcategoriesSection.innerHTML = '<h3 class="text-sm sm:text-base font-light text-gray-600 mb-4 sm:mb-6 uppercase tracking-wider">Subcategorías (Descripciones)</h3>';
+
+  const subcategoriesList = Object.keys(subcategoriesMap).sort((a, b) => {
+    return (subcategoriesMap[b].lastUsedDate || 0) - (subcategoriesMap[a].lastUsedDate || 0);
+  });
+
+  if (subcategoriesList.length === 0) {
+    subcategoriesSection.innerHTML += '<p class="text-center text-gray-600 py-4 text-sm">No hay subcategorías registradas</p>';
+    container.appendChild(subcategoriesSection);
+    return;
+  }
+
+  const visibleList = subcategoriesList.slice(0, subcategoriesVisibleCount);
+  const table = document.createElement('div');
+  table.className = 'overflow-x-auto';
+  table.innerHTML = `
+    <table class="w-full border-collapse">
+      <thead>
+        <tr class="bg-gray-100 border-b border-gray-300">
+          <th class="text-left p-2 sm:p-3 text-xs sm:text-sm font-light text-gray-700 uppercase tracking-wider">Descripción</th>
+          <th class="text-center p-2 sm:p-3 text-xs sm:text-sm font-light text-gray-700 uppercase tracking-wider">Ingresos</th>
+          <th class="text-center p-2 sm:p-3 text-xs sm:text-sm font-light text-gray-700 uppercase tracking-wider">Egresos</th>
+          <th class="text-center p-2 sm:p-3 text-xs sm:text-sm font-light text-gray-700 uppercase tracking-wider">Total</th>
+          <th class="text-right p-2 sm:p-3 text-xs sm:text-sm font-light text-gray-700 uppercase tracking-wider">Monto Total</th>
+          <th class="text-center p-2 sm:p-3 text-xs sm:text-sm font-light text-gray-700 uppercase tracking-wider">Tendencia</th>
+          <th class="text-center p-2 sm:p-3 text-xs sm:text-sm font-light text-gray-700 uppercase tracking-wider">Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="subcategories-tbody"></tbody>
+    </table>
+  `;
+
+  const tbody = table.querySelector('#subcategories-tbody');
+  const trendCells = [];
+  const trendDescriptions = [];
+
+  visibleList.forEach((description) => {
+    const row = document.createElement('tr');
+    row.className = 'border-b border-gray-200 hover:bg-gray-50';
+    row.dataset.description = description;
+
+    const data = subcategoriesMap[description];
+
+    const descCell = document.createElement('td');
+    descCell.className = 'p-2 sm:p-3 text-sm sm:text-base font-light';
+    descCell.textContent = description;
+
+    const incomeCountCell = document.createElement('td');
+    incomeCountCell.className = 'p-2 sm:p-3 text-sm sm:text-base font-light text-center text-green-600';
+    incomeCountCell.textContent = data.incomeCount || 0;
+
+    const expenseCountCell = document.createElement('td');
+    expenseCountCell.className = 'p-2 sm:p-3 text-sm sm:text-base font-light text-center text-red-600';
+    expenseCountCell.textContent = data.expenseCount || 0;
+
+    const totalCountCell = document.createElement('td');
+    totalCountCell.className = 'p-2 sm:p-3 text-sm sm:text-base font-medium text-center';
+    totalCountCell.textContent = data.count;
+
+    const totalCell = document.createElement('td');
+    totalCell.className = 'p-2 sm:p-3 text-sm sm:text-base font-medium text-right';
+    totalCell.textContent = new Intl.NumberFormat('es-UY', {
+      style: 'currency',
+      currency: 'UYU',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(Math.abs(data.total));
+
+    const trendCell = document.createElement('td');
+    trendCell.className = 'p-2 sm:p-3 text-center text-xs text-gray-400';
+    trendCell.textContent = '…';
+    trendCells.push(trendCell);
+    trendDescriptions.push(description);
+
+    const actionsCell = document.createElement('td');
+    actionsCell.className = 'p-2 sm:p-3 text-center';
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'edit-subcategory-btn text-blue-600 hover:text-blue-800 text-xs sm:text-sm font-light mr-2 sm:mr-4';
+    editBtn.textContent = 'Editar';
+    editBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      editSubcategory(description, data.transactionIds);
+    });
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'delete-subcategory-btn text-red-600 hover:text-red-800 text-xs sm:text-sm font-light';
+    deleteBtn.textContent = 'Eliminar';
+    deleteBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteSubcategory(description, data.transactionIds);
+    });
+
+    actionsCell.appendChild(editBtn);
+    actionsCell.appendChild(deleteBtn);
+
+    row.appendChild(descCell);
+    row.appendChild(incomeCountCell);
+    row.appendChild(expenseCountCell);
+    row.appendChild(totalCountCell);
+    row.appendChild(totalCell);
+    row.appendChild(trendCell);
+    row.appendChild(actionsCell);
+
+    row.style.cursor = 'pointer';
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('.edit-subcategory-btn') || e.target.closest('.delete-subcategory-btn')) return;
+      showSubcategoryTransactionsModal(description, data.transactionIds, transactions);
+    });
+
+    tbody.appendChild(row);
+  });
+
+  subcategoriesSection.appendChild(table);
+
+  if (subcategoriesList.length > subcategoriesVisibleCount) {
+    const loadMoreWrap = document.createElement('div');
+    loadMoreWrap.className = 'mt-4 text-center';
+    const loadMoreBtn = document.createElement('button');
+    loadMoreBtn.type = 'button';
+    loadMoreBtn.className = 'px-4 py-2 border border-gray-300 text-gray-700 hover:border-red-600 hover:text-red-600 transition-colors text-xs sm:text-sm font-light uppercase tracking-wider';
+    const remaining = subcategoriesList.length - subcategoriesVisibleCount;
+    loadMoreBtn.textContent = `Cargar más (${remaining} restantes)`;
+    loadMoreBtn.addEventListener('click', () => {
+      subcategoriesVisibleCount += SUBCATEGORIES_PAGE_SIZE;
+      scheduleCategoriesRender();
+    });
+    loadMoreWrap.appendChild(loadMoreBtn);
+    subcategoriesSection.appendChild(loadMoreWrap);
+  } else if (subcategoriesList.length > SUBCATEGORIES_PAGE_SIZE) {
+    const countNote = document.createElement('p');
+    countNote.className = 'mt-3 text-center text-xs text-gray-500';
+    countNote.textContent = `Mostrando ${subcategoriesList.length} subcategorías`;
+    subcategoriesSection.appendChild(countNote);
+  }
+
+  container.appendChild(subcategoriesSection);
+  renderSubcategoryTrendsLazy(trendCells, trendDescriptions, subcategoriesMap, renderGen);
+}
+
+async function renderCategoriesView() {
+  if (!categoriesViewActive) return;
+
+  const gen = ++renderGeneration;
+  const categoriesList = document.getElementById('categories-list');
+  if (!categoriesList) return;
+
+  const categoriesDict = categoriesDictCache;
+  if (Object.keys(categoriesDict).length === 0) {
+    categoriesList.innerHTML = '<p class="text-center text-gray-600 py-6 sm:py-8 text-sm sm:text-base">No hay categorías registradas</p>';
+    return;
+  }
+
+  const transactionsArray = getTransactions();
+  const { transferCategoryIds, categoryTotals, categoryTransactions, subcategoriesMap } =
+    buildAggregatesFromTransactions(transactionsArray, categoriesDict);
+  const transactions = transactionsToDict(transactionsArray);
+
+  if (gen !== renderGeneration || !categoriesViewActive) return;
+
+  categoriesList.innerHTML = '';
+
+  const incomeCategories = [];
+  const expenseCategories = [];
+
+  Object.entries(categoriesDict).forEach(([id, category]) => {
+    if (transferCategoryIds.has(id)) return;
+    const categoryData = {
+      id,
+      category,
+      total: categoryTotals[id] || 0,
+      transactions: categoryTransactions[id] || []
+    };
+    if (category.type === 'income') incomeCategories.push(categoryData);
+    else expenseCategories.push(categoryData);
+  });
+
+  renderCategorySection(categoriesList, 'Ingresos', incomeCategories, 'text-green-600', 'hover:border-green-600');
+  renderCategorySection(categoriesList, 'Egresos', expenseCategories, 'text-red-600', 'hover:border-red-600');
+  renderSubcategoriesSection(categoriesList, subcategoriesMap, transactions, gen);
+}
+
 function loadCategories() {
   const nrd = window.nrd;
   if (!nrd) {
@@ -13,410 +386,63 @@ function loadCategories() {
     }
     return;
   }
-  
+
   logger.debug('Loading categories');
   const categoriesList = document.getElementById('categories-list');
   if (!categoriesList) {
     logger.warn('Categories list element not found');
     return;
   }
-  
-  categoriesList.innerHTML = '';
 
-  // Remove previous listener
+  categoriesViewActive = true;
+  subcategoriesVisibleCount = SUBCATEGORIES_PAGE_SIZE;
+  categoriesList.innerHTML = '<p class="text-center text-gray-600 py-6 sm:py-8 text-sm sm:text-base">Cargando categorías...</p>';
+
   if (categoriesListener) {
-    logger.debug('Removing previous categories listener');
-    categoriesListener(); // Unsubscribe from NRD Data Access listener
+    categoriesListener();
     categoriesListener = null;
   }
+  if (transactionsUnsubscribe) {
+    transactionsUnsubscribe();
+    transactionsUnsubscribe = null;
+  }
 
-  // Listen for categories using NRD Data Access
-  logger.debug('Setting up categories listener');
-  categoriesListener = nrd.categories.onValue(async (categories) => {
-    logger.debug('Categories data received', { count: Array.isArray(categories) ? categories.length : Object.keys(categories || {}).length });
-    if (!categoriesList) return;
-    categoriesList.innerHTML = '';
-    
-    // Convert to object format if needed (NRD Data Access returns array)
-    const categoriesDict = Array.isArray(categories) 
-      ? categories.reduce((acc, category) => {
-          if (category && category.id) {
-            acc[category.id] = category;
-          }
-          return acc;
-        }, {})
-      : categories || {};
+  void initializeTransactionsStore()
+    .catch((error) => logger.error('Failed to init transactions store', error))
+    .finally(() => {
+      if (!categoriesViewActive) return;
 
-    if (Object.keys(categoriesDict).length === 0) {
-      categoriesList.innerHTML = '<p class="text-center text-gray-600 py-6 sm:py-8 text-sm sm:text-base">No hay categorías registradas</p>';
-      return;
-    }
-
-    // Get all transactions to calculate totals using NRD Data Access
-    const transactionsArray = await nrd.transactions.getAll();
-    const transactions = Array.isArray(transactionsArray) 
-      ? transactionsArray.reduce((acc, transaction) => {
-          if (transaction && transaction.id) {
-            acc[transaction.id] = transaction;
-          }
-          return acc;
-        }, {})
-      : transactionsArray || {};
-    
-    // IDs de categorías de transferencia: no se usan en totales ni visualizaciones
-    const transferCategoryIds = new Set(
-      Object.entries(categoriesDict).filter(([, cat]) => cat && cat.name && String(cat.name).toUpperCase().includes('TRANSFERENCIA')).map(([id]) => id)
-    );
-    const categoryTotals = {};
-    const categoryTransactions = {};
-    
-    Object.values(transactions).forEach(transaction => {
-      if (!transaction || !transaction.categoryId) return;
-      if (transferCategoryIds.has(transaction.categoryId)) return;
-      const categoryId = transaction.categoryId;
-      if (!categoryTotals[categoryId]) {
-        categoryTotals[categoryId] = 0;
-        categoryTransactions[categoryId] = [];
-      }
-      categoryTotals[categoryId] += parseFloat(transaction.amount) || 0;
-      const transactionDate = transaction.date || transaction.createdAt || 0;
-      if (transactionDate > 0) {
-        categoryTransactions[categoryId].push({
-          id: transaction.id,
-          date: transactionDate,
-          amount: parseFloat(transaction.amount) || 0,
-          type: transaction.type
-        });
-      }
-    });
-
-    const incomeCategories = [];
-    const expenseCategories = [];
-
-    Object.entries(categoriesDict).forEach(([id, category]) => {
-      if (transferCategoryIds.has(id)) return;
-      const categoryData = {
-        id,
-        category,
-        total: categoryTotals[id] || 0,
-        transactions: categoryTransactions[id] || []
-      };
-      if (category.type === 'income') {
-        incomeCategories.push(categoryData);
-      } else {
-        expenseCategories.push(categoryData);
-      }
-    });
-
-    // Show income categories
-    if (incomeCategories.length > 0) {
-      const incomeSection = document.createElement('div');
-      incomeSection.className = 'mb-4 sm:mb-6';
-      incomeSection.innerHTML = '<h3 class="text-sm sm:text-base font-light text-gray-600 mb-2 sm:mb-3 uppercase tracking-wider">Ingresos</h3>';
-      categoriesList.appendChild(incomeSection);
-
-      incomeCategories.forEach(({ id, category, total, transactions: categoryTrans }) => {
-        const item = document.createElement('div');
-        const isActive = category.active !== false; // Default to true if not set
-        const opacityClass = isActive ? '' : 'opacity-50';
-        item.className = `border border-gray-200 p-3 sm:p-4 md:p-6 hover:border-green-600 transition-colors cursor-pointer mb-2 sm:mb-3 ${opacityClass}`;
-        item.dataset.categoryId = id;
-        const formattedTotal = new Intl.NumberFormat('es-UY', { style: 'currency', currency: 'UYU' }).format(total);
-        const statusText = isActive ? '' : ' (Desactivada)';
-        
-        // Calcular gráfico de tendencia
-        const trendGraph = calculateTrendGraph(categoryTrans || [], category.name);
-        
-        item.innerHTML = `
-          <div class="flex justify-between items-center">
-            <div class="flex-1">
-              <div class="text-base sm:text-lg font-light text-green-600">${escapeHtml(category.name)}${statusText}</div>
-            </div>
-            <div class="flex items-center gap-3 sm:gap-4">
-              <div class="text-sm sm:text-base font-light text-green-600">${formattedTotal}</div>
-              <div class="flex-shrink-0">${trendGraph.svg}</div>
-            </div>
-          </div>
-        `;
-        
-        // Agregar event listener al SVG si existe
-        if (trendGraph.clickable) {
-          const svgElement = item.querySelector('svg');
-          if (svgElement) {
-            svgElement.style.cursor = 'pointer';
-            svgElement.addEventListener('click', (e) => {
-              e.stopPropagation(); // Evitar que se abra el detalle de la categoría
-              showTrendGraphModal(category.name, categoryTrans || []);
-            });
-          }
-        }
-        
-        item.addEventListener('click', () => viewCategory(id));
-        categoriesList.appendChild(item);
+      transactionsUnsubscribe = subscribeTransactions(() => {
+        scheduleCategoriesRender();
       });
-    }
 
-    // Show expense categories
-    if (expenseCategories.length > 0) {
-      const expenseSection = document.createElement('div');
-      expenseSection.className = 'mb-4 sm:mb-6';
-      expenseSection.innerHTML = '<h3 class="text-sm sm:text-base font-light text-gray-600 mb-2 sm:mb-3 uppercase tracking-wider">Egresos</h3>';
-      categoriesList.appendChild(expenseSection);
-
-      expenseCategories.forEach(({ id, category, total, transactions: categoryTrans }) => {
-        const item = document.createElement('div');
-        const isActive = category.active !== false; // Default to true if not set
-        const opacityClass = isActive ? '' : 'opacity-50';
-        item.className = `border border-gray-200 p-3 sm:p-4 md:p-6 hover:border-red-600 transition-colors cursor-pointer mb-2 sm:mb-3 ${opacityClass}`;
-        item.dataset.categoryId = id;
-        const formattedTotal = new Intl.NumberFormat('es-UY', { style: 'currency', currency: 'UYU' }).format(total);
-        const statusText = isActive ? '' : ' (Desactivada)';
-        
-        // Calcular gráfico de tendencia
-        const trendGraph = calculateTrendGraph(categoryTrans || [], category.name);
-        
-        item.innerHTML = `
-          <div class="flex justify-between items-center">
-            <div class="flex-1">
-              <div class="text-base sm:text-lg font-light text-red-600">${escapeHtml(category.name)}${statusText}</div>
-            </div>
-            <div class="flex items-center gap-3 sm:gap-4">
-              <div class="text-sm sm:text-base font-light text-red-600">${formattedTotal}</div>
-              <div class="flex-shrink-0">${trendGraph.svg}</div>
-            </div>
-          </div>
-        `;
-        
-        // Agregar event listener al SVG si existe
-        if (trendGraph.clickable) {
-          const svgElement = item.querySelector('svg');
-          if (svgElement) {
-            svgElement.style.cursor = 'pointer';
-            svgElement.addEventListener('click', (e) => {
-              e.stopPropagation(); // Evitar que se abra el detalle de la categoría
-              showTrendGraphModal(category.name, categoryTrans || []);
-            });
-          }
-        }
-        
-        item.addEventListener('click', () => viewCategory(id));
-        categoriesList.appendChild(item);
+      categoriesListener = nrd.categories.onValue((categories) => {
+        categoriesDictCache = Array.isArray(categories)
+          ? categories.reduce((acc, category) => {
+              if (category && category.id) acc[category.id] = category;
+              return acc;
+            }, {})
+          : categories || {};
+        scheduleCategoriesRender();
       });
-    }
-    
-    // Cargar tabla de subcategorías al final
-    loadSubcategoriesTable(categoriesList);
-  });
+    });
 }
 
-// Cargar tabla de subcategorías (descripciones únicas)
-async function loadSubcategoriesTable(container) {
-  const nrd = window.nrd;
-  if (!nrd) {
-    logger.error('NRD service not available');
-    return;
+function cleanupCategories() {
+  categoriesViewActive = false;
+  renderGeneration++;
+  subcategoriesTrendCancelGen++;
+  if (renderDebounceTimer) {
+    clearTimeout(renderDebounceTimer);
+    renderDebounceTimer = null;
   }
-  
-  try {
-    logger.debug('Loading subcategories table');
-    // Obtener todas las transacciones usando NRD Data Access
-    const transactionsArray = await nrd.transactions.getAll();
-    const transactions = Array.isArray(transactionsArray) 
-      ? transactionsArray.reduce((acc, transaction) => {
-          if (transaction && transaction.id) {
-            acc[transaction.id] = transaction;
-          }
-          return acc;
-        }, {})
-      : transactionsArray || {};
-    
-    // Extraer descripciones únicas, contar transacciones y calcular suma de montos
-    const subcategoriesMap = {};
-    Object.entries(transactions).forEach(([id, transaction]) => {
-      if (transaction && transaction.description && transaction.description.trim()) {
-        const desc = transaction.description.trim();
-        if (!subcategoriesMap[desc]) {
-          subcategoriesMap[desc] = { 
-            count: 0, 
-            incomeCount: 0, 
-            expenseCount: 0, 
-            transactionIds: [], 
-            total: 0, 
-            lastUsedDate: 0,
-            transactions: [] // Almacenar transacciones para calcular tendencia
-          };
-        }
-        subcategoriesMap[desc].count++;
-        subcategoriesMap[desc].transactionIds.push(id);
-        // Contar por tipo de transacción
-        if (transaction.type === 'expense') {
-          subcategoriesMap[desc].expenseCount++;
-        } else if (transaction.type === 'income') {
-          subcategoriesMap[desc].incomeCount++;
-        }
-        // Sumar el monto (positivo para ingresos, negativo para egresos)
-        const amount = parseFloat(transaction.amount) || 0;
-        if (transaction.type === 'expense') {
-          subcategoriesMap[desc].total -= amount; // Egresos son negativos
-        } else {
-          subcategoriesMap[desc].total += amount; // Ingresos son positivos
-        }
-        // Rastrear la fecha más reciente de uso
-        const transactionDate = transaction.date || 0;
-        if (transactionDate > subcategoriesMap[desc].lastUsedDate) {
-          subcategoriesMap[desc].lastUsedDate = transactionDate;
-        }
-        // Almacenar transacción para calcular tendencia
-        subcategoriesMap[desc].transactions.push({
-          id: id,
-          date: transactionDate,
-          amount: amount,
-          type: transaction.type
-        });
-      }
-    });
-    
-    // Crear sección de subcategorías
-    const subcategoriesSection = document.createElement('div');
-    subcategoriesSection.className = 'mt-8 sm:mt-10 pt-6 sm:pt-8 border-t border-gray-300';
-    subcategoriesSection.innerHTML = '<h3 class="text-sm sm:text-base font-light text-gray-600 mb-4 sm:mb-6 uppercase tracking-wider">Subcategorías (Descripciones)</h3>';
-    
-    // Ordenar subcategorías por fecha de último uso (descendente - más reciente primero)
-    const subcategoriesList = Object.keys(subcategoriesMap).sort((a, b) => {
-      const dateA = subcategoriesMap[a].lastUsedDate || 0;
-      const dateB = subcategoriesMap[b].lastUsedDate || 0;
-      return dateB - dateA; // Descendente: más reciente primero
-    });
-    
-    if (subcategoriesList.length === 0) {
-      subcategoriesSection.innerHTML += '<p class="text-center text-gray-600 py-4 text-sm">No hay subcategorías registradas</p>';
-      container.appendChild(subcategoriesSection);
-      return;
-    }
-    
-    // Crear tabla
-    const table = document.createElement('div');
-    table.className = 'overflow-x-auto';
-    table.innerHTML = `
-      <table class="w-full border-collapse">
-        <thead>
-          <tr class="bg-gray-100 border-b border-gray-300">
-            <th class="text-left p-2 sm:p-3 text-xs sm:text-sm font-light text-gray-700 uppercase tracking-wider">Descripción</th>
-            <th class="text-center p-2 sm:p-3 text-xs sm:text-sm font-light text-gray-700 uppercase tracking-wider">Ingresos</th>
-            <th class="text-center p-2 sm:p-3 text-xs sm:text-sm font-light text-gray-700 uppercase tracking-wider">Egresos</th>
-            <th class="text-center p-2 sm:p-3 text-xs sm:text-sm font-light text-gray-700 uppercase tracking-wider">Total</th>
-            <th class="text-right p-2 sm:p-3 text-xs sm:text-sm font-light text-gray-700 uppercase tracking-wider">Monto Total</th>
-            <th class="text-center p-2 sm:p-3 text-xs sm:text-sm font-light text-gray-700 uppercase tracking-wider">Tendencia</th>
-            <th class="text-center p-2 sm:p-3 text-xs sm:text-sm font-light text-gray-700 uppercase tracking-wider">Acciones</th>
-          </tr>
-        </thead>
-        <tbody id="subcategories-tbody">
-        </tbody>
-      </table>
-    `;
-    
-    const tbody = table.querySelector('#subcategories-tbody');
-    
-    subcategoriesList.forEach((description) => {
-      const row = document.createElement('tr');
-      row.className = 'border-b border-gray-200 hover:bg-gray-50';
-      row.dataset.description = description;
-      
-      const data = subcategoriesMap[description];
-      
-      const descCell = document.createElement('td');
-      descCell.className = 'p-2 sm:p-3 text-sm sm:text-base font-light';
-      descCell.textContent = description;
-      
-      const incomeCountCell = document.createElement('td');
-      incomeCountCell.className = 'p-2 sm:p-3 text-sm sm:text-base font-light text-center text-green-600';
-      incomeCountCell.textContent = data.incomeCount || 0;
-      
-      const expenseCountCell = document.createElement('td');
-      expenseCountCell.className = 'p-2 sm:p-3 text-sm sm:text-base font-light text-center text-red-600';
-      expenseCountCell.textContent = data.expenseCount || 0;
-      
-      const totalCountCell = document.createElement('td');
-      totalCountCell.className = 'p-2 sm:p-3 text-sm sm:text-base font-medium text-center';
-      totalCountCell.textContent = data.count;
-      
-      const totalCell = document.createElement('td');
-      totalCell.className = 'p-2 sm:p-3 text-sm sm:text-base font-medium text-right';
-      // Usar valor absoluto para quitar el signo menos
-      const absoluteTotal = Math.abs(data.total);
-      const formattedTotal = new Intl.NumberFormat('es-UY', { 
-        style: 'currency', 
-        currency: 'UYU',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      }).format(absoluteTotal);
-      totalCell.textContent = formattedTotal;
-      
-      // Calcular y mostrar gráfico de tendencia
-      const trendCell = document.createElement('td');
-      trendCell.className = 'p-2 sm:p-3 text-center';
-      const trendGraph = calculateTrendGraph(data.transactions || [], description);
-      trendCell.innerHTML = trendGraph.svg;
-      
-      // Agregar event listener al SVG si existe
-      if (trendGraph.clickable) {
-        const svgElement = trendCell.querySelector('svg');
-        if (svgElement) {
-          svgElement.style.cursor = 'pointer';
-          svgElement.addEventListener('click', (e) => {
-            e.stopPropagation(); // Evitar que se abra el modal de transacciones de la fila
-            showTrendGraphModal(description, data.transactions || []);
-          });
-        }
-      }
-      
-      const actionsCell = document.createElement('td');
-      actionsCell.className = 'p-2 sm:p-3 text-center';
-      
-      const editBtn = document.createElement('button');
-      editBtn.className = 'edit-subcategory-btn text-blue-600 hover:text-blue-800 text-xs sm:text-sm font-light mr-2 sm:mr-4';
-      editBtn.textContent = 'Editar';
-      editBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        editSubcategory(description, data.transactionIds);
-      });
-      
-      const deleteBtn = document.createElement('button');
-      deleteBtn.className = 'delete-subcategory-btn text-red-600 hover:text-red-800 text-xs sm:text-sm font-light';
-      deleteBtn.textContent = 'Eliminar';
-      deleteBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        deleteSubcategory(description, data.transactionIds);
-      });
-      
-      actionsCell.appendChild(editBtn);
-      actionsCell.appendChild(deleteBtn);
-      
-      row.appendChild(descCell);
-      row.appendChild(incomeCountCell);
-      row.appendChild(expenseCountCell);
-      row.appendChild(totalCountCell);
-      row.appendChild(totalCell);
-      row.appendChild(trendCell);
-      row.appendChild(actionsCell);
-      
-      // Agregar cursor pointer y event listener para abrir modal de transacciones
-      row.style.cursor = 'pointer';
-      row.addEventListener('click', (e) => {
-        // No abrir modal si se hace click en los botones de acciones
-        if (e.target.closest('.edit-subcategory-btn') || e.target.closest('.delete-subcategory-btn')) {
-          return;
-        }
-        showSubcategoryTransactionsModal(description, data.transactionIds, transactions);
-      });
-      
-      tbody.appendChild(row);
-    });
-    
-    subcategoriesSection.appendChild(table);
-    container.appendChild(subcategoriesSection);
-  } catch (error) {
-    logger.error('Error loading subcategories', error);
+  if (categoriesListener) {
+    categoriesListener();
+    categoriesListener = null;
+  }
+  if (transactionsUnsubscribe) {
+    transactionsUnsubscribe();
+    transactionsUnsubscribe = null;
   }
 }
 
@@ -1156,6 +1182,7 @@ function formatDate24h(date) {
 
 // Make functions available globally
 window.loadCategories = loadCategories;
+window.cleanupCategories = cleanupCategories;
 window.hideCategoryForm = hideCategoryForm;
 window.loadCategoriesForTransaction = loadCategoriesForTransaction;
 
@@ -1680,15 +1707,7 @@ document.getElementById('delete-category-form-btn').addEventListener('click', as
     // Check if category has associated transactions
     showSpinner('Verificando transacciones...');
     try {
-      const transactionsArray = await nrd.transactions.getAll();
-      const transactions = Array.isArray(transactionsArray) 
-        ? transactionsArray.reduce((acc, transaction) => {
-            if (transaction && transaction.id) {
-              acc[transaction.id] = transaction;
-            }
-            return acc;
-          }, {})
-        : transactionsArray || {};
+      const transactions = getTransactionsDict();
       
       // Find transactions associated with this category
       const associatedTransactions = Object.entries(transactions).filter(
@@ -1751,15 +1770,11 @@ async function loadCategoriesForTransaction(type, accountId = null) {
   
   logger.debug('Loading categories for transaction form', { type, accountId });
   try {
-    const categoriesArray = await nrd.categories.getAll();
-    const categories = Array.isArray(categoriesArray) 
-      ? categoriesArray.reduce((acc, category) => {
-          if (category && category.id) {
-            acc[category.id] = category;
-          }
-          return acc;
-        }, {})
-      : categoriesArray || {};
+    let categories = getCategoriesDict();
+    if (Object.keys(categories).length === 0) {
+      await initializeCategoriesStore();
+      categories = getCategoriesDict();
+    }
     
     let categoriesList = Object.entries(categories)
       .filter(([id, category]) => category.type === type && (category.active !== false))
@@ -1768,15 +1783,7 @@ async function loadCategoriesForTransaction(type, accountId = null) {
     // Si hay una cuenta seleccionada, ordenar por último uso en esa cuenta
     if (accountId) {
       try {
-        const transactionsArray = await nrd.transactions.getAll();
-        const transactions = Array.isArray(transactionsArray) 
-          ? transactionsArray.reduce((acc, transaction) => {
-              if (transaction && transaction.id) {
-                acc[transaction.id] = transaction;
-              }
-              return acc;
-            }, {})
-          : transactionsArray || {};
+        const transactions = getTransactionsDict();
       
         // Calcular último uso de cada categoría en esta cuenta
         const categoryLastUse = {};
