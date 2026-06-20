@@ -46,6 +46,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Cross-origin: no interceptar (CDN, librerías NRD, Firebase) — evita "Failed to fetch" en SW
+  if (url.origin !== self.location.origin) {
+    return;
+  }
+
   // Nunca cachear documento principal ni version.json (evita HTML obsoleto en PWA)
   if (event.request.mode === 'navigate' ||
       url.pathname.endsWith('/index.html') ||
@@ -67,20 +72,6 @@ self.addEventListener('fetch', (event) => {
   // Skip Firebase CDN - always fetch from network
   if (event.request.url.includes('firebasejs') || event.request.url.includes('gstatic.com')) {
     event.respondWith(fetch(event.request));
-    return;
-  }
-
-  // Librerías NRD (common/datos.nrdonline.site) — siempre red
-  if ((url.hostname === 'common.nrdonline.site' || url.hostname === 'datos.nrdonline.site') &&
-      url.pathname.includes('/dist/')) {
-    event.respondWith(fetch(event.request, { cache: 'no-store' }));
-    return;
-  }
-
-  // jsDelivr legacy (por si queda caché antigua)
-  if (url.hostname === 'cdn.jsdelivr.net' &&
-      (url.pathname.includes('/nrd-common/') || url.pathname.includes('/nrd-data-access/'))) {
-    event.respondWith(fetch(event.request, { cache: 'no-store' }));
     return;
   }
 

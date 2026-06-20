@@ -9,7 +9,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <link rel="stylesheet" href="styles.css?v=1781967763966">
+  <link rel="stylesheet" href="styles.css?v=1781968007259">
   <meta name="theme-color" content="#dc2626">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="apple-touch-icon" href="icon-192.png">
@@ -1314,23 +1314,38 @@
         window.location.hostname === '127.0.0.1' ||
         window.location.hostname === '0.0.0.0';
 
-      var nrdDataAccessSrc = isLocalhost
-        ? '/nrd-data-access/dist/nrd-data-access.js'
-        : 'https://datos.nrdonline.site/dist/nrd-data-access.js';
+      var nrdDataAccessUrls = isLocalhost
+        ? ['/nrd-data-access/dist/nrd-data-access.js']
+        : [
+          'https://datos.nrdonline.site/dist/nrd-data-access.js',
+          'https://cdn.jsdelivr.net/gh/yosbany/nrd-data-access@main/dist/nrd-data-access.js'
+        ];
 
-      var nrdCommonSrc = isLocalhost
-        ? '/nrd-common/dist/nrd-common.js'
-        : 'https://common.nrdonline.site/dist/nrd-common.js';
+      var nrdCommonUrls = isLocalhost
+        ? ['/nrd-common/dist/nrd-common.js']
+        : [
+          'https://common.nrdonline.site/dist/nrd-common.js',
+          'https://cdn.jsdelivr.net/gh/yosbany/nrd-common@main/dist/nrd-common.js'
+        ];
 
-      function loadScript(src) {
+      function loadScript(urls) {
+        var list = Array.isArray(urls) ? urls : [urls];
         return new Promise(function(resolve, reject) {
-          var script = document.createElement('script');
-          script.src = src;
-          script.onload = resolve;
-          script.onerror = function() {
-            reject(new Error('Failed to load: ' + src));
-          };
-          document.head.appendChild(script);
+          function tryLoad(index) {
+            if (index >= list.length) {
+              reject(new Error('Failed to load: ' + list.join(', ')));
+              return;
+            }
+            var script = document.createElement('script');
+            script.src = list[index];
+            script.onload = resolve;
+            script.onerror = function() {
+              console.warn('Script failed, trying fallback:', list[index]);
+              tryLoad(index + 1);
+            };
+            document.head.appendChild(script);
+          }
+          tryLoad(0);
         });
       }
 
@@ -1358,12 +1373,12 @@
         showLoginFallback();
       }
 
-      console.log('Loading NRD Data Access from:', nrdDataAccessSrc);
-      loadScript(nrdDataAccessSrc)
+      console.log('Loading NRD Data Access from:', nrdDataAccessUrls[0]);
+      loadScript(nrdDataAccessUrls)
         .then(function() {
           console.log('NRD Data Access loaded successfully');
-          console.log('Loading NRD Common from:', nrdCommonSrc);
-          return loadScript(nrdCommonSrc);
+          console.log('Loading NRD Common from:', nrdCommonUrls[0]);
+          return loadScript(nrdCommonUrls);
         })
         .then(function() {
           console.log('NRD Common loaded successfully');
@@ -1406,17 +1421,17 @@
 
   
   <!-- View Modules (load with defer) -->
-  <script type="module" src="tabs/categories.js?v=1781967763966" defer></script>
-  <script type="module" src="tabs/transactions.js?v=1781967763966" defer></script>
-  <script type="module" src="tabs/cashflow.js?v=1781967763966" defer></script>
-  <script type="module" src="tabs/accounts.js?v=1781967763966" defer></script>
+  <script type="module" src="tabs/categories.js?v=1781968007259" defer></script>
+  <script type="module" src="tabs/transactions.js?v=1781968007259" defer></script>
+  <script type="module" src="tabs/cashflow.js?v=1781968007259" defer></script>
+  <script type="module" src="tabs/accounts.js?v=1781968007259" defer></script>
   <script type="module" src="tabs/budget.js" defer></script>
   <script type="module" src="tabs/forecasting.js" defer></script>
   <script type="module" src="tabs/alerts.js" defer></script>
   
   <!-- Main App (load last with defer) -->
   <!-- Note: AuthService and NavigationService are now loaded from NRDCommon CDN -->
-  <script type="module" src="app.js?v=1781967763966" defer></script>
+  <script type="module" src="app.js?v=1781968007259" defer></script>
 
   <script>
     // Global error handler for script loading errors
@@ -1457,7 +1472,7 @@
     // Register service worker with update check
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('service-worker.js?v=1781967763966')
+        navigator.serviceWorker.register('service-worker.js?v=1781968007259')
           .then(reg => {
             console.log('Service Worker registered');
             // Force update check
