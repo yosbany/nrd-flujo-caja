@@ -1407,7 +1407,7 @@
           }
         }
       }, 100);
-    })({ appName: 'NRD Flujo de Caja' });
+    })({ appName: 'NRD Flujo de Caja', legacyNrdAlias: true });
   </script>
   
   <!-- NRD Data Access Library Initialization -->
@@ -1427,26 +1427,6 @@
   <!-- Main App (load last with defer) -->
   <!-- Note: AuthService and NavigationService are now loaded from NRDCommon CDN -->
   <script type="module" src="app.js?v=1780057171955" defer></script>
-  
-  <!-- Application Initialization - Waits for all modules to load -->
-  <script>
-    // Wait for NRDCommon to be available, then initialize application
-    (function() {
-      const maxWait = 10000;
-      const startTime = Date.now();
-      
-      const checkAndInit = setInterval(() => {
-        if (typeof window.NRDCommon !== 'undefined' && window.NRDCommon.initializeApplication) {
-          clearInterval(checkAndInit);
-          // Start initialization
-          window.NRDCommon.initializeApplication();
-        } else if (Date.now() - startTime >= maxWait) {
-          clearInterval(checkAndInit);
-          console.error('NRD Common Library not available for application initialization');
-        }
-      }, 100);
-    })();
-  </script>
 
   <script>
     // Global error handler for script loading errors
