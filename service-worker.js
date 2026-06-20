@@ -70,7 +70,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // CDN de librerías NRD — siempre red (jsDelivr puede cachear @main obsoleto)
+  // Librerías NRD (common/datos.nrdonline.site) — siempre red
+  if ((url.hostname === 'common.nrdonline.site' || url.hostname === 'datos.nrdonline.site') &&
+      url.pathname.includes('/dist/')) {
+    event.respondWith(fetch(event.request, { cache: 'no-store' }));
+    return;
+  }
+
+  // jsDelivr legacy (por si queda caché antigua)
   if (url.hostname === 'cdn.jsdelivr.net' &&
       (url.pathname.includes('/nrd-common/') || url.pathname.includes('/nrd-data-access/'))) {
     event.respondWith(fetch(event.request, { cache: 'no-store' }));
