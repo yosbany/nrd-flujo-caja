@@ -6,10 +6,22 @@
   <meta name="description" content="Sistema de control de flujo de caja">
   <title>NRD Flujo de Caja</title>
   <link rel="manifest" href="manifest.json">
+  <script>
+    (function() {
+      if (console.warn) {
+        var originalWarn = console.warn;
+        console.warn = function() {
+          var msg = arguments[0];
+          if (typeof msg === 'string' && msg.indexOf('cdn.tailwindcss.com') !== -1) return;
+          return originalWarn.apply(console, arguments);
+        };
+      }
+    })();
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <link rel="stylesheet" href="styles.css?v=1781968087833">
+  <link rel="stylesheet" href="styles.css?v=1781979493883">
   <meta name="theme-color" content="#dc2626">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="apple-touch-icon" href="icon-192.png">
@@ -1305,23 +1317,6 @@
     </div>
   </div>
 
-  <!-- Suppress Tailwind CDN production warning -->
-  <script>
-    (function() {
-      if (console.warn) {
-        const originalWarn = console.warn;
-        console.warn = function(...args) {
-          if (args[0] && typeof args[0] === 'string' && 
-              (args[0].includes('cdn.tailwindcss.com should not be used in production') ||
-               args[0].includes('cdn.tailwindcss.com'))) {
-            return;
-          }
-          originalWarn.apply(console, args);
-        };
-      }
-    })();
-  </script>
-  
   <!-- Ensure a global logger exists early so libraries can reference it safely -->
   <script>
     window.logger = window.logger || console;
@@ -1337,14 +1332,14 @@
       var nrdDataAccessUrls = isLocalhost
         ? ['/nrd-data-access/dist/nrd-data-access.js']
         : [
-          'https://datos.nrdonline.site/dist/nrd-data-access.js',
+          'https://cdn.jsdelivr.net/gh/yosbany/nrd-data-access@main/dist/nrd-data-access.js',
           'https://cdn.jsdelivr.net/gh/yosbany/nrd-data-access@main/dist/nrd-data-access.js'
         ];
 
       var nrdCommonUrls = isLocalhost
         ? ['/nrd-common/dist/nrd-common.js']
         : [
-          'https://common.nrdonline.site/dist/nrd-common.js',
+          'https://cdn.jsdelivr.net/gh/yosbany/nrd-common@main/dist/nrd-common.js',
           'https://cdn.jsdelivr.net/gh/yosbany/nrd-common@main/dist/nrd-common.js'
         ];
 
@@ -1358,10 +1353,17 @@
             }
             var script = document.createElement('script');
             script.src = list[index];
+            script.setAttribute('data-nrd-lib-loader', '1');
+            if (index === list.length - 1) {
+              script.setAttribute('data-nrd-lib-final', '1');
+            }
             script.onload = resolve;
             script.onerror = function() {
-              console.warn('Script failed, trying fallback:', list[index]);
-              tryLoad(index + 1);
+              if (index + 1 < list.length) {
+                tryLoad(index + 1);
+              } else {
+                reject(new Error('Failed to load: ' + list.join(', ')));
+              }
             };
             document.head.appendChild(script);
           }
@@ -1441,23 +1443,27 @@
 
   
   <!-- View Modules (load with defer) -->
-  <script type="module" src="tabs/categories.js?v=1781968087833" defer></script>
-  <script type="module" src="tabs/transactions.js?v=1781968087833" defer></script>
-  <script type="module" src="tabs/cashflow.js?v=1781968087833" defer></script>
-  <script type="module" src="tabs/accounts.js?v=1781968087833" defer></script>
+  <script type="module" src="tabs/categories.js?v=1781979493883" defer></script>
+  <script type="module" src="tabs/transactions.js?v=1781979493883" defer></script>
+  <script type="module" src="tabs/cashflow.js?v=1781979493883" defer></script>
+  <script type="module" src="tabs/accounts.js?v=1781979493883" defer></script>
   <script type="module" src="tabs/budget.js" defer></script>
   <script type="module" src="tabs/forecasting.js" defer></script>
   <script type="module" src="tabs/alerts.js" defer></script>
   
   <!-- Main App (load last with defer) -->
   <!-- Note: AuthService and NavigationService are now loaded from NRDCommon CDN -->
-  <script type="module" src="app.js?v=1781968087833" defer></script>
+  <script type="module" src="app.js?v=1781979493883" defer></script>
 
   <script>
     // Global error handler for script loading errors
     window.addEventListener('error', (event) => {
       // Only handle script loading errors
       if (event.target && event.target.tagName === 'SCRIPT') {
+        if (event.target.getAttribute('data-nrd-lib-loader') &&
+            !event.target.getAttribute('data-nrd-lib-final')) {
+          return;
+        }
         console.error('Script loading error:', event.target.src, event.error);
         const errorMsg = document.createElement('div');
         errorMsg.className = 'fixed top-20 left-0 right-0 bg-red-600 text-white p-4 z-50 text-center';
@@ -1492,7 +1498,7 @@
     // Register service worker with update check
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('service-worker.js?v=1781968087833')
+        navigator.serviceWorker.register('service-worker.js?v=1781979493883')
           .then(reg => {
             console.log('Service Worker registered');
             // Force update check
