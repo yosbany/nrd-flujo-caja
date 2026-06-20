@@ -9,7 +9,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <link rel="stylesheet" href="styles.css?v=1781966192742">
+  <link rel="stylesheet" href="styles.css?v=1781967493062">
   <meta name="theme-color" content="#dc2626">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="apple-touch-icon" href="icon-192.png">
@@ -1406,17 +1406,17 @@
 
   
   <!-- View Modules (load with defer) -->
-  <script type="module" src="tabs/categories.js?v=1781966192742" defer></script>
-  <script type="module" src="tabs/transactions.js?v=1781966192742" defer></script>
-  <script type="module" src="tabs/cashflow.js?v=1781966192742" defer></script>
-  <script type="module" src="tabs/accounts.js?v=1781966192742" defer></script>
+  <script type="module" src="tabs/categories.js?v=1781967493062" defer></script>
+  <script type="module" src="tabs/transactions.js?v=1781967493062" defer></script>
+  <script type="module" src="tabs/cashflow.js?v=1781967493062" defer></script>
+  <script type="module" src="tabs/accounts.js?v=1781967493062" defer></script>
   <script type="module" src="tabs/budget.js" defer></script>
   <script type="module" src="tabs/forecasting.js" defer></script>
   <script type="module" src="tabs/alerts.js" defer></script>
   
   <!-- Main App (load last with defer) -->
   <!-- Note: AuthService and NavigationService are now loaded from NRDCommon CDN -->
-  <script type="module" src="app.js?v=1781966192742" defer></script>
+  <script type="module" src="app.js?v=1781967493062" defer></script>
 
   <script>
     // Global error handler for script loading errors
@@ -1457,7 +1457,7 @@
     // Register service worker with update check
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('service-worker.js?v=1781966192742')
+        navigator.serviceWorker.register('service-worker.js?v=1781967493062')
           .then(reg => {
             console.log('Service Worker registered');
             // Force update check
