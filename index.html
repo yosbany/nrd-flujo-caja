@@ -9,7 +9,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <link rel="stylesheet" href="styles.css?v=1781965706941">
+  <link rel="stylesheet" href="styles.css?v=1781966015989">
   <meta name="theme-color" content="#dc2626">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="apple-touch-icon" href="icon-192.png">
@@ -1318,9 +1318,10 @@
         ? '/nrd-data-access/dist/nrd-data-access.js'
         : 'https://cdn.jsdelivr.net/gh/yosbany/nrd-data-access@main/dist/nrd-data-access.js';
 
+      // Pin a commit: jsDelivr @main puede quedar cacheado sin initializeAppAuth
       var nrdCommonSrc = isLocalhost
         ? '/nrd-common/dist/nrd-common.js'
-        : 'https://cdn.jsdelivr.net/gh/yosbany/nrd-common@main/dist/nrd-common.js';
+        : 'https://cdn.jsdelivr.net/gh/yosbany/nrd-common@c911bdf70229144ae2eca1091b3fccd8c68ab03b/dist/nrd-common.js';
 
       function loadScript(src) {
         return new Promise(function(resolve, reject) {
@@ -1345,18 +1346,17 @@
         if (loginScreen) loginScreen.classList.remove('hidden');
       }
 
-      function startAuthInit() {
-        var start = Date.now();
-        var timer = setInterval(function() {
-          if (window.NRDDataAccess && window.NRDCommon && window.NRDCommon.initializeAppAuth) {
-            clearInterval(timer);
-            window.NRDCommon.initializeAppAuth(cfg);
-          } else if (Date.now() - start > 15000) {
-            clearInterval(timer);
-            console.error('NRD libraries not ready after timeout');
-            showLoginFallback();
-          }
-        }, 50);
+      function initAppAuth() {
+        if (window.NRDDataAccess && window.NRDCommon && window.NRDCommon.initializeAppAuth) {
+          window.NRDCommon.initializeAppAuth(cfg);
+          return;
+        }
+        console.error('NRD globals missing after script load', {
+          NRDDataAccess: !!window.NRDDataAccess,
+          NRDCommon: !!window.NRDCommon,
+          initializeAppAuth: !!(window.NRDCommon && window.NRDCommon.initializeAppAuth)
+        });
+        showLoginFallback();
       }
 
       console.log('Loading NRD Data Access from:', nrdDataAccessSrc);
@@ -1368,7 +1368,7 @@
         })
         .then(function() {
           console.log('NRD Common loaded successfully');
-          startAuthInit();
+          initAppAuth();
         })
         .catch(function(error) {
           console.error(error);
@@ -1407,17 +1407,17 @@
 
   
   <!-- View Modules (load with defer) -->
-  <script type="module" src="tabs/categories.js?v=1781965706941" defer></script>
-  <script type="module" src="tabs/transactions.js?v=1781965706941" defer></script>
-  <script type="module" src="tabs/cashflow.js?v=1781965706941" defer></script>
-  <script type="module" src="tabs/accounts.js?v=1781965706941" defer></script>
+  <script type="module" src="tabs/categories.js?v=1781966015989" defer></script>
+  <script type="module" src="tabs/transactions.js?v=1781966015989" defer></script>
+  <script type="module" src="tabs/cashflow.js?v=1781966015989" defer></script>
+  <script type="module" src="tabs/accounts.js?v=1781966015989" defer></script>
   <script type="module" src="tabs/budget.js" defer></script>
   <script type="module" src="tabs/forecasting.js" defer></script>
   <script type="module" src="tabs/alerts.js" defer></script>
   
   <!-- Main App (load last with defer) -->
   <!-- Note: AuthService and NavigationService are now loaded from NRDCommon CDN -->
-  <script type="module" src="app.js?v=1781965706941" defer></script>
+  <script type="module" src="app.js?v=1781966015989" defer></script>
 
   <script>
     // Global error handler for script loading errors
@@ -1458,7 +1458,7 @@
     // Register service worker with update check
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('service-worker.js?v=1781965706941')
+        navigator.serviceWorker.register('service-worker.js?v=1781966015989')
           .then(reg => {
             console.log('Service Worker registered');
             // Force update check
