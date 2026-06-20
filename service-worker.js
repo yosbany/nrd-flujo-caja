@@ -46,6 +46,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Nunca cachear documento principal ni version.json (evita HTML obsoleto en PWA)
+  if (event.request.mode === 'navigate' ||
+      url.pathname.endsWith('/index.html') ||
+      url.pathname.endsWith('version.json')) {
+    event.respondWith(
+      fetch(event.request, { cache: 'no-store' }).catch(function() {
+        return caches.match(BASE_PATH + 'index.html');
+      })
+    );
+    return;
+  }
+
   // Skip service worker file itself - always fetch from network
   if (event.request.url.includes('service-worker.js')) {
     event.respondWith(fetch(event.request));
@@ -55,6 +67,13 @@ self.addEventListener('fetch', (event) => {
   // Skip Firebase CDN - always fetch from network
   if (event.request.url.includes('firebasejs') || event.request.url.includes('gstatic.com')) {
     event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // CDN de librerías NRD — siempre red (jsDelivr puede cachear @main obsoleto)
+  if (url.hostname === 'cdn.jsdelivr.net' &&
+      (url.pathname.includes('/nrd-common/') || url.pathname.includes('/nrd-data-access/'))) {
+    event.respondWith(fetch(event.request, { cache: 'no-store' }));
     return;
   }
 
