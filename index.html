@@ -9,7 +9,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <link rel="stylesheet" href="styles.css?v=1780057171955">
+  <link rel="stylesheet" href="styles.css?v=1781965706941">
   <meta name="theme-color" content="#dc2626">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="apple-touch-icon" href="icon-192.png">
@@ -1307,56 +1307,74 @@
     window.logger = window.logger || console;
   </script>
   
-  <!-- NRD Data Access Library (load synchronously, no defer) -->
-  <!-- Use local files in development (localhost/127.0.0.1), CDN in production -->
+  <!-- NRD libraries: Data Access → Common (secuencial), luego initializeAppAuth -->
   <script>
-    (function() {
-      const isLocalhost = window.location.hostname === 'localhost' || 
-                         window.location.hostname === '127.0.0.1' ||
-                         window.location.hostname === '0.0.0.0';
-      
-      const nrdDataAccessSrc = isLocalhost 
+    (function(cfg) {
+      var isLocalhost = window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1' ||
+        window.location.hostname === '0.0.0.0';
+
+      var nrdDataAccessSrc = isLocalhost
         ? '/nrd-data-access/dist/nrd-data-access.js'
         : 'https://cdn.jsdelivr.net/gh/yosbany/nrd-data-access@main/dist/nrd-data-access.js';
-      
-      console.log('Loading NRD Data Access from:', nrdDataAccessSrc);
-      
-      const script1 = document.createElement('script');
-      script1.src = nrdDataAccessSrc;
-      script1.onerror = function() {
-        console.error('Failed to load NRD Data Access from:', nrdDataAccessSrc);
-      };
-      script1.onload = function() {
-        console.log('NRD Data Access loaded successfully');
-      };
-      document.head.appendChild(script1);
-    })();
-  </script>
-  
-  <!-- NRD Common Library (load synchronously, no defer) -->
-  <!-- Use local files in development (localhost/127.0.0.1), CDN in production -->
-  <script>
-    (function() {
-      const isLocalhost = window.location.hostname === 'localhost' || 
-                         window.location.hostname === '127.0.0.1' ||
-                         window.location.hostname === '0.0.0.0';
-      
-      const nrdCommonSrc = isLocalhost 
+
+      var nrdCommonSrc = isLocalhost
         ? '/nrd-common/dist/nrd-common.js'
         : 'https://cdn.jsdelivr.net/gh/yosbany/nrd-common@main/dist/nrd-common.js';
-      
-      console.log('Loading NRD Common from:', nrdCommonSrc);
-      
-      const script2 = document.createElement('script');
-      script2.src = nrdCommonSrc;
-      script2.onerror = function() {
-        console.error('Failed to load NRD Common from:', nrdCommonSrc);
-      };
-      script2.onload = function() {
-        console.log('NRD Common loaded successfully');
-      };
-      document.head.appendChild(script2);
-    })();
+
+      function loadScript(src) {
+        return new Promise(function(resolve, reject) {
+          var script = document.createElement('script');
+          script.src = src;
+          script.onload = resolve;
+          script.onerror = function() {
+            reject(new Error('Failed to load: ' + src));
+          };
+          document.head.appendChild(script);
+        });
+      }
+
+      function showLoginFallback() {
+        if (window.NRDCommon && window.NRDCommon.showLoginFallback) {
+          window.NRDCommon.showLoginFallback();
+          return;
+        }
+        var loginScreen = document.getElementById('login-screen');
+        var redirectingScreen = document.getElementById('redirecting-screen');
+        if (redirectingScreen) redirectingScreen.classList.add('hidden');
+        if (loginScreen) loginScreen.classList.remove('hidden');
+      }
+
+      function startAuthInit() {
+        var start = Date.now();
+        var timer = setInterval(function() {
+          if (window.NRDDataAccess && window.NRDCommon && window.NRDCommon.initializeAppAuth) {
+            clearInterval(timer);
+            window.NRDCommon.initializeAppAuth(cfg);
+          } else if (Date.now() - start > 15000) {
+            clearInterval(timer);
+            console.error('NRD libraries not ready after timeout');
+            showLoginFallback();
+          }
+        }, 50);
+      }
+
+      console.log('Loading NRD Data Access from:', nrdDataAccessSrc);
+      loadScript(nrdDataAccessSrc)
+        .then(function() {
+          console.log('NRD Data Access loaded successfully');
+          console.log('Loading NRD Common from:', nrdCommonSrc);
+          return loadScript(nrdCommonSrc);
+        })
+        .then(function() {
+          console.log('NRD Common loaded successfully');
+          startAuthInit();
+        })
+        .catch(function(error) {
+          console.error(error);
+          showLoginFallback();
+        });
+    })({ appName: 'NRD Flujo de Caja', legacyNrdAlias: true });
   </script>
   
   <!-- jsPDF for PDF generation -->
@@ -1387,46 +1405,19 @@
     })();
   </script>
 
-  <!-- NRD Common Library Initialization -->
-  <script>
-    (function(cfg) {
-      var start = Date.now();
-      var timer = setInterval(function() {
-        if (window.NRDCommon && window.NRDCommon.initializeAppAuth) {
-          clearInterval(timer);
-          window.NRDCommon.initializeAppAuth(cfg);
-        } else if (Date.now() - start > 10000) {
-          clearInterval(timer);
-          if (window.NRDCommon && window.NRDCommon.showLoginFallback) {
-            window.NRDCommon.showLoginFallback();
-          } else {
-            var ls = document.getElementById('login-screen');
-            var rs = document.getElementById('redirecting-screen');
-            if (rs) rs.classList.add('hidden');
-            if (ls) ls.classList.remove('hidden');
-          }
-        }
-      }, 100);
-    })({ appName: 'NRD Flujo de Caja', legacyNrdAlias: true });
-  </script>
-  
-  <!-- NRD Data Access Library Initialization -->
-  <!-- IMPORTANT: All modules MUST use window.nrd (NRD Data Access Library) -->
-  <!-- DO NOT access firebase directly in any module - use nrd.accounts, nrd.transactions, nrd.auth, etc. -->
-  <!-- Firebase is initialized internally by NRD Data Access Library -->
   
   <!-- View Modules (load with defer) -->
-  <script type="module" src="tabs/categories.js?v=1780057171955" defer></script>
-  <script type="module" src="tabs/transactions.js?v=1780057171955" defer></script>
-  <script type="module" src="tabs/cashflow.js?v=1780057171955" defer></script>
-  <script type="module" src="tabs/accounts.js?v=1780057171955" defer></script>
+  <script type="module" src="tabs/categories.js?v=1781965706941" defer></script>
+  <script type="module" src="tabs/transactions.js?v=1781965706941" defer></script>
+  <script type="module" src="tabs/cashflow.js?v=1781965706941" defer></script>
+  <script type="module" src="tabs/accounts.js?v=1781965706941" defer></script>
   <script type="module" src="tabs/budget.js" defer></script>
   <script type="module" src="tabs/forecasting.js" defer></script>
   <script type="module" src="tabs/alerts.js" defer></script>
   
   <!-- Main App (load last with defer) -->
   <!-- Note: AuthService and NavigationService are now loaded from NRDCommon CDN -->
-  <script type="module" src="app.js?v=1780057171955" defer></script>
+  <script type="module" src="app.js?v=1781965706941" defer></script>
 
   <script>
     // Global error handler for script loading errors
@@ -1467,7 +1458,7 @@
     // Register service worker with update check
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('service-worker.js?v=1780057171955')
+        navigator.serviceWorker.register('service-worker.js?v=1781965706941')
           .then(reg => {
             console.log('Service Worker registered');
             // Force update check
